@@ -17,6 +17,7 @@ internal sealed class EditorSession : IDisposable
     public const string AppTitle = "Standalone UI Builder";
 
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan DialogTimeout = TimeSpan.FromSeconds(45);
 
     private readonly UIA3Automation automation = new();
     private Window? window;
@@ -181,14 +182,18 @@ internal sealed class EditorSession : IDisposable
         return null;
     }, $"dialog button \"{name}\"");
 
-    public Window Dialog() => WaitFor(() => Window.ModalWindows.FirstOrDefault(), "a dialog");
+    /// <summary>
+    /// The editor's open dialog. The first Windows file or folder dialog of a run loads shell
+    /// components and can take well over the usual wait on a busy machine, so it gets longer.
+    /// </summary>
+    public Window Dialog() => WaitFor(() => Window.ModalWindows.FirstOrDefault(), "a dialog", DialogTimeout);
 
     public void Screenshot(string name) => Capture.Element(Window).ToFile(Path.Combine(ArtifactsDirectory, name + ".png"));
 
-    public static T WaitFor<T>(Func<T?> find, string what)
+    public static T WaitFor<T>(Func<T?> find, string what, TimeSpan? timeout = null)
         where T : class
     {
-        var result = Retry.WhileNull(find, Timeout, TimeSpan.FromMilliseconds(200));
+        var result = Retry.WhileNull(find, timeout ?? Timeout, TimeSpan.FromMilliseconds(200));
         if (result.Result is null)
         {
             CaptureFailure();
