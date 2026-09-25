@@ -101,8 +101,4 @@ public static class AnchorLayout
             AxisAlignment.End => (available - endMargin - designSize, designSize),
             _ => (startMargin, designSize),
         };
-
-    private static int Right(this ControlDocument control) => control.X + control.Width;
-
-    private static int Bottom(this ControlDocument control) => control.Y + control.Height;
 }

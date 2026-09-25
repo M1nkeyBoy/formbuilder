@@ -20,6 +20,12 @@ choices are recorded in `docs/decisions.md`.
   edges it follows when the window is resized: anchored to Right it moves with the right
   edge, anchored to Left and Right it stretches. Dashed lines show the anchors of the
   selected control. In Preview, drag the corner grip to try them.
+- **Work with several controls.** Ctrl+click, or drag a box across empty canvas, to select
+  several controls; drag, nudge (arrow keys, Shift for a grid step), copy, cut, paste,
+  duplicate (Ctrl+D) or delete them together. Ctrl+A selects all. Edit > Bring to Front
+  (Ctrl+]) and Send to Back (Ctrl+[) change which control is drawn on top.
+- **Screen size.** With nothing selected, the Properties panel sets the design's width and
+  height.
 - **Undo and redo.** Ctrl+Z and Ctrl+Y cover adding, deleting, moving, resizing and property
   changes. A whole drag is one step.
 - **Preview.** Switch to Preview (bottom left, or View > Preview) to try the controls. Type
@@ -112,9 +118,9 @@ tests use this so they never touch your own drafts.
 
 ## Known limitations
 
-- One screen per project, with a fixed 800 × 600 size; there is no UI to change it yet.
-- Only the five built-in controls. No containers, layout panels, z-order commands, multiple
-  selection, copy/paste or keyboard nudging.
+- One screen per project.
+- Only the five built-in controls. Copy and paste stay within the editor rather than using
+  the system clipboard.
 - Layout is absolute positions plus anchors. There are no nested containers (stacks, grids)
   yet, which richer responsive layouts for WinUI, MAUI or Blazor would need.
 - Output is WPF and WinForms. It covers layout and one event hook per control; there is no

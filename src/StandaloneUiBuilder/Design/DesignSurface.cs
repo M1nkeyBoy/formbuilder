@@ -70,18 +70,36 @@ internal sealed class DesignSurface : Grid
         IsHitTestVisible = false,
     };
 
+    // Selection box drawn while dragging across blank canvas.
+    private readonly Rectangle selectionBand = new()
+    {
+        Stroke = SelectionBrush,
+        StrokeThickness = 1,
+        StrokeDashArray = [4, 2],
+        Fill = CreateFrozenBrush(Color.FromArgb(0x18, 0x1E, 0x6F, 0xE0)),
+        IsHitTestVisible = false,
+        Visibility = Visibility.Collapsed,
+    };
+
+    private readonly List<Rectangle> extraOutlines = [];
     private readonly List<Border> handles = [];
     private readonly Dictionary<Guid, Border> hosts = [];
     private ScreenDocument screen = new();
-    private Guid? selectedId;
+    private List<Guid> selection = [];
     private bool isPreview;
 
     private DragMode dragMode;
     private Guid dragId;
+    private ModifierKeys dragModifiers;
     private Point dragOrigin;
+    private Point dragPoint;
     private ControlBounds dragStart;
     private ControlBounds dragCurrent;
     private ResizeEdges dragEdges;
+
+    // Group move: every selected control's starting bounds, and the offset applied so far.
+    private Dictionary<Guid, ControlBounds> groupStarts = [];
+    private (int X, int Y) groupOffset;
 
     public DesignSurface()
     {
@@ -97,6 +115,7 @@ internal sealed class DesignSurface : Grid
         RequestBringIntoView += (_, e) => e.Handled = e.TargetObject == this;
 
         adornerLayer.Children.Add(selectionOutline);
+        adornerLayer.Children.Add(selectionBand);
         foreach (var (edges, cursor) in HandleLayout)
         {
             var handle = new Border
@@ -150,18 +169,32 @@ internal sealed class DesignSurface : Grid
         Pending,
         Move,
         Resize,
+        BandPending,
+        Band,
     }
 
-    /// <summary>The user clicked a control.</summary>
-    public event EventHandler<Guid>? ControlClicked;
+    /// <summary>The user pressed the mouse on a control (with any modifier keys held).</summary>
+    public event EventHandler<ControlClickEventArgs>? ControlClicked;
+
+    /// <summary>The user clicked a control and released without dragging it.</summary>
+    public event EventHandler<ControlClickEventArgs>? ControlClickCompleted;
 
     /// <summary>The user clicked blank canvas at a point in design coordinates.</summary>
     public event EventHandler<Point>? BlankClicked;
 
+    /// <summary>The user dragged a selection box across the canvas.</summary>
+    public event EventHandler<BandSelectedEventArgs>? BandSelected;
+
+    /// <summary>A drag moved the selected controls by an offset.</summary>
+    public event EventHandler<MoveCommittedEventArgs>? MoveCommitted;
+
+    /// <summary>An arrow key asked to move the selection by an offset.</summary>
+    public event EventHandler<MoveCommittedEventArgs>? NudgeRequested;
+
     /// <summary>A toolbox item was dropped on the surface at a point in design coordinates.</summary>
     public event EventHandler<ControlDropEventArgs>? ControlDropped;
 
-    /// <summary>A move or resize finished with new bounds for a control.</summary>
+    /// <summary>A resize finished with new bounds for a control.</summary>
     public event EventHandler<BoundsChangedEventArgs>? BoundsCommitted;
 
     /// <summary>A move or resize is in progress; for live feedback such as the status bar.</summary>
@@ -171,7 +204,7 @@ internal sealed class DesignSurface : Grid
     /// Rebuilds the surface from the document. In Preview the grid and selection are hidden
     /// and the controls respond to input; their state is thrown away on the next render.
     /// </summary>
-    public void Render(ScreenDocument screen, Guid? selectedId, bool isPreview = false, Action<ControlDocument>? buttonClicked = null)
+    public void Render(ScreenDocument screen, IReadOnlyCollection<Guid> selection, bool isPreview = false, Action<ControlDocument>? buttonClicked = null)
     {
         CancelDrag();
 
@@ -195,14 +228,17 @@ internal sealed class DesignSurface : Grid
             (isPreview ? previewLayer.Children : controlsLayer.Children).Add(host);
         }
 
-        SetSelection(selectedId);
+        SetSelection(selection);
     }
 
-    public void SetSelection(Guid? id)
+    /// <summary>Shows a selection. With one control, it also gets resize handles and anchor lines.</summary>
+    public void SetSelection(IReadOnlyCollection<Guid> ids)
     {
-        selectedId = id is { } value && hosts.ContainsKey(value) ? value : null;
+        selection = ids.Where(hosts.ContainsKey).ToList();
         UpdateAdorners();
     }
+
+    private Guid? SingleSelection => selection.Count == 1 ? selection[0] : null;
 
     private Border CreateDesignHost(ControlDocument control)
     {
@@ -272,13 +308,45 @@ internal sealed class DesignSurface : Grid
         host.Height = element.Height = bounds.Height;
     }
 
-    private ControlBounds? SelectedBounds() =>
-        selectedId is not { } id ? null
-        : dragMode is DragMode.Move or DragMode.Resize && dragId == id ? dragCurrent
-        : screen.Controls.Find(c => c.Id == id)?.Bounds;
+    /// <summary>Where a control is drawn right now, including an unfinished drag.</summary>
+    private ControlBounds? CurrentBounds(Guid id)
+    {
+        if (dragMode == DragMode.Resize && dragId == id)
+        {
+            return dragCurrent;
+        }
+
+        if (dragMode == DragMode.Move && groupStarts.TryGetValue(id, out var start))
+        {
+            return start with { X = start.X + groupOffset.X, Y = start.Y + groupOffset.Y };
+        }
+
+        return screen.Controls.Find(c => c.Id == id)?.Bounds;
+    }
+
+    private ControlBounds? SelectedBounds() => SingleSelection is { } id ? CurrentBounds(id) : null;
 
     private void UpdateAdorners()
     {
+        // Several selected controls: an outline each, no handles.
+        var multi = selection.Count > 1 ? selection.Select(CurrentBounds).OfType<ControlBounds>().ToList() : [];
+        while (extraOutlines.Count < multi.Count)
+        {
+            var outline = new Rectangle { Stroke = SelectionBrush, StrokeThickness = 1, IsHitTestVisible = false };
+            extraOutlines.Add(outline);
+            adornerLayer.Children.Add(outline);
+        }
+
+        for (var i = 0; i < extraOutlines.Count; i++)
+        {
+            var outline = extraOutlines[i];
+            outline.Visibility = i < multi.Count ? Visibility.Visible : Visibility.Collapsed;
+            if (i < multi.Count)
+            {
+                PlaceOutline(outline, multi[i]);
+            }
+        }
+
         var visibility = SelectedBounds() is null ? Visibility.Collapsed : Visibility.Visible;
         selectionOutline.Visibility = visibility;
         foreach (var handle in handles)
@@ -297,7 +365,7 @@ internal sealed class DesignSurface : Grid
         }
 
         // Dashed lines from the control to each screen edge it is anchored to.
-        var anchor = screen.Controls.Find(c => c.Id == selectedId)?.Anchor ?? AnchorEdges.Default;
+        var anchor = screen.Controls.Find(c => c.Id == SingleSelection)?.Anchor ?? AnchorEdges.Default;
         var midX = bounds.X + bounds.Width / 2.0;
         var midY = bounds.Y + bounds.Height / 2.0;
         SetAnchorLine(AnchorEdges.Left, anchor, 0, midY, bounds.X, midY);
@@ -305,11 +373,7 @@ internal sealed class DesignSurface : Grid
         SetAnchorLine(AnchorEdges.Top, anchor, midX, 0, midX, bounds.Y);
         SetAnchorLine(AnchorEdges.Bottom, anchor, midX, bounds.Bottom, midX, screen.Height);
 
-        // The outline sits just outside the control so it does not cover its edges.
-        selectionOutline.Width = bounds.Width + 2;
-        selectionOutline.Height = bounds.Height + 2;
-        Canvas.SetLeft(selectionOutline, bounds.X - 1);
-        Canvas.SetTop(selectionOutline, bounds.Y - 1);
+        PlaceOutline(selectionOutline, bounds);
 
         foreach (var handle in handles)
         {
@@ -330,6 +394,15 @@ internal sealed class DesignSurface : Grid
             Canvas.SetLeft(handle, x - HandleHitSize / 2);
             Canvas.SetTop(handle, y - HandleHitSize / 2);
         }
+    }
+
+    // The outline sits just outside the control so it does not cover its edges.
+    private static void PlaceOutline(Rectangle outline, ControlBounds bounds)
+    {
+        outline.Width = bounds.Width + 2;
+        outline.Height = bounds.Height + 2;
+        Canvas.SetLeft(outline, bounds.X - 1);
+        Canvas.SetTop(outline, bounds.Y - 1);
     }
 
     private void SetAnchorLine(AnchorEdges edge, AnchorEdges anchor, double x1, double y1, double x2, double y2)
@@ -353,60 +426,80 @@ internal sealed class DesignSurface : Grid
 
         Focus();
         e.Handled = true;
+        dragModifiers = Keyboard.Modifiers;
 
         var source = e.OriginalSource as DependencyObject;
-        if (FindAncestor(source, b => b.Tag is ResizeEdges) is { } handle && selectedId is { } selected
+        if (FindAncestor(source, b => b.Tag is ResizeEdges) is { } handle && SingleSelection is { } selected
             && screen.Controls.Find(c => c.Id == selected) is { } control)
         {
-            BeginDrag(DragMode.Resize, control, e);
+            BeginDrag(DragMode.Resize, control.Id, e);
+            dragStart = dragCurrent = control.Bounds;
             dragEdges = (ResizeEdges)handle.Tag;
             return;
         }
 
         if (FindAncestor(source, b => b.Tag is Guid && b.Parent == controlsLayer)?.Tag is Guid id)
         {
-            ControlClicked?.Invoke(this, id);
-            if (screen.Controls.Find(c => c.Id == id) is { } clicked)
+            // The window updates the selection first; a drag then moves whatever is selected.
+            ControlClicked?.Invoke(this, new ControlClickEventArgs(id, dragModifiers));
+            if (selection.Contains(id))
             {
-                BeginDrag(DragMode.Pending, clicked, e);
+                BeginDrag(DragMode.Pending, id, e);
             }
 
             return;
         }
 
-        BlankClicked?.Invoke(this, e.GetPosition(controlsLayer));
+        BeginDrag(DragMode.BandPending, Guid.Empty, e);
     }
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
         base.OnMouseMove(e);
-        if (dragMode == DragMode.None || !hosts.TryGetValue(dragId, out var host))
+        if (dragMode == DragMode.None)
         {
             return;
         }
 
-        var delta = e.GetPosition(controlsLayer) - dragOrigin;
-        if (dragMode == DragMode.Pending)
-        {
-            if (Math.Abs(delta.X) < SystemParameters.MinimumHorizontalDragDistance
-                && Math.Abs(delta.Y) < SystemParameters.MinimumVerticalDragDistance)
-            {
-                return;
-            }
+        dragPoint = e.GetPosition(controlsLayer);
+        var delta = dragPoint - dragOrigin;
+        var moved = Math.Abs(delta.X) >= SystemParameters.MinimumHorizontalDragDistance
+            || Math.Abs(delta.Y) >= SystemParameters.MinimumVerticalDragDistance;
 
-            dragMode = DragMode.Move;
+        switch (dragMode)
+        {
+            case DragMode.Pending when moved:
+                StartGroupMove();
+                break;
+            case DragMode.BandPending when moved:
+                dragMode = DragMode.Band;
+                selectionBand.Visibility = Visibility.Visible;
+                break;
         }
 
-        var next = dragMode == DragMode.Move
-            ? DesignGeometry.Move(screen, dragStart, delta.X, delta.Y)
-            : DesignGeometry.Resize(screen, ControlCatalog.Get(TypeOf(dragId)), dragStart, dragEdges, delta.X, delta.Y);
-
-        if (next != dragCurrent)
+        switch (dragMode)
         {
-            dragCurrent = next;
-            PlaceHost(host, (FrameworkElement)host.Child, next);
-            UpdateAdorners();
-            BoundsChanging?.Invoke(this, new BoundsChangedEventArgs(dragId, next));
+            case DragMode.Move:
+                UpdateGroupMove(delta);
+                break;
+            case DragMode.Resize when hosts.TryGetValue(dragId, out var host):
+                var next = DesignGeometry.Resize(screen, ControlCatalog.Get(TypeOf(dragId)), dragStart, dragEdges, delta.X, delta.Y);
+                if (next != dragCurrent)
+                {
+                    dragCurrent = next;
+                    PlaceHost(host, (FrameworkElement)host.Child, next);
+                    UpdateAdorners();
+                    BoundsChanging?.Invoke(this, new BoundsChangedEventArgs(dragId, next));
+                }
+
+                break;
+            case DragMode.Band:
+                var band = BandRect();
+                Canvas.SetLeft(selectionBand, band.X);
+                Canvas.SetTop(selectionBand, band.Y);
+                selectionBand.Width = band.Width;
+                selectionBand.Height = band.Height;
+                break;
         }
     }
 
@@ -418,14 +511,37 @@ internal sealed class DesignSurface : Grid
             return;
         }
 
-        var (mode, id, start, end) = (dragMode, dragId, dragStart, dragCurrent);
+        var (mode, id, modifiers) = (dragMode, dragId, dragModifiers);
+        var (start, end, offset) = (dragStart, dragCurrent, groupOffset);
+        var moved = groupStarts.Keys.ToList();
+        var band = BandRect();
         dragMode = DragMode.None;
+        selectionBand.Visibility = Visibility.Collapsed;
         ReleaseMouseCapture();
 
-        if (mode is DragMode.Move or DragMode.Resize && end != start)
+        switch (mode)
         {
-            BoundsCommitted?.Invoke(this, new BoundsChangedEventArgs(id, end));
+            case DragMode.Pending:
+                ControlClickCompleted?.Invoke(this, new ControlClickEventArgs(id, modifiers));
+                break;
+            case DragMode.Move when offset != (0, 0):
+                MoveCommitted?.Invoke(this, new MoveCommittedEventArgs(moved, offset.X, offset.Y));
+                break;
+            case DragMode.Resize when end != start:
+                BoundsCommitted?.Invoke(this, new BoundsChangedEventArgs(id, end));
+                break;
+            case DragMode.BandPending:
+                BlankClicked?.Invoke(this, dragOrigin);
+                break;
+            case DragMode.Band:
+                BandSelected?.Invoke(this, new BandSelectedEventArgs(
+                    new ControlBounds((int)band.X, (int)band.Y, (int)Math.Ceiling(band.Width), (int)Math.Ceiling(band.Height)),
+                    modifiers));
+                break;
         }
+
+        groupStarts = [];
+        groupOffset = (0, 0);
     }
 
     protected override void OnLostMouseCapture(MouseEventArgs e)
@@ -444,17 +560,84 @@ internal sealed class DesignSurface : Grid
         {
             CancelDrag();
             e.Handled = true;
+            return;
+        }
+
+        if (isPreview || dragMode != DragMode.None || selection.Count == 0)
+        {
+            return;
+        }
+
+        // Arrow keys nudge the selection by 1 DIP, or by one grid step with Shift.
+        var step = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? Math.Max(1, screen.GridSize) : 1;
+        (int X, int Y)? nudge = e.Key switch
+        {
+            Key.Left => (-step, 0),
+            Key.Right => (step, 0),
+            Key.Up => (0, -step),
+            Key.Down => (0, step),
+            _ => null,
+        };
+        if (nudge is { } n)
+        {
+            NudgeRequested?.Invoke(this, new MoveCommittedEventArgs(selection, n.X, n.Y));
+            e.Handled = true;
         }
     }
 
-    private void BeginDrag(DragMode mode, ControlDocument control, MouseEventArgs e)
+    private void BeginDrag(DragMode mode, Guid id, MouseEventArgs e)
     {
         dragMode = mode;
-        dragId = control.Id;
-        dragOrigin = e.GetPosition(controlsLayer);
-        dragStart = dragCurrent = control.Bounds;
+        dragId = id;
+        dragOrigin = dragPoint = e.GetPosition(controlsLayer);
+        groupStarts = [];
+        groupOffset = (0, 0);
         CaptureMouse();
     }
+
+    private void StartGroupMove()
+    {
+        dragMode = DragMode.Move;
+        groupStarts = selection
+            .Select(id => (Id: id, Bounds: screen.Controls.Find(c => c.Id == id)?.Bounds))
+            .Where(x => x.Bounds is not null)
+            .ToDictionary(x => x.Id, x => x.Bounds!.Value);
+    }
+
+    /// <summary>
+    /// The control under the pointer snaps to the grid; the rest of the selection moves by the
+    /// same offset, and the offset stops where any selected control would leave the screen.
+    /// </summary>
+    private void UpdateGroupMove(Vector delta)
+    {
+        if (!groupStarts.TryGetValue(dragId, out var primary))
+        {
+            return;
+        }
+
+        var snapped = DesignGeometry.Move(screen, primary, delta.X, delta.Y);
+        var starts = groupStarts.Values;
+        var dx = Math.Clamp(snapped.X - primary.X, -starts.Min(b => b.X), screen.Width - starts.Max(b => b.Right));
+        var dy = Math.Clamp(snapped.Y - primary.Y, -starts.Min(b => b.Y), screen.Height - starts.Max(b => b.Bottom));
+        if ((dx, dy) == groupOffset)
+        {
+            return;
+        }
+
+        groupOffset = (dx, dy);
+        foreach (var (id, start) in groupStarts)
+        {
+            if (hosts.TryGetValue(id, out var host))
+            {
+                PlaceHost(host, (FrameworkElement)host.Child, start with { X = start.X + dx, Y = start.Y + dy });
+            }
+        }
+
+        UpdateAdorners();
+        BoundsChanging?.Invoke(this, new BoundsChangedEventArgs(dragId, primary with { X = primary.X + dx, Y = primary.Y + dy }));
+    }
+
+    private Rect BandRect() => new(dragOrigin, dragPoint);
 
     private void CancelDrag()
     {
@@ -463,16 +646,22 @@ internal sealed class DesignSurface : Grid
             return;
         }
 
-        var id = dragId;
+        var affected = groupStarts.Keys.Append(dragId).ToList();
         dragMode = DragMode.None;
+        groupStarts = [];
+        groupOffset = (0, 0);
+        selectionBand.Visibility = Visibility.Collapsed;
         if (IsMouseCaptured)
         {
             ReleaseMouseCapture();
         }
 
-        if (hosts.TryGetValue(id, out var host) && screen.Controls.Find(c => c.Id == id) is { } control)
+        foreach (var id in affected)
         {
-            PlaceHost(host, (FrameworkElement)host.Child, control.Bounds);
+            if (hosts.TryGetValue(id, out var host) && screen.Controls.Find(c => c.Id == id) is { } control)
+            {
+                PlaceHost(host, (FrameworkElement)host.Child, control.Bounds);
+            }
         }
 
         UpdateAdorners();
@@ -535,3 +724,9 @@ internal sealed class DesignSurface : Grid
 internal sealed record ControlDropEventArgs(ControlType Type, double X, double Y);
 
 internal sealed record BoundsChangedEventArgs(Guid Id, ControlBounds Bounds);
+
+internal sealed record ControlClickEventArgs(Guid Id, ModifierKeys Modifiers);
+
+internal sealed record BandSelectedEventArgs(ControlBounds Area, ModifierKeys Modifiers);
+
+internal sealed record MoveCommittedEventArgs(IReadOnlyCollection<Guid> Ids, int Dx, int Dy);

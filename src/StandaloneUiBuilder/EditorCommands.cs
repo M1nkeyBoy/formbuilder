@@ -16,4 +16,22 @@ public static class EditorCommands
         nameof(ExportWinForms),
         typeof(EditorCommands),
         [new KeyGesture(Key.E, ModifierKeys.Control | ModifierKeys.Shift)]);
+
+    public static RoutedUICommand Duplicate { get; } = new(
+        "D_uplicate",
+        nameof(Duplicate),
+        typeof(EditorCommands),
+        [new KeyGesture(Key.D, ModifierKeys.Control)]);
+
+    public static RoutedUICommand BringToFront { get; } = new(
+        "Bring to _Front",
+        nameof(BringToFront),
+        typeof(EditorCommands),
+        [new KeyGesture(Key.OemCloseBrackets, ModifierKeys.Control)]);
+
+    public static RoutedUICommand SendToBack { get; } = new(
+        "Send to _Back",
+        nameof(SendToBack),
+        typeof(EditorCommands),
+        [new KeyGesture(Key.OemOpenBrackets, ModifierKeys.Control)]);
 }

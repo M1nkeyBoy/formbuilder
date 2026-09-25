@@ -22,7 +22,9 @@ public partial class MainWindow : Window
     private readonly DesignEditor editor = new();
     private readonly Dictionary<TextBox, string> fieldErrors = [];
     private string? anchorError;
-    private Guid? selectedId;
+    private List<Guid> selection = [];
+    private List<ControlDocument> clipboard = [];
+    private int pasteCount;
     private Guid? inspectedId;
     private Point? toolboxDragStart;
     private string? projectPath;
@@ -44,13 +46,17 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         ToolboxList.ItemsSource = ControlCatalog.All;
-        Surface.ControlClicked += (_, id) => Select(id);
+        Surface.ControlClicked += Surface_ControlClicked;
+        Surface.ControlClickCompleted += Surface_ControlClickCompleted;
         Surface.BlankClicked += Surface_BlankClicked;
+        Surface.BandSelected += Surface_BandSelected;
+        Surface.MoveCommitted += (_, e) => MoveSelection(e.Ids, e.Dx, e.Dy);
+        Surface.NudgeRequested += (_, e) => MoveSelection(e.Ids, e.Dx, e.Dy);
         Surface.ControlDropped += (_, e) => AddControl(e.Type, e.X, e.Y);
         Surface.BoundsChanging += (_, e) => ShowBounds(e.Id, e.Bounds);
         Surface.BoundsCommitted += Surface_BoundsCommitted;
 
-        foreach (var box in new[] { NameBox, XBox, YBox, WidthBox, HeightBox, TextValueBox, ItemsBox })
+        foreach (var box in new[] { NameBox, XBox, YBox, WidthBox, HeightBox, TextValueBox, ItemsBox, ScreenWidthBox, ScreenHeightBox })
         {
             box.LostKeyboardFocus += (_, _) => CommitField(box);
             box.KeyDown += InspectorField_KeyDown;
@@ -92,29 +98,84 @@ public partial class MainWindow : Window
 
     private ControlDefinition? ArmedToolboxItem => ToolboxList.SelectedItem as ControlDefinition;
 
+    /// <summary>The selected control when exactly one is selected; the inspector edits it.</summary>
+    private Guid? selectedId => selection.Count == 1 ? selection[0] : null;
+
     private void RefreshAll()
     {
-        if (selectedId is { } id && editor.FindControl(id) is null)
-        {
-            selectedId = null;
-        }
-
-        Surface.Render(editor.Document.Screen, selectedId, isPreview, PreviewButton_Clicked);
+        selection.RemoveAll(id => editor.FindControl(id) is null);
+        Surface.Render(editor.Document.Screen, selection, isPreview, PreviewButton_Clicked);
         RefreshInspector();
         Title = $"{ProjectDisplayName}{(editor.IsDirty ? " ●" : "")} — {AppTitle}";
         CommandManager.InvalidateRequerySuggested();
     }
 
-    private void Select(Guid? id)
+    private void Select(Guid? id) => SetSelection(id is { } value ? [value] : []);
+
+    /// <summary>Replaces the selection, in the order given (the last is the most recent).</summary>
+    private void SetSelection(IEnumerable<Guid> ids)
     {
-        selectedId = id;
-        Surface.SetSelection(id);
+        selection = ids.Distinct().Where(id => editor.FindControl(id) is not null).ToList();
+        Surface.SetSelection(selection);
         RefreshInspector();
         CommandManager.InvalidateRequerySuggested();
 
-        StatusText.Text = id is { } value && editor.FindControl(value) is { } control
-            ? $"Selected {control.Name} ({control.Type})"
-            : "Ready";
+        StatusText.Text = selection.Count switch
+        {
+            0 => "Ready",
+            1 when editor.FindControl(selection[0]) is { } control => $"Selected {control.Name} ({control.Type})",
+            var n => $"{n} controls selected",
+        };
+    }
+
+    private void Surface_ControlClicked(object? sender, ControlClickEventArgs e)
+    {
+        if (e.Modifiers.HasFlag(ModifierKeys.Control))
+        {
+            // Ctrl+click adds or removes one control.
+            SetSelection(selection.Contains(e.Id) ? selection.Where(id => id != e.Id) : selection.Append(e.Id));
+        }
+        else if (e.Modifiers.HasFlag(ModifierKeys.Shift))
+        {
+            SetSelection(selection.Where(id => id != e.Id).Append(e.Id));
+        }
+        else if (!selection.Contains(e.Id))
+        {
+            Select(e.Id);
+        }
+
+        // A plain click on an already-selected control keeps the group so it can be dragged;
+        // if the mouse is released without a drag, the click selects just that control.
+    }
+
+    private void Surface_ControlClickCompleted(object? sender, ControlClickEventArgs e)
+    {
+        if ((e.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) == 0 && selection.Count > 1)
+        {
+            Select(e.Id);
+        }
+    }
+
+    private void Surface_BandSelected(object? sender, BandSelectedEventArgs e)
+    {
+        var area = e.Area;
+        var inside = editor.Document.Screen.Controls
+            .Where(c => c.X < area.Right && c.Right() > area.X && c.Y < area.Bottom && c.Bottom() > area.Y)
+            .Select(c => c.Id);
+        var additive = (e.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) != 0;
+        SetSelection(additive ? selection.Concat(inside) : inside);
+    }
+
+    private void MoveSelection(IReadOnlyCollection<Guid> ids, int dx, int dy)
+    {
+        if (editor.MoveControls(ids, dx, dy) && ids.Count == 1 && editor.FindControl(ids.First()) is { } control)
+        {
+            ShowBounds(control.Id, control.Bounds);
+        }
+        else if (ids.Count > 1)
+        {
+            StatusText.Text = $"Moved {ids.Count} controls";
+        }
     }
 
     private void AddControl(ControlType type, double x, double y)
@@ -149,6 +210,12 @@ public partial class MainWindow : Window
     private void RefreshInspector()
     {
         var control = selectedId is { } id ? editor.FindControl(id) : null;
+
+        // Nothing selected: the panel edits the screen instead. Several: it says so.
+        NoSelectionText.Text = selection.Count > 1
+            ? $"{selection.Count} controls selected. Drag, nudge with the arrow keys, copy or delete them together; select one to edit its properties."
+            : "Nothing selected. Select a control to edit its properties.";
+        ScreenPanel.Visibility = selection.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         if (control?.Id != inspectedId)
         {
             foreach (var box in fieldErrors.Keys.ToList())
@@ -162,6 +229,9 @@ public partial class MainWindow : Window
             anchorError = null;
             UpdateInspectorErrors();
         }
+
+        SetField(ScreenWidthBox, editor.Document.Screen.Width.ToString(CultureInfo.CurrentCulture));
+        SetField(ScreenHeightBox, editor.Document.Screen.Height.ToString(CultureInfo.CurrentCulture));
 
         inspectedId = control?.Id;
         NoSelectionText.Visibility = control is null ? Visibility.Visible : Visibility.Collapsed;
@@ -204,6 +274,12 @@ public partial class MainWindow : Window
 
     private void CommitField(TextBox box)
     {
+        if (box == ScreenWidthBox || box == ScreenHeightBox)
+        {
+            CommitScreenSize(box);
+            return;
+        }
+
         if (inspectedId is not { } id || editor.FindControl(id) is not { } control)
         {
             return;
@@ -219,6 +295,26 @@ public partial class MainWindow : Window
         if (error is null)
         {
             // Show the value as stored, for example trimmed or with blank items removed.
+            RefreshInspector();
+        }
+    }
+
+    private void CommitScreenSize(TextBox box)
+    {
+        var screen = editor.Document.Screen;
+        string? error;
+        if (!int.TryParse(box.Text.Trim(), NumberStyles.Integer, CultureInfo.CurrentCulture, out var value))
+        {
+            error = "Enter a whole number of DIPs.";
+        }
+        else
+        {
+            error = box == ScreenWidthBox ? editor.SetScreenSize(value, screen.Height) : editor.SetScreenSize(screen.Width, value);
+        }
+
+        SetFieldError(box, error);
+        if (error is null)
+        {
             RefreshInspector();
         }
     }
@@ -260,7 +356,13 @@ public partial class MainWindow : Window
 
     private void UpdateInspectorErrors()
     {
-        var messages = fieldErrors.Values.Append(anchorError).OfType<string>().ToList();
+        // Screen fields show their errors in the Screen section; control fields in the inspector.
+        var screenMessages = fieldErrors.Where(f => f.Key == ScreenWidthBox || f.Key == ScreenHeightBox).Select(f => f.Value).ToList();
+        ScreenErrorText.Text = string.Join(Environment.NewLine, screenMessages);
+        ScreenErrorText.Visibility = screenMessages.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        var messages = fieldErrors.Where(f => f.Key != ScreenWidthBox && f.Key != ScreenHeightBox).Select(f => f.Value)
+            .Append(anchorError).OfType<string>().ToList();
         InspectorErrorText.Text = string.Join(Environment.NewLine, messages);
         InspectorErrorText.Visibility = messages.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
@@ -477,7 +579,7 @@ public partial class MainWindow : Window
         }
 
         projectPath = Path.GetFullPath(path);
-        selectedId = null;
+        selection.Clear();
         editor.Reset(document);
         StatusText.Text = $"Opened {projectPath}";
     }
@@ -494,7 +596,7 @@ public partial class MainWindow : Window
         }
 
         projectPath = null;
-        selectedId = null;
+        selection.Clear();
         editor.New();
         StatusText.Text = "New design";
     }
@@ -606,15 +708,75 @@ public partial class MainWindow : Window
         recoverySession?.Dispose();
     }
 
-    private void Delete_CanExecute(object sender, CanExecuteRoutedEventArgs e) =>
-        e.CanExecute = !isPreview && selectedId is not null;
+    private void HasSelection_CanExecute(object sender, CanExecuteRoutedEventArgs e) =>
+        e.CanExecute = !isPreview && selection.Count > 0;
 
     private void Delete_Executed(object sender, ExecutedRoutedEventArgs e)
     {
-        if (selectedId is { } id && editor.FindControl(id) is { } control && editor.DeleteControl(id))
+        var names = selection.Select(id => editor.FindControl(id)?.Name).OfType<string>().ToList();
+        if (editor.DeleteControls(selection) > 0)
         {
             Select(null);
-            StatusText.Text = $"Deleted {control.Name}";
+            StatusText.Text = names.Count == 1 ? $"Deleted {names[0]}" : $"Deleted {names.Count} controls";
+        }
+    }
+
+    private void Copy_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        // Copies keep the design's draw order, whatever order they were selected in.
+        clipboard = editor.Document.Screen.Controls.Where(c => selection.Contains(c.Id)).ToList();
+        pasteCount = 0;
+        StatusText.Text = clipboard.Count == 1 ? $"Copied {clipboard[0].Name}" : $"Copied {clipboard.Count} controls";
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void Cut_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        Copy_Executed(sender, e);
+        editor.DeleteControls(selection);
+        Select(null);
+        StatusText.Text = clipboard.Count == 1 ? $"Cut {clipboard[0].Name}" : $"Cut {clipboard.Count} controls";
+    }
+
+    private void Paste_CanExecute(object sender, CanExecuteRoutedEventArgs e) =>
+        e.CanExecute = !isPreview && clipboard.Count > 0;
+
+    private void Paste_Executed(object sender, ExecutedRoutedEventArgs e) => Paste();
+
+    private void Duplicate_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        Copy_Executed(sender, e);
+        Paste();
+    }
+
+    /// <summary>Each paste of the same copy lands one grid step further down and right.</summary>
+    private void Paste()
+    {
+        pasteCount++;
+        var pasted = editor.PasteControls(clipboard, pasteCount * Math.Max(1, editor.Document.Screen.GridSize));
+        SetSelection(pasted.Select(c => c.Id));
+        StatusText.Text = pasted.Count == 1 ? $"Pasted {pasted[0].Name}" : $"Pasted {pasted.Count} controls";
+    }
+
+    private void SelectAll_CanExecute(object sender, CanExecuteRoutedEventArgs e) =>
+        e.CanExecute = !isPreview && editor.Document.Screen.Controls.Count > 0;
+
+    private void SelectAll_Executed(object sender, ExecutedRoutedEventArgs e) =>
+        SetSelection(editor.Document.Screen.Controls.Select(c => c.Id));
+
+    private void BringToFront_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        if (editor.BringToFront(selection))
+        {
+            StatusText.Text = "Brought to front";
+        }
+    }
+
+    private void SendToBack_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        if (editor.SendToBack(selection))
+        {
+            StatusText.Text = "Sent to back";
         }
     }
 
@@ -739,7 +901,7 @@ public partial class MainWindow : Window
         }
 
         projectPath = draft.ProjectPath;
-        selectedId = null;
+        selection.Clear();
         editor.Reset(draft.Document, isDirty: true);
 
         // Take over the draft in this session before removing the old one.

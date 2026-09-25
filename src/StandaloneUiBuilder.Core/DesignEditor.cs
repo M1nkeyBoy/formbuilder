@@ -184,6 +184,166 @@ public sealed class DesignEditor
         }
     }
 
+    /// <summary>
+    /// Moves several controls by the same offset as one step. The offset is reduced if needed
+    /// so every control stays inside the screen. Returns false if nothing moved.
+    /// </summary>
+    public bool MoveControls(IReadOnlyCollection<Guid> ids, int dx, int dy)
+    {
+        var screen = Document.Screen;
+        var moving = screen.Controls.Where(c => ids.Contains(c.Id)).ToList();
+        if (moving.Count == 0)
+        {
+            return false;
+        }
+
+        dx = Math.Clamp(dx, -moving.Min(c => c.X), screen.Width - moving.Max(c => c.X + c.Width));
+        dy = Math.Clamp(dy, -moving.Min(c => c.Y), screen.Height - moving.Max(c => c.Y + c.Height));
+        if (dx == 0 && dy == 0)
+        {
+            return false;
+        }
+
+        var controls = screen.Controls.ConvertAll(c => ids.Contains(c.Id) ? c with { X = c.X + dx, Y = c.Y + dy } : c);
+        Commit(Document with { Screen = screen with { Controls = controls } });
+        return true;
+    }
+
+    /// <summary>Removes several controls as one step. Returns the number removed.</summary>
+    public int DeleteControls(IReadOnlyCollection<Guid> ids)
+    {
+        var screen = Document.Screen;
+        var remaining = screen.Controls.RemoveAll(c => ids.Contains(c.Id));
+        var removed = screen.Controls.Count - remaining.Count;
+        if (removed > 0)
+        {
+            Commit(Document with { Screen = screen with { Controls = remaining } });
+        }
+
+        return removed;
+    }
+
+    /// <summary>
+    /// Adds copies of controls as one step, on top of everything else, shifted by an offset
+    /// and kept inside the screen. Copies get new IDs, and new names where the original name
+    /// is taken. Returns the copies.
+    /// </summary>
+    public IReadOnlyList<ControlDocument> PasteControls(IReadOnlyList<ControlDocument> copies, int offset)
+    {
+        var screen = Document.Screen;
+        if (copies.Count == 0)
+        {
+            return [];
+        }
+
+        var dx = Math.Clamp(offset, -copies.Min(c => c.X), screen.Width - copies.Max(c => c.X + c.Width));
+        var dy = Math.Clamp(offset, -copies.Min(c => c.Y), screen.Height - copies.Max(c => c.Y + c.Height));
+        var taken = new HashSet<string>(screen.Controls.Select(c => c.Name), StringComparer.OrdinalIgnoreCase);
+        var pasted = new List<ControlDocument>();
+        foreach (var copy in copies)
+        {
+            // Skip anything that cannot fit (a copy from a larger screen).
+            if (!ControlCatalog.TryGet(copy.Type, out _) || copy.Width > screen.Width || copy.Height > screen.Height)
+            {
+                continue;
+            }
+
+            var name = UniqueName(copy.Name, taken);
+            taken.Add(name);
+            pasted.Add(copy with
+            {
+                Id = Guid.NewGuid(),
+                Name = name,
+                X = Math.Clamp(copy.X + dx, 0, screen.Width - copy.Width),
+                Y = Math.Clamp(copy.Y + dy, 0, screen.Height - copy.Height),
+            });
+        }
+
+        if (pasted.Count > 0)
+        {
+            Commit(Document with { Screen = screen with { Controls = screen.Controls.AddRange(pasted) } });
+        }
+
+        return pasted;
+    }
+
+    /// <summary>Moves controls to the top of the draw order, keeping their order among themselves.</summary>
+    public bool BringToFront(IReadOnlyCollection<Guid> ids) => Reorder(ids, toFront: true);
+
+    /// <summary>Moves controls to the bottom of the draw order, keeping their order among themselves.</summary>
+    public bool SendToBack(IReadOnlyCollection<Guid> ids) => Reorder(ids, toFront: false);
+
+    /// <summary>Changes the screen's design size. Every control must still fit.</summary>
+    public string? SetScreenSize(int width, int height)
+    {
+        const int Minimum = 100;
+        const int Maximum = 10000;
+        if (width < Minimum || height < Minimum)
+        {
+            return $"The screen must be at least {Minimum} × {Minimum}.";
+        }
+
+        if (width > Maximum || height > Maximum)
+        {
+            return $"The screen can be at most {Maximum} × {Maximum}.";
+        }
+
+        var screen = Document.Screen;
+        if (screen.Controls.FirstOrDefault(c => c.X + c.Width > width || c.Y + c.Height > height) is { } outside)
+        {
+            return $"\"{outside.Name}\" would be outside the screen. Move or resize it first.";
+        }
+
+        if (screen.Width != width || screen.Height != height)
+        {
+            Commit(Document with { Screen = screen with { Width = width, Height = height } });
+        }
+
+        return null;
+    }
+
+    private bool Reorder(IReadOnlyCollection<Guid> ids, bool toFront)
+    {
+        var screen = Document.Screen;
+        var chosen = screen.Controls.Where(c => ids.Contains(c.Id)).ToList();
+        var others = screen.Controls.Where(c => !ids.Contains(c.Id)).ToList();
+        var reordered = (toFront ? others.Concat(chosen) : chosen.Concat(others)).ToImmutableList();
+        if (chosen.Count == 0 || reordered.SequenceEqual(screen.Controls))
+        {
+            return false;
+        }
+
+        Commit(Document with { Screen = screen with { Controls = reordered } });
+        return true;
+    }
+
+    /// <summary>
+    /// The name itself if free; otherwise the name without trailing digits plus the lowest free
+    /// number from 2 up: Button1 becomes Button2, SubmitButton becomes SubmitButton2.
+    /// </summary>
+    private static string UniqueName(string name, HashSet<string> taken)
+    {
+        if (!taken.Contains(name))
+        {
+            return name;
+        }
+
+        var stem = name.TrimEnd('0', '1', '2', '3', '4', '5', '6', '7', '8', '9');
+        if (stem.Length == 0)
+        {
+            stem = "Control";
+        }
+
+        for (var n = 2; ; n++)
+        {
+            var candidate = stem + n.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (!taken.Contains(candidate))
+            {
+                return candidate;
+            }
+        }
+    }
+
     /// <summary>Returns the lowest free default name for a type: Button1, Button2, and so on.</summary>
     public static string NextDefaultName(ScreenDocument screen, ControlType type)
     {

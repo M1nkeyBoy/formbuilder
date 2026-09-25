@@ -45,7 +45,14 @@
         <CommandBinding Command="ApplicationCommands.SaveAs" Executed="SaveAs_Executed" />
         <CommandBinding Command="{x:Static local:EditorCommands.ExportWpf}" Executed="ExportWpf_Executed" />
         <CommandBinding Command="{x:Static local:EditorCommands.ExportWinForms}" Executed="ExportWinForms_Executed" />
-        <CommandBinding Command="ApplicationCommands.Delete" Executed="Delete_Executed" CanExecute="Delete_CanExecute" />
+        <CommandBinding Command="ApplicationCommands.Delete" Executed="Delete_Executed" CanExecute="HasSelection_CanExecute" />
+        <CommandBinding Command="ApplicationCommands.Copy" Executed="Copy_Executed" CanExecute="HasSelection_CanExecute" />
+        <CommandBinding Command="ApplicationCommands.Cut" Executed="Cut_Executed" CanExecute="HasSelection_CanExecute" />
+        <CommandBinding Command="ApplicationCommands.Paste" Executed="Paste_Executed" CanExecute="Paste_CanExecute" />
+        <CommandBinding Command="ApplicationCommands.SelectAll" Executed="SelectAll_Executed" CanExecute="SelectAll_CanExecute" />
+        <CommandBinding Command="{x:Static local:EditorCommands.Duplicate}" Executed="Duplicate_Executed" CanExecute="HasSelection_CanExecute" />
+        <CommandBinding Command="{x:Static local:EditorCommands.BringToFront}" Executed="BringToFront_Executed" CanExecute="HasSelection_CanExecute" />
+        <CommandBinding Command="{x:Static local:EditorCommands.SendToBack}" Executed="SendToBack_Executed" CanExecute="HasSelection_CanExecute" />
         <CommandBinding Command="ApplicationCommands.Undo" Executed="Undo_Executed" CanExecute="Undo_CanExecute" />
         <CommandBinding Command="ApplicationCommands.Redo" Executed="Redo_Executed" CanExecute="Redo_CanExecute" />
     </Window.CommandBindings>
@@ -67,7 +74,16 @@
                 <MenuItem Header="_Undo" Command="ApplicationCommands.Undo" />
                 <MenuItem Header="_Redo" Command="ApplicationCommands.Redo" />
                 <Separator />
+                <MenuItem Header="Cu_t" Command="ApplicationCommands.Cut" />
+                <MenuItem Header="_Copy" Command="ApplicationCommands.Copy" />
+                <MenuItem Header="_Paste" Command="ApplicationCommands.Paste" />
+                <MenuItem Command="{x:Static local:EditorCommands.Duplicate}" />
                 <MenuItem Header="_Delete" Command="ApplicationCommands.Delete" />
+                <Separator />
+                <MenuItem Header="Select _All" Command="ApplicationCommands.SelectAll" />
+                <Separator />
+                <MenuItem Command="{x:Static local:EditorCommands.BringToFront}" InputGestureText="Ctrl+]" />
+                <MenuItem Command="{x:Static local:EditorCommands.SendToBack}" InputGestureText="Ctrl+[" />
             </MenuItem>
             <MenuItem Header="_View">
                 <MenuItem x:Name="DesignMenuItem" Header="_Design" IsCheckable="True" IsChecked="True" Click="DesignMenuItem_Click" />
@@ -150,6 +166,21 @@
                 <TextBlock DockPanel.Dock="Top" Text="Properties" Style="{StaticResource PanelHeader}" />
                 <TextBlock x:Name="NoSelectionText" DockPanel.Dock="Top" Style="{StaticResource PlaceholderText}"
                            Text="Select a control to edit its properties." />
+                <StackPanel x:Name="ScreenPanel" DockPanel.Dock="Top" Margin="0,10,0,0">
+                    <TextBlock Text="Screen" Style="{StaticResource PanelHeader}" />
+                    <DockPanel Style="{StaticResource FieldRow}">
+                        <Label Content="Wi_dth" Target="{Binding ElementName=ScreenWidthBox}" Style="{StaticResource FieldLabel}" />
+                        <TextBox x:Name="ScreenWidthBox" Style="{StaticResource FieldBox}" />
+                    </DockPanel>
+                    <DockPanel Style="{StaticResource FieldRow}">
+                        <Label Content="H_eight" Target="{Binding ElementName=ScreenHeightBox}" Style="{StaticResource FieldLabel}" />
+                        <TextBox x:Name="ScreenHeightBox" Style="{StaticResource FieldBox}" />
+                    </DockPanel>
+                    <TextBlock x:Name="ScreenErrorText" Margin="10,0,10,6" TextWrapping="Wrap"
+                               Foreground="#FFC42B1C" Visibility="Collapsed" />
+                    <TextBlock Style="{StaticResource PlaceholderText}" Margin="10,0,10,6"
+                               Text="The design size in DIPs. Every control must still fit." />
+                </StackPanel>
                 <ScrollViewer x:Name="InspectorPanel" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                     <StackPanel>
                         <DockPanel Style="{StaticResource FieldRow}">

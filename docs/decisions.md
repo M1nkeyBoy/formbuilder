@@ -204,3 +204,30 @@ Choices made during the prototype slices that affect later work.
 - **Syntax checks.** The unit tests parse all generated C# with Roslyn
   (`Microsoft.CodeAnalysis.CSharp`, test project only), since the WinForms libraries are not
   available off Windows.
+
+## Slice 13 — Editor improvements
+
+- **Selection is a list.** The last control clicked is the most recent. With exactly one
+  control selected the Properties panel edits it and it gets resize handles and anchor lines;
+  with several, each gets an outline and the panel says how many are selected; with none,
+  the panel edits the screen.
+- **Mouse.** Ctrl+click toggles a control in the selection; Shift+click adds it. Dragging
+  across blank canvas draws a selection box that selects every control it touches (with
+  Ctrl or Shift, adding to the selection). A plain click on an already-selected control keeps
+  the group so it can be dragged, and selects just that control if released without
+  dragging.
+- **Group move.** The control under the pointer snaps to the grid and the rest move by the
+  same offset. The offset stops where any selected control would leave the screen, so the
+  group keeps its shape. One drag is one undo step.
+- **Keyboard.** Arrow keys nudge the selection by 1 DIP, or one grid step with Shift, one undo
+  step per key press. Ctrl+A selects everything.
+- **Copy and paste.** Copy, Cut, Paste and Duplicate (Ctrl+D) work within the editor, and
+  across projects in the same editor window. Copies get new IDs; a name already in use gets
+  the lowest free number (Button1 → Button2, SubmitButton → SubmitButton2). Each paste of the
+  same copy lands one more grid step down and right, kept inside the screen. The system
+  clipboard is not used yet.
+- **Z-order.** Bring to Front (Ctrl+]) and Send to Back (Ctrl+[) keep the selected controls'
+  order among themselves.
+- **Screen size.** With nothing selected, the Properties panel sets the screen's width and
+  height (100 to 10000 DIPs). A size that would leave a control outside is refused with its
+  name. This changes only existing fields, so the file format is unchanged.

@@ -107,7 +107,7 @@ public sealed partial class WpfOutputParityTests
         Assert.Equal(screen.Controls.Count, grid.Children.Count);
 
         var preview = new DesignSurface();
-        preview.Render(screen, selectedId: null, isPreview: true);
+        preview.Render(screen, [], isPreview: true);
         _ = new Window { Content = preview };
 
         var sizes = new List<(int Width, int Height)> { (screen.Width, screen.Height) };

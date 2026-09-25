@@ -9,7 +9,8 @@ depend on WPF, and never changes the builder project.
 ![The sample project exported and running as its own WPF application](screenshots/generated-wpf-app.png)
 
 *The sample project after export, built with `dotnet build` and running on Windows (captured
-by CI).*
+by CI). The same sample exported to WinForms is in
+[`screenshots/generated-winforms-app.png`](screenshots/generated-winforms-app.png).*
 
 ## What is generated
 

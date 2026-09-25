@@ -76,6 +76,10 @@ public sealed record ControlDocument
     [JsonIgnore]
     public ControlBounds Bounds => new(X, Y, Width, Height);
 
+    public int Right() => X + Width;
+
+    public int Bottom() => Y + Height;
+
     public ControlDocument WithBounds(ControlBounds bounds) =>
         this with { X = bounds.X, Y = bounds.Y, Width = bounds.Width, Height = bounds.Height };
 }
