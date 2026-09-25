@@ -203,9 +203,10 @@ public static class MauiGenerator
                 AppendGroupBox(xaml, screen, control, layout, depth);
                 return;
             case ControlType.CheckBox:
-                // A CheckBox has no text in MAUI: a Grid in its place holds it and a Label.
+                // A CheckBox has no text in MAUI: a Grid in its place holds it and a Label. The
+                // box keeps its natural size, centred; squeezed smaller, MAUI does not draw it.
                 xaml.AppendLine($"{indent}<Grid {string.Join(" ", layout)} ColumnDefinitions=\"Auto,*\" ColumnSpacing=\"4\">");
-                xaml.AppendLine($"{indent}    <CheckBox x:Name=\"{control.Name}\" AutomationId=\"{control.Name}\" IsChecked=\"{Bool(properties.IsChecked)}\" MinimumWidthRequest=\"0\" MinimumHeightRequest=\"0\" CheckedChanged=\"{HandlerName(control)}\" />");
+                xaml.AppendLine($"{indent}    <CheckBox x:Name=\"{control.Name}\" AutomationId=\"{control.Name}\" IsChecked=\"{Bool(properties.IsChecked)}\" VerticalOptions=\"Center\" CheckedChanged=\"{HandlerName(control)}\" />");
                 xaml.AppendLine($"{indent}    <Label Grid.Column=\"1\" Text=\"{Attribute(properties.Text ?? "")}\" VerticalTextAlignment=\"Center\"{string.Concat(StyleAttributes(control).Select(a => " " + a))} />");
                 xaml.AppendLine($"{indent}</Grid>");
                 return;
@@ -541,7 +542,7 @@ public static class MauiGenerator
     /// <summary>What a Windows window adds around its page: borders and the title bar.</summary>
     public const int WindowFrameWidth = 16;
 
-    public const int WindowFrameHeight = 48;
+    public const int WindowFrameHeight = 40;
 
     private static string AppCode(string rootNamespace) => $$"""
         namespace {{rootNamespace}};

@@ -32,6 +32,7 @@ public class MauiOutputTests
         Assert.Contains("<WindowsPackageType>None</WindowsPackageType>", files["LayoutDemo.csproj"].Content);
         Assert.Contains("new(new MainPage())", files["App.g.cs"].Content);
         Assert.Contains("Width = 816,", files["App.g.cs"].Content);
+        Assert.Contains("Height = 640,", files["App.g.cs"].Content);
         Assert.Contains("MauiWinUIApplication", files["Platforms/Windows/App.xaml"].Content);
         var sample = Sample();
         for (var i = 0; i < sample.Screens.Count; i++)

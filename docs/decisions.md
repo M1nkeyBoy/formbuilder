@@ -521,8 +521,9 @@ Choices made during the prototype slices that affect later work.
   AutomationId; the Windows test finds controls by it, and so can a developer's own tests.
 - **Screens as modal pages.** Opening a screen pushes its page modally and closing pops it,
   which works on every MAUI platform, unlike extra windows.
-- **Window size is approximate.** A MAUI window's size includes its frame and MAUI's own
-  title bar, so the window opens slightly larger than the design; the page itself is laid
-  out exactly, and the Windows test checks controls relative to the page.
+- **Window size allows for the frame.** A MAUI window's size includes its frame and MAUI's
+  own title bar (8 pixels each side and 32 at the top at 100% scaling on Windows, measured
+  in CI), so the window is that much larger than the design and the page gets the design
+  size. The Windows test checks controls relative to the page.
 - CI installs the MAUI workload only to build and check this output; the builder does not
   depend on MAUI.

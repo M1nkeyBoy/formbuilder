@@ -52,4 +52,5 @@ Unit tests check the XAML and code everywhere. On Windows, CI installs the MAUI 
 builds and runs both exported samples, and a test reads the controls' positions through UI
 Automation on both screens (opening the second with OK and closing it with Close). MAUI
 draws its own title bar inside the window, so positions are compared relative to the page.
-The window opens a little larger than the design, to allow for its frame.
+The window is sized to allow for its frame and MAUI's title bar (measured at 100% scaling on
+Windows), so the page gets the design size.
