@@ -66,11 +66,18 @@ public sealed partial class WpfOutputParityTests
         Assert.Equal(document.Screen.Height, canvas.Height);
         Assert.Equal(document.Screen.Controls.Count, canvas.Children.Count);
 
+        // Host the designer's controls in a window too, as the editor does, so both sides get
+        // the same theme styles before they are compared.
+        var designedControls = document.Screen.Controls.Select(c => ControlFactory.Create(c, buttonClicked: null)).ToList();
+        var designCanvas = new Canvas();
+        designedControls.ForEach(c => designCanvas.Children.Add(c));
+        _ = new Window { Content = designCanvas };
+
         for (var i = 0; i < document.Screen.Controls.Count; i++)
         {
             var control = document.Screen.Controls[i];
             var generated = (FrameworkElement)canvas.Children[i];
-            var designed = ControlFactory.Create(control, buttonClicked: null);
+            var designed = designedControls[i];
             var what = $"{control.Name} ({control.Type})";
 
             Assert.Equal(designed.GetType(), generated.GetType());

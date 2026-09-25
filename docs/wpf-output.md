@@ -6,6 +6,11 @@ The builder can turn a project into a complete WPF application that builds with
 The generator lives in `src/StandaloneUiBuilder.Output.Wpf`. It only produces text, does not
 depend on WPF, and never changes the builder project.
 
+![The sample project exported and running as its own WPF application](screenshots/generated-wpf-app.png)
+
+*The sample project after export, built with `dotnet build` and running on Windows (captured
+by CI).*
+
 ## What is generated
 
 Exporting a project named "Customer form" into a folder `C:\Exports` produces
