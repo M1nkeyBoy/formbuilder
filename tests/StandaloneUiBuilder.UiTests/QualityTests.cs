@@ -60,9 +60,10 @@ public sealed class QualityTests : IDisposable
 
         var place = Stopwatch.StartNew();
         EditorSession.Within(session.ById("ToolboxList"), session.Find.ByName("Button"), "toolbox Button").Click();
-        session.ClickCanvas(700, 560);
+        // Blank space below the last row that is still visible on a 1024 × 768 screen.
+        session.ClickCanvas(20, 520);
         EditorSession.WaitUntil(() => session.Field("NameBox").Text.StartsWith("Button", StringComparison.Ordinal)
-            && session.Field("XBox").Text == "700", () => "Placement did not apply.");
+            && session.Field("XBox").Text == "20" && session.Field("YBox").Text == "520", () => "Placement did not apply.");
         place.Stop();
 
         session.Screenshot("05-sixty-controls");
