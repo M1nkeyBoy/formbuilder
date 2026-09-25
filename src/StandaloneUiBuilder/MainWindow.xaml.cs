@@ -1149,6 +1149,40 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>The selected controls that sit directly on the screen, which arranging applies to.</summary>
+    private int RootSelectionCount => selection.Count(id => editor.ParentOf(id) is null && editor.FindControl(id) is not null);
+
+    private void Arrange_CanExecute(object sender, CanExecuteRoutedEventArgs e) =>
+        e.CanExecute = !isPreview && RootSelectionCount >= ((string?)e.Parameter is "Horizontally" or "Vertically" ? 3 : 2);
+
+    /// <summary>
+    /// Format menu: lines up, sizes or spaces the selected controls. The control selected last
+    /// is the reference the others follow.
+    /// </summary>
+    private void Arrange_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        var action = (string?)e.Parameter ?? "";
+        var reference = selection.LastOrDefault(id => editor.ParentOf(id) is null);
+        var name = editor.FindControl(reference)?.Name;
+        var changed = action switch
+        {
+            "Horizontally" => editor.Distribute(selection, horizontally: true),
+            "Vertically" => editor.Distribute(selection, horizontally: false),
+            _ when Enum.TryParse<AlignTo>(action, out var edge) => editor.Align(selection, reference, edge),
+            _ when Enum.TryParse<SameSize>(action, out var size) => editor.MakeSameSize(selection, reference, size),
+            _ => false,
+        };
+
+        var message = !changed ? "Already arranged"
+            : action is "Horizontally" or "Vertically" ? $"Spaced {RootSelectionCount} controls evenly"
+            : action is "Width" or "Height" or "Both" ? $"Sized like {name}"
+            : $"Aligned {(action == "Centers" ? "centres" : action.ToLowerInvariant())} with {name}";
+
+        // Refreshes the Properties panel for the moved controls, then says what happened.
+        SetSelection(selection);
+        StatusText.Text = message;
+    }
+
     /// <summary>Keeps the screen tabs in step with the document and the screen being shown.</summary>
     private void RefreshScreenTabs()
     {

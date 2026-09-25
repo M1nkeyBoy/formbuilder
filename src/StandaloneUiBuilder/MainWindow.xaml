@@ -57,6 +57,7 @@
         <CommandBinding Command="{x:Static local:EditorCommands.Duplicate}" Executed="Duplicate_Executed" CanExecute="HasSelection_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.BringToFront}" Executed="BringToFront_Executed" CanExecute="HasSelection_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.SendToBack}" Executed="SendToBack_Executed" CanExecute="HasSelection_CanExecute" />
+        <CommandBinding Command="{x:Static local:EditorCommands.Arrange}" Executed="Arrange_Executed" CanExecute="Arrange_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.AddScreen}" Executed="AddScreen_Executed" CanExecute="Designing_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.DuplicateScreen}" Executed="DuplicateScreen_Executed" CanExecute="Designing_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.DeleteScreen}" Executed="DeleteScreen_Executed" CanExecute="DeleteScreen_CanExecute" />
@@ -100,6 +101,24 @@
                 <Separator />
                 <MenuItem Command="{x:Static local:EditorCommands.BringToFront}" InputGestureText="Ctrl+]" />
                 <MenuItem Command="{x:Static local:EditorCommands.SendToBack}" InputGestureText="Ctrl+[" />
+            </MenuItem>
+            <MenuItem Header="F_ormat">
+                <MenuItem Header="Align _Lefts" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Lefts" />
+                <MenuItem Header="Align _Centres" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Centers" />
+                <MenuItem Header="Align _Rights" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Rights" />
+                <Separator />
+                <MenuItem Header="Align _Tops" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Tops" />
+                <MenuItem Header="Align _Middles" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Middles" />
+                <MenuItem Header="Align _Bottoms" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Bottoms" />
+                <Separator />
+                <MenuItem Header="Make Same _Width" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Width" />
+                <MenuItem Header="Make Same _Height" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Height" />
+                <MenuItem Header="Make Same _Size" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Both" />
+                <Separator />
+                <MenuItem Header="Distribute _Across" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Horizontally" />
+                <MenuItem Header="Distribute _Down" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Vertically" />
+                <Separator />
+                <MenuItem Header="The last control selected is the one the others follow." IsEnabled="False" />
             </MenuItem>
             <MenuItem Header="_Screen">
                 <MenuItem Command="{x:Static local:EditorCommands.AddScreen}" InputGestureText="Ctrl+Shift+N" />

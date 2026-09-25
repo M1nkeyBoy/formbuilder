@@ -8,7 +8,7 @@ namespace StandaloneUiBuilder.Core;
 /// Each successful edit method is one undoable step. Edits that change nothing record nothing.
 /// Methods that can reject a value return a plain-language error message, or null on success.
 /// </summary>
-public sealed class DesignEditor
+public sealed partial class DesignEditor
 {
     // Each history entry remembers which screen was showing before and after the change, so undo
     // and redo return to the screen where the change is visible. An undo entry holds the

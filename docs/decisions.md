@@ -527,3 +527,15 @@ Choices made during the prototype slices that affect later work.
   size. The Windows test checks controls relative to the page.
 - CI installs the MAUI workload only to build and check this output; the builder does not
   depend on MAUI.
+
+## Slice 28 — Align, same size and distribute
+
+- **The everyday layout tools of a form designer,** in a Format menu: align lefts, centres,
+  rights, tops, middles or bottoms; make the same width, height or size; distribute evenly
+  across or down. Each is one undo step.
+- **The control selected last is the reference,** as in Visual Studio's designer, so the
+  user decides which control the others follow by clicking it last. Distributing keeps the
+  outermost two where they are and spaces the rest evenly between them.
+- **Only controls placed on the screen are arranged.** Controls inside a StackPanel or Grid
+  are placed by their container, so they are left alone. Sizes never go below a type's
+  minimum, and every control stays inside the screen.

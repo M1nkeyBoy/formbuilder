@@ -55,6 +55,15 @@ public static class EditorCommands
         typeof(EditorCommands),
         [new KeyGesture(Key.OemOpenBrackets, ModifierKeys.Control)]);
 
+    /// <summary>
+    /// Lines up, sizes or spaces the selected controls; the parameter says how (Lefts,
+    /// Centers, Rights, Tops, Middles, Bottoms, Width, Height, Both, Horizontally, Vertically).
+    /// </summary>
+    public static RoutedUICommand Arrange { get; } = new(
+        "Arrange",
+        nameof(Arrange),
+        typeof(EditorCommands));
+
     public static RoutedUICommand AddScreen { get; } = new(
         "_Add Screen",
         nameof(AddScreen),

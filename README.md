@@ -37,7 +37,9 @@ choices are recorded in `docs/decisions.md`.
   rows and columns it spans.
 - **Work with several controls.** Ctrl+click, or drag a box across empty canvas, to select
   several controls; drag, nudge (arrow keys, Shift for a grid step), copy, cut, paste,
-  duplicate (Ctrl+D) or delete them together. Ctrl+A selects all. Edit > Bring to Front
+  duplicate (Ctrl+D) or delete them together. Ctrl+A selects all. The Format menu aligns
+  their edges or centres, makes them the same size, or spaces them evenly, following the
+  control selected last. Edit > Bring to Front
   (Ctrl+]) and Send to Back (Ctrl+[) change which control is drawn on top.
 - **Screens.** A project can have several screens, shown as tabs above the canvas. The
   Screen menu adds (Ctrl+Shift+N, or the + beside the tabs), duplicates, deletes and reorders
