@@ -11,6 +11,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Lets the Windows tests compare generated WPF output with the designer's controls. -->
+    <InternalsVisibleTo Include="StandaloneUiBuilder.UiTests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\StandaloneUiBuilder.Core\StandaloneUiBuilder.Core.csproj" />
   </ItemGroup>
 

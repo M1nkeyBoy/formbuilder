@@ -8,6 +8,7 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <UseWPF>true</UseWPF>
     <!-- It needs the Windows desktop runtime, so `dotnet test` only runs it on Windows. -->
     <IsTestProject Condition="!$([MSBuild]::IsOSPlatform('Windows'))">false</IsTestProject>
   </PropertyGroup>
@@ -21,12 +22,18 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Using Include="System.IO" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\docs\samples\*.uibproj" Link="samples\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\StandaloneUiBuilder.Core\StandaloneUiBuilder.Core.csproj" />
-    <!-- Build order only: the tests launch the editor's executable from its own output folder. -->
-    <ProjectReference Include="..\..\src\StandaloneUiBuilder\StandaloneUiBuilder.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\src\StandaloneUiBuilder.Output.Wpf\StandaloneUiBuilder.Output.Wpf.csproj" />
+    <!-- The walkthroughs launch the editor's own executable; the output tests use its ControlFactory. -->
+    <ProjectReference Include="..\..\src\StandaloneUiBuilder\StandaloneUiBuilder.csproj" />
   </ItemGroup>
 
 </Project>
