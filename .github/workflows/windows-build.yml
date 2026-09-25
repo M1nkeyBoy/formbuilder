@@ -18,14 +18,22 @@ jobs:
       - name: Build
         run: dotnet build StandaloneUiBuilder.sln --configuration Release
 
-      - name: Test
-        run: dotnet test StandaloneUiBuilder.sln --configuration Release --no-build
+      - name: Unit tests
+        run: dotnet test tests/StandaloneUiBuilder.Core.Tests --configuration Release --no-build
 
-      - name: Launch and capture screenshot
+      # Drives the real editor with mouse and keyboard through the prototype acceptance
+      # walkthrough, saving screenshots along the way.
+      - name: UI walkthrough
+        env:
+          UIB_RUN_UI_TESTS: "1"
+          UIB_UI_TEST_ARTIFACTS: ${{ github.workspace }}\artifacts\screenshots
+        run: dotnet test tests/StandaloneUiBuilder.UiTests --configuration Release --no-build --logger "console;verbosity=normal"
+
+      - name: Screenshot of the sample project
+        if: always()
         shell: pwsh
         run: |
           $exe = "src/StandaloneUiBuilder/bin/Release/net10.0-windows/StandaloneUiBuilder.exe"
-          # Open the sample project so the screenshot shows every control type.
           $sample = (Resolve-Path "docs/samples/customer-form.uibproj").Path
           $app = Start-Process -FilePath $exe -ArgumentList "`"$sample`"" -PassThru
           Start-Sleep -Seconds 10
@@ -36,22 +44,53 @@ jobs:
           $bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
           $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
           $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
-          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
-          $bitmap.Save("artifacts/main-window.png", [System.Drawing.Imaging.ImageFormat]::Png)
+          New-Item -ItemType Directory -Force -Path artifacts/screenshots | Out-Null
+          $bitmap.Save("artifacts/screenshots/00-sample-project.png", [System.Drawing.Imaging.ImageFormat]::Png)
           $graphics.Dispose(); $bitmap.Dispose()
 
           Stop-Process -Id $app.Id
 
-          # Also print the image as base64 so it can be read from the job log where
-          # artifact downloads are not reachable.
-          $base64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes("artifacts/main-window.png"))
-          Write-Output "SCREENSHOT-BASE64-BEGIN"
-          for ($i = 0; $i -lt $base64.Length; $i += 4000) {
-            Write-Output $base64.Substring($i, [Math]::Min(4000, $base64.Length - $i))
+      # Also print each screenshot as base64 so it can be read from the job log where
+      # artifact downloads are not reachable.
+      - name: Print screenshots
+        if: always()
+        shell: pwsh
+        run: |
+          Get-ChildItem artifacts/screenshots -Filter *.png -ErrorAction SilentlyContinue | ForEach-Object {
+            $base64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($_.FullName))
+            Write-Output "SCREENSHOT-BASE64-BEGIN $($_.Name)"
+            for ($i = 0; $i -lt $base64.Length; $i += 4000) {
+              Write-Output $base64.Substring($i, [Math]::Min(4000, $base64.Length - $i))
+            }
+            Write-Output "SCREENSHOT-BASE64-END"
           }
-          Write-Output "SCREENSHOT-BASE64-END"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: artifacts/screenshots/*.png
+
+      # A self-contained, single-file build that runs without Visual Studio or an
+      # installed .NET runtime.
+      - name: Publish self-contained release
+        run: >
+          dotnet publish src/StandaloneUiBuilder/StandaloneUiBuilder.csproj
+          --configuration Release --runtime win-x64 --self-contained true
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          --output artifacts/publish
+
+      - name: Check the published build starts
+        shell: pwsh
+        run: |
+          $app = Start-Process -FilePath "artifacts/publish/StandaloneUiBuilder.exe" -PassThru
+          Start-Sleep -Seconds 10
+          if ($app.HasExited) { throw "The published editor exited during startup (exit code $($app.ExitCode))." }
+          Stop-Process -Id $app.Id
 
       - uses: actions/upload-artifact@v4
         with:
-          name: screenshot
-          path: artifacts/main-window.png
+          name: StandaloneUiBuilder-win-x64
+          path: |
+            artifacts/publish/StandaloneUiBuilder.exe
+            docs/samples/customer-form.uibproj

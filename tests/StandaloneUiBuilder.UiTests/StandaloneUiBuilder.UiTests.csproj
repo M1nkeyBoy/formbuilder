@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- End-to-end walkthrough that drives the real editor through Windows UI Automation.
+       It runs only on Windows; elsewhere its tests are reported as skipped. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <!-- It needs the Windows desktop runtime, so `dotnet test` only runs it on Windows. -->
+    <IsTestProject Condition="!$([MSBuild]::IsOSPlatform('Windows'))">false</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FlaUI.UIA3" Version="5.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\StandaloneUiBuilder.Core\StandaloneUiBuilder.Core.csproj" />
+    <!-- Build order only: the tests launch the editor's executable from its own output folder. -->
+    <ProjectReference Include="..\..\src\StandaloneUiBuilder\StandaloneUiBuilder.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

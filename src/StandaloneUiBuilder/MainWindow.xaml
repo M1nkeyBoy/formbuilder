@@ -108,6 +108,11 @@
                          PreviewMouseMove="ToolboxList_PreviewMouseMove"
                          KeyDown="ToolboxList_KeyDown"
                          SelectionChanged="ToolboxList_SelectionChanged">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="AutomationProperties.Name" Value="{Binding Type}" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding Type}" Padding="6,4" />
@@ -121,7 +126,8 @@
 
             <DockPanel Grid.Column="2">
                 <TextBlock DockPanel.Dock="Top" Text="Design surface" Style="{StaticResource PanelHeader}" />
-                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                <ScrollViewer x:Name="SurfaceScroller"
+                              HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                               Background="{DynamicResource {x:Static SystemColors.AppWorkspaceBrushKey}}">
                     <Border Margin="24" HorizontalAlignment="Left" VerticalAlignment="Top"
                             BorderBrush="#FFB8BFC8" BorderThickness="1">
