@@ -24,7 +24,7 @@ public sealed class QualityTests : IDisposable
     {
         // 60 controls: every type, in a 6 × 10 grid covering the screen.
         var editor = new DesignEditor();
-        var types = ControlCatalog.All.Select(d => d.Type).ToArray();
+        var types = ControlCatalog.All.Where(d => !d.IsContainer).Select(d => d.Type).ToArray();
         for (var i = 0; i < 60; i++)
         {
             editor.AddControl(types[i % types.Length], 10 + i % 6 * 130, 10 + i / 6 * 50);

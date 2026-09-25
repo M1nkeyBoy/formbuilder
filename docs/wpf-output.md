@@ -48,6 +48,12 @@ existing code-behind.
   | left and right | `Stretch` | both distances | stretches |
 
   Top and bottom work the same way vertically.
+- A **StackPanel** becomes a WPF `StackPanel` with its `Orientation`. Each child keeps its
+  `Height` (vertical) or `Width` (horizontal), stretches across the stack, and has the
+  spacing as a leading `Margin`. Overflow is clipped (`ClipToBounds`).
+- A **Grid** becomes a WPF `Grid` with equal `*` rows and columns; each child has `Grid.Row`
+  and `Grid.Column` and stretches to fill its cell.
+- Containers nest in the XAML exactly as in the design.
 - If any control is anchored to the right or bottom edge, the window can be resized
   (`ResizeMode="CanResize"`) and the Grid has the design size as its minimum. Otherwise the
   window keeps the design size and can only be minimised.
@@ -116,5 +122,5 @@ before later controls exist.
 
 ## Not generated yet
 
-Data binding, styles, and nested layout containers such as stacks and grids. Absolute positions suit fixed-size tools and dialogs; responsive layouts need the
+Data binding, styles, grid row or column spans, and differently sized grid rows or columns. Absolute positions suit fixed-size tools and dialogs; responsive layouts need the
 layout-model work listed in the spec's "decisions to revisit".

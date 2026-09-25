@@ -275,3 +275,23 @@ Choices made during the prototype slices that affect later work.
 - **Copying** a control from inside a container makes a free-standing copy at its screen
   position and size.
 - **Resize handles and anchor lines** appear only for controls directly on the screen.
+
+## Slice 16 — Containers in generated code
+
+- **WPF** uses its own `StackPanel` and `Grid`, which follow the same rules natively: fixed
+  size along a stack, stretch across it, spacing as a leading margin, equal `*` cells.
+- **WinForms** has no stack with stretch-across and spacing, and its `FlowLayoutPanel`
+  does not stretch children, so both containers become a `TableLayoutPanel` configured to
+  match: fixed rows (or columns) sized child-plus-gap and a filler for stacks; equal percentage
+  rows and columns for grids; children docked to fill.
+- **A second sample,** `docs/samples/layout-demo.uibproj`, covers every container feature: a
+  vertical stack of fields, a 3 × 2 grid of buttons with a stack nested in one cell, and a
+  horizontal footer stack, all anchored so the window resizes. CI exports both samples to
+  both targets, builds and runs all four apps.
+- **Proof on Windows.** The parity test now walks the whole tree: in the generated WPF
+  window and in the editor's Preview, every control (at any depth) must land where the Core
+  rules say, at the design size and a larger size. The WinForms test does the same with the
+  real running form, read through UI Automation. Both allow one pixel for how each framework
+  rounds uneven grid cells.
+- **Design-mode clipping.** Children that overflow a container are clipped to it in Design
+  mode, as they are at run time, except while a child is being dragged out.

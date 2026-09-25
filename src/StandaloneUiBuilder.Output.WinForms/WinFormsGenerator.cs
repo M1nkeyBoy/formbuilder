@@ -54,12 +54,8 @@ public static class WinFormsGenerator
     public static IReadOnlyList<string> Check(ProjectDocument document)
     {
         var problems = new List<string>();
-        if (ControlTree.All(document.Screen.Controls).FirstOrDefault(c => c.Children is not null) is { } container)
-        {
-            problems.Add($"\"{container.Name}\" is a {container.Type}; containers cannot be exported to WinForms yet.");
-        }
-
-        foreach (var control in document.Screen.Controls)
+        var all = ControlTree.All(document.Screen.Controls).ToList();
+        foreach (var control in all)
         {
             if (CodeNames.CSharpKeywords.Contains(control.Name))
             {
@@ -71,11 +67,11 @@ public static class WinFormsGenerator
             }
         }
 
-        var generatedMembers = document.Screen.Controls
+        var generatedMembers = all
             .Where(c => EventFor(c.Type) is not null)
             .SelectMany(c => new[] { (Member: HandlerName(c), Owner: c.Name), (Member: HookName(c), Owner: c.Name) })
             .ToDictionary(m => m.Member, m => m.Owner, StringComparer.Ordinal);
-        foreach (var control in document.Screen.Controls)
+        foreach (var control in all)
         {
             if (generatedMembers.TryGetValue(control.Name, out var owner))
             {
@@ -99,6 +95,8 @@ public static class WinFormsGenerator
     {
         var screen = document.Screen;
         var controls = screen.Controls;
+        var all = ControlTree.All(controls).ToList();
+        var containers = all.Where(c => c.Children is not null).ToList();
         var resizable = AnchorLayout.IsResizable(screen);
         var code = new StringBuilder();
 
@@ -129,16 +127,21 @@ public static class WinFormsGenerator
         code.AppendLine("    private void InitializeComponent()");
         code.AppendLine("    {");
 
-        foreach (var control in controls)
+        foreach (var control in all)
         {
-            code.AppendLine($"        this.{control.Name} = new System.Windows.Forms.{control.Type}();");
+            code.AppendLine($"        this.{control.Name} = new System.Windows.Forms.{WinFormsType(control.Type)}();");
+        }
+
+        foreach (var container in containers)
+        {
+            code.AppendLine($"        this.{container.Name}.SuspendLayout();");
         }
 
         code.AppendLine("        this.SuspendLayout();");
 
         for (var i = 0; i < controls.Count; i++)
         {
-            AppendControl(code, controls[i], tabIndex: i);
+            AppendControl(code, controls[i], parent: null, index: i);
         }
 
         code.AppendLine("        // ");
@@ -168,28 +171,44 @@ public static class WinFormsGenerator
 
         code.AppendLine($"        this.Name = \"{FormClassName}\";");
         code.AppendLine($"        this.Text = {Literal(document.Name)};");
+        for (var i = containers.Count - 1; i >= 0; i--)
+        {
+            code.AppendLine($"        this.{containers[i].Name}.ResumeLayout(false);");
+        }
+
         code.AppendLine("        this.ResumeLayout(false);");
         code.AppendLine("        this.PerformLayout();");
         code.AppendLine("    }");
         code.AppendLine();
         code.AppendLine("    #endregion");
 
-        if (controls.Count > 0)
+        if (all.Count > 0)
         {
             code.AppendLine();
         }
 
-        foreach (var control in controls)
+        foreach (var control in all)
         {
             var hides = HiddenFormMembers.Contains(control.Name) ? "new " : "";
-            code.AppendLine($"    private {hides}System.Windows.Forms.{control.Type} {control.Name};");
+            code.AppendLine($"    private {hides}System.Windows.Forms.{WinFormsType(control.Type)} {control.Name};");
         }
 
         code.AppendLine("}");
         return code.ToString();
     }
 
-    private static void AppendControl(StringBuilder code, ControlDocument control, int tabIndex)
+    /// <summary>
+    /// Containers become a TableLayoutPanel, set up so it follows the builder's layout rules.
+    /// </summary>
+    private static string WinFormsType(ControlType type) =>
+        type is ControlType.StackPanel or ControlType.Grid ? "TableLayoutPanel" : type.ToString();
+
+    /// <summary>
+    /// Writes one control's settings, then its children's. A control on the form has a location,
+    /// size and anchor; one in a container fills its table cell (Dock = Fill), and a stack's
+    /// spacing becomes the child's leading margin inside a cell sized to hold both.
+    /// </summary>
+    private static void AppendControl(StringBuilder code, ControlDocument control, ControlDocument? parent, int index)
     {
         var name = control.Name;
         var properties = control.Properties;
@@ -198,7 +217,19 @@ public static class WinFormsGenerator
         code.AppendLine("        // ");
         code.AppendLine($"        // {name}");
         code.AppendLine("        // ");
-        Set("Anchor", AnchorStyles(control.Anchor));
+        if (parent is null)
+        {
+            Set("Anchor", AnchorStyles(control.Anchor));
+        }
+        else
+        {
+            var gap = parent.Type == ControlType.StackPanel && index > 0 ? parent.Properties.Spacing ?? 0 : 0;
+            var vertical = parent.Properties.Orientation != StackOrientation.Horizontal;
+            Set("Dock", "System.Windows.Forms.DockStyle.Fill");
+            Set("Margin", gap == 0 ? "new System.Windows.Forms.Padding(0)"
+                : vertical ? $"new System.Windows.Forms.Padding(0, {Number(gap)}, 0, 0)"
+                : $"new System.Windows.Forms.Padding({Number(gap)}, 0, 0, 0)");
+        }
 
         switch (control.Type)
         {
@@ -220,10 +251,23 @@ public static class WinFormsGenerator
                 break;
         }
 
-        Set("Location", $"new System.Drawing.Point({Number(control.X)}, {Number(control.Y)})");
+        if (control.Children is { } children)
+        {
+            AppendTable(code, control, children);
+        }
+
+        if (parent is null)
+        {
+            Set("Location", $"new System.Drawing.Point({Number(control.X)}, {Number(control.Y)})");
+        }
+
         Set("Name", Literal(name));
-        Set("Size", $"new System.Drawing.Size({Number(control.Width)}, {Number(control.Height)})");
-        Set("TabIndex", Number(tabIndex));
+        if (parent is null)
+        {
+            Set("Size", $"new System.Drawing.Size({Number(control.Width)}, {Number(control.Height)})");
+        }
+
+        Set("TabIndex", Number(index));
 
         switch (control.Type)
         {
@@ -247,7 +291,68 @@ public static class WinFormsGenerator
         {
             code.AppendLine($"        this.{name}.{e} += this.{HandlerName(control)};");
         }
+
+        for (var i = 0; i < (control.Children?.Count ?? 0); i++)
+        {
+            AppendControl(code, control.Children![i], control, i);
+        }
     }
+
+    private static void AppendTable(StringBuilder code, ControlDocument container, IReadOnlyList<ControlDocument> children)
+    {
+        var name = container.Name;
+        var properties = container.Properties;
+        void Line(string text) => code.AppendLine($"        this.{name}.{text}");
+        Line("Margin = new System.Windows.Forms.Padding(0);");
+        Line("Padding = new System.Windows.Forms.Padding(0);");
+
+        if (container.Type == ControlType.StackPanel)
+        {
+            // One fixed-size row (or column) per child, holding the child and the gap before
+            // it, and a last one that takes up whatever space is left.
+            var vertical = properties.Orientation != StackOrientation.Horizontal;
+            var (along, across) = vertical ? ("Row", "Column") : ("Column", "Row");
+            Line($"{across}Count = 1;");
+            Line($"{across}Styles.Add(new System.Windows.Forms.{across}Style(System.Windows.Forms.SizeType.Percent, 100F));");
+            Line($"{along}Count = {Number(children.Count + 1)};");
+            for (var i = 0; i < children.Count; i++)
+            {
+                var gap = i > 0 ? properties.Spacing ?? 0 : 0;
+                var size = (vertical ? children[i].Height : children[i].Width) + gap;
+                Line($"{along}Styles.Add(new System.Windows.Forms.{along}Style(System.Windows.Forms.SizeType.Absolute, {Number(size)}F));");
+            }
+
+            Line($"{along}Styles.Add(new System.Windows.Forms.{along}Style(System.Windows.Forms.SizeType.Percent, 100F));");
+            for (var i = 0; i < children.Count; i++)
+            {
+                Line(vertical ? $"Controls.Add(this.{children[i].Name}, 0, {Number(i)});" : $"Controls.Add(this.{children[i].Name}, {Number(i)}, 0);");
+            }
+
+            return;
+        }
+
+        // Equal rows and columns.
+        var rows = properties.Rows ?? 1;
+        var columns = properties.Columns ?? 1;
+        Line($"ColumnCount = {Number(columns)};");
+        for (var c = 0; c < columns; c++)
+        {
+            Line($"ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, {Percent(columns)}F));");
+        }
+
+        Line($"RowCount = {Number(rows)};");
+        for (var r = 0; r < rows; r++)
+        {
+            Line($"RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, {Percent(rows)}F));");
+        }
+
+        foreach (var child in children)
+        {
+            Line($"Controls.Add(this.{child.Name}, {Number(child.Column ?? 0)}, {Number(child.Row ?? 0)});");
+        }
+    }
+
+    private static string Percent(int count) => (100.0 / count).ToString("0.####", CultureInfo.InvariantCulture);
 
     public static string EventsCode(ProjectDocument document, string rootNamespace)
     {
@@ -265,7 +370,7 @@ public static class WinFormsGenerator
         code.AppendLine("{");
 
         var first = true;
-        foreach (var control in document.Screen.Controls)
+        foreach (var control in ControlTree.All(document.Screen.Controls))
         {
             if (EventFor(control.Type) is not { } e)
             {

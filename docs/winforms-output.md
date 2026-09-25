@@ -32,6 +32,11 @@ overwritten. The namespace of an earlier export is kept, as for WPF.
   96 DPI scales them for the screen, and the project opts into per-monitor DPI.
 - If any control follows the right or bottom edge, the form can be resized but not made
   smaller than the design. Otherwise it has a fixed border and no Maximize button.
+- Containers become a `TableLayoutPanel` set up to follow the builder's rules. A StackPanel
+  has one column (or row) and a fixed-size row (or column) per child, big enough for the
+  child plus the spacing before it, then a filler that takes any remaining space. A Grid has
+  equal percentage rows and columns. Children fill their cell (`Dock = Fill`), with the
+  stack spacing as their leading `Margin`.
 - Draw order is kept (WinForms puts the first control added on top, so they are added in
   reverse). Tab order follows the design's control order.
 - Label, Button and CheckBox text becomes `Text` with `&` doubled, so it shows literally as
@@ -46,6 +51,10 @@ WinForms controls look and measure differently from WPF controls:
 - A single-line TextBox or ComboBox takes its height from its font, so a height set in the
   builder is not applied. Position, width and anchors are.
 - Fonts, padding and borders are WinForms' own, so text sits slightly differently.
+- `TableLayoutPanel` rounds percentage cells its own way, so grid cells can differ from the
+  design by a pixel. The Windows layout test allows for that.
+- The layout tests run at 96 DPI. At other DPI settings, fixed `TableLayoutPanel` row sizes
+  depend on how the WinForms version scales them.
 
 ## Responding to controls
 
@@ -78,7 +87,8 @@ refers to the control, not the Form property.
 
 - Unit tests check the generated code's content and parse every generated file with the C#
   compiler (Roslyn) for syntax errors.
-- On Windows, a test builds the exported sample, runs it, and reads each control's real
+- On Windows, a test builds the exported samples (including `layout-demo`, with nested
+  containers), runs them, and reads each control's real
   position and size through UI Automation. It then enlarges the window and checks that
   anchored controls moved and stretched as the Core anchor rules say, and that an
   implemented Click hook runs.

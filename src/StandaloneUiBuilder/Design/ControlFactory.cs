@@ -46,6 +46,8 @@ internal static class ControlFactory
             _ => throw new ArgumentOutOfRangeException(nameof(control), control.Type, "Unknown control type."),
         };
 
+        // Named after the design, so tools and tests can find controls in the Preview.
+        element.Name = control.Name;
         element.Width = control.Width;
         element.Height = control.Height;
         return element;

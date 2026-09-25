@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Markup;
+using System.Windows.Media;
 using StandaloneUiBuilder.Core;
 using StandaloneUiBuilder.Design;
 using StandaloneUiBuilder.Output.Wpf;
@@ -52,6 +53,7 @@ public sealed partial class WpfOutputParityTests
     {
         var parent = Environment.GetEnvironmentVariable("UIB_EXPORT_DIR") ?? Directory.CreateTempSubdirectory("uib-export-").FullName;
 
+        WpfExporter.Export(ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", "layout-demo.uibproj")), Path.Combine(parent, "wpf"));
         var result = WpfExporter.Export(Sample(), Path.Combine(parent, "wpf"));
 
         // Implement a hook the way a developer would, so the CI build proves the wiring compiles.
@@ -83,7 +85,7 @@ public sealed partial class WpfOutputParityTests
             AnchorEdges.Left | AnchorEdges.Top | AnchorEdges.Bottom,
             AnchorEdges.Left | AnchorEdges.Right | AnchorEdges.Top | AnchorEdges.Bottom,
         };
-        var types = ControlCatalog.All.Select(d => d.Type).ToArray();
+        var types = ControlCatalog.All.Where(d => !d.IsContainer).Select(d => d.Type).ToArray();
         for (var i = 0; i < anchors.Length; i++)
         {
             var control = editor.AddControl(types[i % types.Length], 40 + i * 100, 40 + i * 70);
@@ -93,10 +95,14 @@ public sealed partial class WpfOutputParityTests
         return editor.Document;
     }
 
+    [WindowsFact]
+    public void LayoutDemoLaysOutTheSameEverywhere() => RunOnStaThread(() => AssertParity(
+        ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", "layout-demo.uibproj"))));
+
     /// <summary>
-    /// Compares, control by control: the generated XAML as WPF lays it out; the designer's
-    /// Preview as WPF lays it out; and the Core anchor rules. At the design size and, for a
-    /// resizable screen, at a larger size.
+    /// Compares, control by control and including controls inside containers: the generated
+    /// XAML as WPF lays it out; the designer's Preview as WPF lays it out; and the Core layout
+    /// rules. At the design size and, for a resizable screen, at a larger size.
     /// </summary>
     private static void AssertParity(ProjectDocument document)
     {
@@ -122,28 +128,31 @@ public sealed partial class WpfOutputParityTests
             preview.Width = width;
             preview.Height = height;
             Arrange(preview, width, height);
-            var previewHosts = preview.Children.OfType<Grid>().Single(g => g.Children.Count == screen.Controls.Count && g.Children.OfType<Border>().Any()).Children;
 
-            for (var i = 0; i < screen.Controls.Count; i++)
+            foreach (var expected in ContainerLayout.Flatten(screen, width, height))
             {
-                var control = screen.Controls[i];
-                var expected = AnchorLayout.Resolve(screen, control, width, height);
-                var what = $"{control.Name} ({control.Anchor}) at {width} × {height}";
-                Assert.True(expected == BoundsOf((FrameworkElement)grid.Children[i]), $"{what}: generated window has {BoundsOf((FrameworkElement)grid.Children[i])}, expected {expected}");
-                Assert.True(expected == BoundsOf((FrameworkElement)previewHosts[i]), $"{what}: preview has {BoundsOf((FrameworkElement)previewHosts[i])}, expected {expected}");
+                var name = expected.Control.Name;
+                var what = $"{name} ({expected.Control.Anchor}, depth {expected.Depth}) at {width} × {height}";
+                var generated = (FrameworkElement)window.FindName(name);
+                var previewed = FindByName(preview, name) ?? throw new InvalidOperationException($"{name} is not in the preview.");
+                var inWindow = BoundsWithin(generated, grid);
+                var inPreview = BoundsWithin(previewed, preview);
+                Assert.True(Near(expected.Bounds, inWindow), $"{what}: generated window has {inWindow}, expected {expected.Bounds}");
+                Assert.True(Near(expected.Bounds, inPreview), $"{what}: preview has {inPreview}, expected {expected.Bounds}");
             }
         }
 
         // Control-level appearance: the same padding, alignment, text and values as the designer.
-        var designedControls = screen.Controls.Select(c => ControlFactory.Create(c, buttonClicked: null)).ToList();
+        var leaves = ControlTree.All(screen.Controls).Where(c => c.Children is null).ToList();
+        var designedControls = leaves.Select(c => ControlFactory.Create(c, buttonClicked: null)).ToList();
         var designCanvas = new Canvas();
         designedControls.ForEach(c => designCanvas.Children.Add(c));
         _ = new Window { Content = designCanvas };
 
-        for (var i = 0; i < screen.Controls.Count; i++)
+        for (var i = 0; i < leaves.Count; i++)
         {
-            var control = screen.Controls[i];
-            var generated = (FrameworkElement)grid.Children[i];
+            var control = leaves[i];
+            var generated = (FrameworkElement)window.FindName(control.Name);
             var designed = designedControls[i];
             var what = $"{control.Name} ({control.Type})";
 
@@ -173,21 +182,45 @@ public sealed partial class WpfOutputParityTests
         }
     }
 
+    // WPF rounds star-sized grid cells its own way when a size does not divide evenly, so allow
+    // one pixel; everything else lands exactly.
+    private static bool Near(ControlBounds a, ControlBounds b) =>
+        Math.Abs(a.X - b.X) <= 1 && Math.Abs(a.Y - b.Y) <= 1 && Math.Abs(a.Width - b.Width) <= 1 && Math.Abs(a.Height - b.Height) <= 1;
+
+    private static FrameworkElement? FindByName(DependencyObject root, string name)
+    {
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+            if (child is FrameworkElement { Name: var childName } element && childName == name)
+            {
+                return element;
+            }
+
+            if (FindByName(child, name) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    private static ControlBounds BoundsWithin(FrameworkElement element, Visual ancestor)
+    {
+        var origin = element.TransformToAncestor(ancestor).Transform(new Point(0, 0));
+        return new ControlBounds(
+            (int)Math.Round(origin.X),
+            (int)Math.Round(origin.Y),
+            (int)Math.Round(element.RenderSize.Width),
+            (int)Math.Round(element.RenderSize.Height));
+    }
+
     private static void Arrange(FrameworkElement element, int width, int height)
     {
         element.Measure(new Size(width, height));
         element.Arrange(new Rect(0, 0, width, height));
         element.UpdateLayout();
-    }
-
-    private static ControlBounds BoundsOf(FrameworkElement element)
-    {
-        var offset = System.Windows.Media.VisualTreeHelper.GetOffset(element);
-        return new ControlBounds(
-            (int)Math.Round(offset.X),
-            (int)Math.Round(offset.Y),
-            (int)Math.Round(element.RenderSize.Width),
-            (int)Math.Round(element.RenderSize.Height));
     }
 
     /// <summary>The text a user sees: TextBox text, or content with access-key underscores resolved.</summary>

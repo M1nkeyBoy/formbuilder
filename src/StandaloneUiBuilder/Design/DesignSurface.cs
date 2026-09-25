@@ -261,6 +261,7 @@ internal sealed class DesignSurface : Grid
             foreach (var item in placed.Values)
             {
                 var host = CreateDesignHost(item.Control, item.Bounds);
+                ClipToContainers(host, item);
                 hosts[item.Control.Id] = host;
                 controlsLayer.Children.Add(host);
             }
@@ -299,6 +300,28 @@ internal sealed class DesignSurface : Grid
         };
         PlaceHost(host, element, bounds);
         return host;
+    }
+
+    /// <summary>
+    /// Like the real containers, a control is only visible within its container (and theirs):
+    /// children that overflow a stack are clipped rather than drawn outside it.
+    /// </summary>
+    private void ClipToContainers(Border host, PlacedControl item)
+    {
+        var visible = new Rect(item.Bounds.X, item.Bounds.Y, item.Bounds.Width, item.Bounds.Height);
+        for (var parentId = item.ParentId; parentId is { } id && placed.TryGetValue(id, out var parent); parentId = parent.ParentId)
+        {
+            visible.Intersect(new Rect(parent.Bounds.X, parent.Bounds.Y, parent.Bounds.Width, parent.Bounds.Height));
+        }
+
+        if (visible.IsEmpty)
+        {
+            host.Visibility = Visibility.Collapsed;
+        }
+        else if (visible.Width < item.Bounds.Width || visible.Height < item.Bounds.Height)
+        {
+            host.Clip = new RectangleGeometry(new Rect(visible.X - item.Bounds.X, visible.Y - item.Bounds.Y, visible.Width, visible.Height));
+        }
     }
 
     private bool IsRoot(Guid id) => placed.TryGetValue(id, out var item) && item.ParentId is null;
@@ -666,6 +689,16 @@ internal sealed class DesignSurface : Grid
             .SelectMany(c => ControlTree.All([c]))
             .Where(c => placed.ContainsKey(c.Id))
             .ToDictionary(c => c.Id, c => placed[c.Id].Bounds);
+
+        // A control being dragged out of its container is shown whole, wherever it goes.
+        foreach (var id in groupStarts.Keys)
+        {
+            if (hosts.TryGetValue(id, out var host))
+            {
+                host.Clip = null;
+                host.Visibility = Visibility.Visible;
+            }
+        }
     }
 
     /// <summary>

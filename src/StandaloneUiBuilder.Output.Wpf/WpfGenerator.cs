@@ -50,12 +50,8 @@ public static class WpfGenerator
     public static IReadOnlyList<string> Check(ProjectDocument document)
     {
         var problems = new List<string>();
-        if (ControlTree.All(document.Screen.Controls).FirstOrDefault(c => c.Children is not null) is { } container)
-        {
-            problems.Add($"\"{container.Name}\" is a {container.Type}; containers cannot be exported to WPF yet.");
-        }
-
-        foreach (var control in document.Screen.Controls)
+        var all = ControlTree.All(document.Screen.Controls).ToList();
+        foreach (var control in all)
         {
             if (CodeNames.CSharpKeywords.Contains(control.Name))
             {
@@ -68,11 +64,11 @@ public static class WpfGenerator
         }
 
         // Generated handler and hook names must not collide with a control's field name.
-        var generatedMembers = document.Screen.Controls
+        var generatedMembers = all
             .Where(c => EventFor(c.Type) is not null)
             .SelectMany(c => new[] { (Member: HandlerName(c), Owner: c.Name), (Member: HookName(c), Owner: c.Name) })
             .ToDictionary(m => m.Member, m => m.Owner, StringComparer.Ordinal);
-        foreach (var control in document.Screen.Controls)
+        foreach (var control in all)
         {
             if (generatedMembers.TryGetValue(control.Name, out var owner))
             {
@@ -127,10 +123,9 @@ public static class WpfGenerator
         return xaml.ToString();
     }
 
+    /// <summary>A control placed directly on the screen: alignment and margins from its anchors.</summary>
     private static void AppendControl(StringBuilder xaml, ScreenDocument screen, ControlDocument control)
     {
-        var properties = control.Properties;
-        var element = control.Type.ToString();
         var placement = AnchorLayout.Place(screen, control);
 
         // Margins count only on the anchored sides; a fixed size is written only when the
@@ -142,22 +137,37 @@ public static class WpfGenerator
             placement.Horizontal == AxisAlignment.Start ? 0 : placement.MarginRight,
             placement.Vertical == AxisAlignment.Start ? 0 : placement.MarginBottom,
         };
-        var attributes = new List<string>
+        var layout = new List<string>
         {
-            $"x:Name=\"{control.Name}\"",
             $"HorizontalAlignment=\"{Alignment(placement.Horizontal, "Left", "Right")}\"",
             $"VerticalAlignment=\"{Alignment(placement.Vertical, "Top", "Bottom")}\"",
             $"Margin=\"{string.Join(",", margin.Select(Number))}\"",
         };
         if (placement.Width is { } width)
         {
-            attributes.Add($"Width=\"{Number(width)}\"");
+            layout.Add($"Width=\"{Number(width)}\"");
         }
 
-        if (placement.Height is { } fixedHeight)
+        if (placement.Height is { } height)
         {
-            attributes.Add($"Height=\"{Number(fixedHeight)}\"");
+            layout.Add($"Height=\"{Number(height)}\"");
         }
+
+        AppendElement(xaml, control, layout, depth: 2);
+    }
+
+    /// <summary>
+    /// Writes one control with the layout attributes its parent needs, then, for a container,
+    /// its children with theirs: a StackPanel child keeps its size along the stack, stretches
+    /// across it and has the spacing as a leading margin; a Grid child fills its cell.
+    /// </summary>
+    private static void AppendElement(StringBuilder xaml, ControlDocument control, List<string> layout, int depth)
+    {
+        var indent = new string(' ', depth * 4);
+        var properties = control.Properties;
+        var element = control.Type.ToString();
+        var attributes = new List<string> { $"x:Name=\"{control.Name}\"" };
+        attributes.AddRange(layout);
 
         switch (control.Type)
         {
@@ -181,6 +191,13 @@ public static class WpfGenerator
             case ControlType.ComboBox:
                 attributes.Add("VerticalContentAlignment=\"Center\"");
                 break;
+            case ControlType.StackPanel:
+                attributes.Add($"Orientation=\"{(properties.Orientation == StackOrientation.Horizontal ? "Horizontal" : "Vertical")}\"");
+                attributes.Add("ClipToBounds=\"True\"");
+                break;
+            case ControlType.Grid:
+                attributes.Add("ClipToBounds=\"True\"");
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(control), control.Type, "Unknown control type.");
         }
@@ -190,9 +207,10 @@ public static class WpfGenerator
             attributes.Add($"{hook.Event}=\"{HandlerName(control)}\"");
         }
 
+        var opening = $"{indent}<{element} {string.Join(" ", attributes)}";
         var items = control.Type == ControlType.ComboBox ? properties.Items ?? [] : [];
-        var opening = $"        <{element} {string.Join(" ", attributes)}";
-        if (items.Count == 0)
+        var children = control.Children ?? [];
+        if (items.Count == 0 && children.Count == 0 && control.Type != ControlType.Grid)
         {
             xaml.AppendLine(opening + " />");
             return;
@@ -201,10 +219,56 @@ public static class WpfGenerator
         xaml.AppendLine(opening + ">");
         foreach (var item in items)
         {
-            xaml.AppendLine($"            <ComboBoxItem Content=\"{Attribute(item)}\" />");
+            xaml.AppendLine($"{indent}    <ComboBoxItem Content=\"{Attribute(item)}\" />");
         }
 
-        xaml.AppendLine($"        </{element}>");
+        if (control.Type == ControlType.StackPanel)
+        {
+            var vertical = properties.Orientation != StackOrientation.Horizontal;
+            for (var i = 0; i < children.Count; i++)
+            {
+                var child = children[i];
+                var gap = i > 0 ? properties.Spacing ?? 0 : 0;
+                var childLayout = vertical
+                    ? new List<string> { "HorizontalAlignment=\"Stretch\"", $"Height=\"{Number(child.Height)}\"" }
+                    : new List<string> { "VerticalAlignment=\"Stretch\"", $"Width=\"{Number(child.Width)}\"" };
+                if (gap > 0)
+                {
+                    childLayout.Add($"Margin=\"{(vertical ? $"0,{Number(gap)},0,0" : $"{Number(gap)},0,0,0")}\"");
+                }
+
+                AppendElement(xaml, child, childLayout, depth + 1);
+            }
+        }
+        else if (control.Type == ControlType.Grid)
+        {
+            // Equal rows and columns ("*" sizes share the space evenly).
+            xaml.AppendLine($"{indent}    <Grid.RowDefinitions>");
+            for (var r = 0; r < (properties.Rows ?? 1); r++)
+            {
+                xaml.AppendLine($"{indent}        <RowDefinition Height=\"*\" />");
+            }
+
+            xaml.AppendLine($"{indent}    </Grid.RowDefinitions>");
+            xaml.AppendLine($"{indent}    <Grid.ColumnDefinitions>");
+            for (var c = 0; c < (properties.Columns ?? 1); c++)
+            {
+                xaml.AppendLine($"{indent}        <ColumnDefinition Width=\"*\" />");
+            }
+
+            xaml.AppendLine($"{indent}    </Grid.ColumnDefinitions>");
+            foreach (var child in children)
+            {
+                AppendElement(xaml, child, [
+                    $"Grid.Row=\"{Number(child.Row ?? 0)}\"",
+                    $"Grid.Column=\"{Number(child.Column ?? 0)}\"",
+                    "HorizontalAlignment=\"Stretch\"",
+                    "VerticalAlignment=\"Stretch\"",
+                ], depth + 1);
+            }
+        }
+
+        xaml.AppendLine($"{indent}</{element}>");
     }
 
     /// <summary>
@@ -230,7 +294,7 @@ public static class WpfGenerator
         code.AppendLine("{");
 
         var first = true;
-        foreach (var control in document.Screen.Controls)
+        foreach (var control in ControlTree.All(document.Screen.Controls))
         {
             if (EventFor(control.Type) is not { } e)
             {

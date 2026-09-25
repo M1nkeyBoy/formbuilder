@@ -20,6 +20,7 @@ public sealed class WinFormsOutputTests
     public void SampleExports()
     {
         var parent = Environment.GetEnvironmentVariable("UIB_EXPORT_DIR") ?? Directory.CreateTempSubdirectory("uib-export-").FullName;
+        WinFormsExporter.Export(ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", "layout-demo.uibproj")), Path.Combine(parent, "winforms"));
         var result = WinFormsExporter.Export(Sample(), Path.Combine(parent, "winforms"));
         ImplementSubmitHook(result.ProjectFolder);
 
@@ -27,12 +28,21 @@ public sealed class WinFormsOutputTests
     }
 
     [UiWalkthroughFact]
-    public void GeneratedFormLaysOutControlsByTheirAnchors()
+    public void GeneratedFormLaysOutControlsByTheirAnchors() => AssertGeneratedForm(Sample(), "CustomerForm", checkSubmitHook: true);
+
+    [UiWalkthroughFact]
+    public void GeneratedFormLaysOutContainers() => AssertGeneratedForm(
+        ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", "layout-demo.uibproj")), "LayoutDemo", checkSubmitHook: false);
+
+    private static void AssertGeneratedForm(ProjectDocument document, string projectName, bool checkSubmitHook)
     {
-        var document = Sample();
         var folder = WinFormsExporter.Export(document, Directory.CreateTempSubdirectory("uib-winforms-").FullName).ProjectFolder;
-        ImplementSubmitHook(folder);
-        var exe = Build(folder);
+        if (checkSubmitHook)
+        {
+            ImplementSubmitHook(folder);
+        }
+
+        var exe = Build(folder, projectName);
 
         using var automation = new FlaUI.UIA3.UIA3Automation();
         using var app = FlaUI.Core.Application.Launch(exe);
@@ -53,8 +63,11 @@ public sealed class WinFormsOutputTests
             AssertLayout(window, screen, client.Width, client.Height);
 
             // The implemented hook runs when the button is clicked.
-            EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("SubmitButton")), "Submit button").AsButton().Invoke();
-            EditorSession.WaitUntil(() => window.Title.StartsWith("Submitted", StringComparison.Ordinal), () => $"Title after clicking Submit: {window.Title}");
+            if (checkSubmitHook)
+            {
+                EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("SubmitButton")), "Submit button").AsButton().Invoke();
+                EditorSession.WaitUntil(() => window.Title.StartsWith("Submitted", StringComparison.Ordinal), () => $"Title after clicking Submit: {window.Title}");
+            }
         }
         finally
         {
@@ -69,21 +82,24 @@ public sealed class WinFormsOutputTests
     private static void AssertLayout(Window window, ScreenDocument screen, int width, int height)
     {
         var client = ClientRect(window);
-        foreach (var control in screen.Controls)
+        foreach (var placed in ContainerLayout.Flatten(screen, width, height))
         {
+            var control = placed.Control;
             var element = window.FindFirstDescendant(cf => cf.ByAutomationId(control.Name))
                 ?? throw new InvalidOperationException($"{control.Name} is not in the generated form.");
             var r = element.BoundingRectangle;
             var actual = new ControlBounds(r.Left - client.Left, r.Top - client.Top, r.Width, r.Height);
-            var expected = AnchorLayout.Resolve(screen, control, width, height);
-            var what = $"{control.Name} ({control.Anchor}) at {width} × {height}";
+            var expected = placed.Bounds;
+            var what = $"{control.Name} ({control.Anchor}, depth {placed.Depth}) at {width} × {height}";
 
-            Assert.True(expected.X == actual.X && expected.Y == actual.Y && expected.Width == actual.Width, $"{what}: form has {actual}, expected {expected}");
+            // TableLayoutPanel rounds percentage cells its own way, so allow one pixel.
+            static bool Near(int a, int b) => Math.Abs(a - b) <= 1;
+            Assert.True(Near(expected.X, actual.X) && Near(expected.Y, actual.Y) && Near(expected.Width, actual.Width), $"{what}: form has {actual}, expected {expected}");
 
             // Single-line TextBox and ComboBox heights follow the font in WinForms.
             if (control.Type is not (Core.ControlType.TextBox or Core.ControlType.ComboBox))
             {
-                Assert.True(expected.Height == actual.Height, $"{what}: height {actual.Height}, expected {expected.Height}");
+                Assert.True(Near(expected.Height, actual.Height), $"{what}: height {actual.Height}, expected {expected.Height}");
             }
         }
     }
@@ -98,7 +114,7 @@ public sealed class WinFormsOutputTests
         }
     }
 
-    private static string Build(string folder)
+    private static string Build(string folder, string projectName)
     {
         var build = Process.Start(new ProcessStartInfo("dotnet", ["build", folder, "--configuration", "Release", "--nologo"])
         {
@@ -108,7 +124,7 @@ public sealed class WinFormsOutputTests
         var output = build.StandardOutput.ReadToEnd() + build.StandardError.ReadToEnd();
         build.WaitForExit();
         Assert.True(build.ExitCode == 0, "The generated WinForms project did not build:\n" + output);
-        return Path.Combine(folder, "bin", "Release", "net10.0-windows", "CustomerForm.exe");
+        return Path.Combine(folder, "bin", "Release", "net10.0-windows", projectName + ".exe");
     }
 
     private static System.Drawing.Rectangle ClientRect(Window window)

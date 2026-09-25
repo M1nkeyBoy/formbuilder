@@ -1,0 +1,370 @@
+{
+  "schemaVersion": 3,
+  "projectId": "5b7c2f4e-8d1a-4e6b-9f3c-2a7d8e9b0c11",
+  "name": "Layout demo",
+  "screen": {
+    "id": "main",
+    "name": "Main",
+    "width": 800,
+    "height": 600,
+    "gridSize": 10,
+    "controls": [
+      {
+        "id": "cb99ce0d-6a22-4a17-bd3f-89e569c93ce9",
+        "type": "Label",
+        "name": "HeaderLabel",
+        "x": 20,
+        "y": 20,
+        "width": 760,
+        "height": 30,
+        "properties": {
+          "text": "Layout demo: resize the window"
+        },
+        "anchor": [
+          "left",
+          "top",
+          "right"
+        ]
+      },
+      {
+        "id": "acb6b110-44d7-479a-aad7-96be7e325d69",
+        "type": "StackPanel",
+        "name": "FieldsStack",
+        "x": 20,
+        "y": 70,
+        "width": 250,
+        "height": 300,
+        "properties": {
+          "orientation": "Vertical",
+          "spacing": 8
+        },
+        "anchor": [
+          "left",
+          "top",
+          "bottom"
+        ],
+        "children": [
+          {
+            "id": "c9a5ae46-155e-4242-817a-68682d9dc4e3",
+            "type": "Label",
+            "name": "NameLabel",
+            "x": 0,
+            "y": 0,
+            "width": 80,
+            "height": 20,
+            "properties": {
+              "text": "Name"
+            },
+            "anchor": [
+              "left",
+              "top"
+            ]
+          },
+          {
+            "id": "ae85fb3b-1249-4f7b-af0e-ec4bfe1c2e98",
+            "type": "TextBox",
+            "name": "NameTextBox",
+            "x": 0,
+            "y": 0,
+            "width": 120,
+            "height": 30,
+            "properties": {
+              "text": ""
+            },
+            "anchor": [
+              "left",
+              "top"
+            ]
+          },
+          {
+            "id": "ae86846f-3ad4-4e3c-aac7-2ceed82aec26",
+            "type": "Label",
+            "name": "NotesLabel",
+            "x": 0,
+            "y": 0,
+            "width": 80,
+            "height": 20,
+            "properties": {
+              "text": "Notes"
+            },
+            "anchor": [
+              "left",
+              "top"
+            ]
+          },
+          {
+            "id": "a0e180df-7205-4065-8686-2b26bd583315",
+            "type": "TextBox",
+            "name": "NotesTextBox",
+            "x": 0,
+            "y": 0,
+            "width": 120,
+            "height": 30,
+            "properties": {
+              "text": ""
+            },
+            "anchor": [
+              "left",
+              "top"
+            ]
+          },
+          {
+            "id": "23b02c8e-e476-4216-aa31-aadae01095f8",
+            "type": "CheckBox",
+            "name": "SubscribeCheckBox",
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 20,
+            "properties": {
+              "text": "Subscribe",
+              "isChecked": false
+            },
+            "anchor": [
+              "left",
+              "top"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c0a4ce77-b17d-4142-98ec-af20473792f4",
+        "type": "Grid",
+        "name": "ButtonGrid",
+        "x": 290,
+        "y": 70,
+        "width": 490,
+        "height": 300,
+        "properties": {
+          "rows": 3,
+          "columns": 2
+        },
+        "anchor": [
+          "left",
+          "top",
+          "right",
+          "bottom"
+        ],
+        "children": [
+          {
+            "id": "2cf2b037-5cd8-44da-8111-6c9b42124f1a",
+            "type": "Button",
+            "name": "OneButton",
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 30,
+            "properties": {
+              "text": "One"
+            },
+            "anchor": [
+              "left",
+              "top"
+            ],
+            "row": 0,
+            "column": 0
+          },
+          {
+            "id": "54801987-28c7-4b3c-b36c-e60c0139cb59",
+            "type": "Button",
+            "name": "TwoButton",
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 30,
+            "properties": {
+              "text": "Two"
+            },
+            "anchor": [
+              "left",
+              "top"
+            ],
+            "row": 0,
+            "column": 1
+          },
+          {
+            "id": "6a55826d-4129-46a3-8129-15d7be544289",
+            "type": "Button",
+            "name": "ThreeButton",
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 30,
+            "properties": {
+              "text": "Three"
+            },
+            "anchor": [
+              "left",
+              "top"
+            ],
+            "row": 1,
+            "column": 0
+          },
+          {
+            "id": "edc789f8-70a4-4816-8cee-8a0c9dff67a8",
+            "type": "Button",
+            "name": "FourButton",
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 30,
+            "properties": {
+              "text": "Four"
+            },
+            "anchor": [
+              "left",
+              "top"
+            ],
+            "row": 1,
+            "column": 1
+          },
+          {
+            "id": "e069e0d9-a5df-42f2-8171-a685679e88dd",
+            "type": "Button",
+            "name": "FiveButton",
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 30,
+            "properties": {
+              "text": "Five"
+            },
+            "anchor": [
+              "left",
+              "top"
+            ],
+            "row": 2,
+            "column": 0
+          },
+          {
+            "id": "709e0882-0d0d-4e0a-9b3d-7bea77748ac0",
+            "type": "StackPanel",
+            "name": "OptionsStack",
+            "x": 0,
+            "y": 0,
+            "width": 200,
+            "height": 150,
+            "properties": {
+              "orientation": "Vertical",
+              "spacing": 6
+            },
+            "anchor": [
+              "left",
+              "top"
+            ],
+            "children": [
+              {
+                "id": "1d3f40dc-998c-4972-921e-81c37d4947d7",
+                "type": "CheckBox",
+                "name": "FirstOption",
+                "x": 0,
+                "y": 0,
+                "width": 100,
+                "height": 20,
+                "properties": {
+                  "text": "First option",
+                  "isChecked": false
+                },
+                "anchor": [
+                  "left",
+                  "top"
+                ]
+              },
+              {
+                "id": "0930266b-2774-4938-abdd-32c549050725",
+                "type": "CheckBox",
+                "name": "SecondOption",
+                "x": 0,
+                "y": 0,
+                "width": 100,
+                "height": 20,
+                "properties": {
+                  "text": "Second option",
+                  "isChecked": false
+                },
+                "anchor": [
+                  "left",
+                  "top"
+                ]
+              }
+            ],
+            "row": 2,
+            "column": 1
+          }
+        ]
+      },
+      {
+        "id": "82bcf8b6-67d5-4c52-9325-f70a74b2ca93",
+        "type": "StackPanel",
+        "name": "FooterStack",
+        "x": 20,
+        "y": 530,
+        "width": 760,
+        "height": 40,
+        "properties": {
+          "orientation": "Horizontal",
+          "spacing": 10
+        },
+        "anchor": [
+          "left",
+          "right",
+          "bottom"
+        ],
+        "children": [
+          {
+            "id": "9b62fcef-abae-47c2-a773-0d0282d1ee5d",
+            "type": "Button",
+            "name": "OkButton",
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 30,
+            "properties": {
+              "text": "OK"
+            },
+            "anchor": [
+              "left",
+              "top"
+            ]
+          },
+          {
+            "id": "f89fa448-8682-4525-9f5d-09894f073ea5",
+            "type": "Button",
+            "name": "CancelFooterButton",
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 30,
+            "properties": {
+              "text": "Cancel"
+            },
+            "anchor": [
+              "left",
+              "top"
+            ]
+          },
+          {
+            "id": "ce30104f-f768-43ff-91db-e87f3482640e",
+            "type": "ComboBox",
+            "name": "ThemeComboBox",
+            "x": 0,
+            "y": 0,
+            "width": 120,
+            "height": 30,
+            "properties": {
+              "items": [
+                "Item 1",
+                "Item 2",
+                "Item 3"
+              ]
+            },
+            "anchor": [
+              "left",
+              "top"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

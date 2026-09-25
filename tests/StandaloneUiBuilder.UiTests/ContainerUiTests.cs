@@ -36,7 +36,11 @@ public sealed class ContainerUiTests : IDisposable
         // Select the stack through its empty area and turn it horizontal.
         session.ClickCanvas(150, 230);
         EditorSession.WaitUntil(() => session.Field("NameBox").Text == "StackPanel1", () => "The stack could not be selected.");
-        session.ById("OrientationBox").AsComboBox().Select("Horizontal");
+        var direction = session.ById("OrientationBox").AsComboBox();
+        direction.Select("Horizontal");
+
+        // Close the drop-down first: WPF uses the first click outside an open drop-down to close it.
+        direction.Collapse();
         EditorSession.WaitUntil(() => session.Window.Title.Contains('●'), () => "The orientation change was not applied.");
 
         // Now the text box sits to the right of the button (100 + 100 + 6) and has only a width.
