@@ -1,0 +1,46 @@
+name: Windows build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Build
+        run: dotnet build StandaloneUiBuilder.sln --configuration Release
+
+      - name: Test
+        run: dotnet test StandaloneUiBuilder.sln --configuration Release --no-build
+
+      - name: Launch and capture screenshot
+        shell: pwsh
+        run: |
+          $exe = "src/StandaloneUiBuilder/bin/Release/net10.0-windows/StandaloneUiBuilder.exe"
+          $app = Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Seconds 10
+          if ($app.HasExited) { throw "The editor exited during startup (exit code $($app.ExitCode))." }
+
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
+          $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+          $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          $bitmap.Save("artifacts/main-window.png", [System.Drawing.Imaging.ImageFormat]::Png)
+          $graphics.Dispose(); $bitmap.Dispose()
+
+          Stop-Process -Id $app.Id
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshot
+          path: artifacts/main-window.png
