@@ -102,3 +102,17 @@ Choices made during the prototype slices that affect later work.
 - **Release build.** A self-contained, single-file `win-x64` publish, built and started in
   CI on every push and uploaded as an artifact.
 - **Accessibility.** Toolbox items expose their control type as their accessible name.
+
+## Prototype completion checks
+
+- **Responsiveness.** A UI test opens a 61-control screen and selects, moves, resizes and
+  places controls. On the CI runner: select 481 ms, place 891 ms, move 2.9 s, resize
+  3.2 s. Every figure includes the test's own scripted pointer movement and polling (about
+  1 s per drag), so they are upper bounds, not rendering times. No slowdown was visible.
+- **Keyboard access.** A UI test reaches the toolbox with Tab, adds a control with the arrow
+  keys and Enter, tabs on to the Name field and renames it, and checks that Delete in a
+  text field edits the text rather than deleting the control.
+- **Display scaling.** The automated tests assume 100% scaling. 150% was checked by hand on
+  a real machine, along with the self-contained build running without .NET installed.
+- **Test isolation.** `UIB_RECOVERY_DIR` points recovery drafts at another folder, so UI
+  tests that end the editor abruptly cannot affect each other or a user's drafts.
