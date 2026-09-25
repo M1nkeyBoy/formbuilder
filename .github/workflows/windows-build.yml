@@ -40,6 +40,15 @@ jobs:
 
           Stop-Process -Id $app.Id
 
+          # Also print the image as base64 so it can be read from the job log where
+          # artifact downloads are not reachable.
+          $base64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes("artifacts/main-window.png"))
+          Write-Output "SCREENSHOT-BASE64-BEGIN"
+          for ($i = 0; $i -lt $base64.Length; $i += 4000) {
+            Write-Output $base64.Substring($i, [Math]::Min(4000, $base64.Length - $i))
+          }
+          Write-Output "SCREENSHOT-BASE64-END"
+
       - uses: actions/upload-artifact@v4
         with:
           name: screenshot

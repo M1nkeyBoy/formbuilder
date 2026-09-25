@@ -1,17 +1,38 @@
 using System.Windows;
+using System.Windows.Input;
+using StandaloneUiBuilder.Core;
 
 namespace StandaloneUiBuilder;
 
 public partial class MainWindow : Window
 {
+    private const string AppTitle = "Standalone UI Builder";
+
+    private readonly DesignEditor editor = new();
+
     public MainWindow()
     {
         InitializeComponent();
+
+        editor.Changed += (_, _) => RefreshAll();
+        RefreshAll();
 
         // Keep the default size within small screens so the window opens fully visible.
         var workArea = SystemParameters.WorkArea;
         Width = Math.Max(MinWidth, Math.Min(Width, workArea.Width));
         Height = Math.Max(MinHeight, Math.Min(Height, workArea.Height));
+    }
+
+    private void RefreshAll()
+    {
+        Surface.Render(editor.Document.Screen);
+        Title = $"{editor.Document.Name}{(editor.IsDirty ? " ●" : "")} — {AppTitle}";
+    }
+
+    private void New_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        editor.New();
+        StatusText.Text = "New design";
     }
 
     private void Exit_Click(object sender, RoutedEventArgs e) => Close();

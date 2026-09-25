@@ -16,3 +16,18 @@ Choices made during the prototype slices that affect later work.
   preview behavior arrives in Slice 5.
 - **Visual verification.** Development happens on Linux, where WPF cannot launch. A Windows
   CI job builds, tests, launches the app and captures a screenshot for each pushed commit.
+
+## Slice 1
+
+- **Immutable document.** `ProjectDocument`, `ScreenDocument`, `ControlDocument` and
+  `ControlProperties` are immutable records. Every edit produces a new document, so undo
+  can keep snapshots and "unsaved changes" is a reference comparison with the last saved
+  snapshot.
+- **Whole-number geometry.** X, Y, Width and Height are integers in DIPs.
+- **Control catalog.** `ControlCatalog` in Core lists each type's default size, minimum size
+  and supported properties. The WPF side maps the same types to preview controls.
+- **Names.** Control names must look like identifiers (letter or underscore first, then
+  letters, digits or underscores) and are unique ignoring case, so later code output can use
+  them directly.
+- **Grid.** The grid is drawn by a non-hit-testable element, with a slightly darker line
+  every 50 DIPs.

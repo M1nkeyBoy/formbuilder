@@ -3,8 +3,8 @@
 A Windows desktop designer for placing and editing controls on a gridded canvas.
 It is being built in review-gated slices; see `docs/decisions.md` for choices made so far.
 
-**Current state (Slice 0):** a launchable shell with Toolbox, Design surface and
-Properties regions, menus and a Design/Preview toggle. None of the editing features work yet.
+**Current state (Slice 1):** the shell shows a blank 800 × 600 design surface with a
+10-DIP grid. File > New starts a blank design. Controls cannot be placed yet.
 
 ## Requirements
 
@@ -50,3 +50,5 @@ docs/                                 Decisions and format notes
 
 `.github/workflows/windows-build.yml` builds and tests on a Windows runner, launches the
 editor, and uploads a screenshot of the running window as the `screenshot` artifact.
+The same image is printed to the job log as base64 between `SCREENSHOT-BASE64-BEGIN`
+and `SCREENSHOT-BASE64-END`.
