@@ -326,6 +326,24 @@
                             <Label Content="_Text" Target="{Binding ElementName=TextValueBox}" Style="{StaticResource FieldLabel}" />
                             <TextBox x:Name="TextValueBox" Style="{StaticResource FieldBox}" />
                         </DockPanel>
+                        <DockPanel x:Name="MultilineRow" Style="{StaticResource FieldRow}"
+                                   ToolTip="Several lines of text that wrap, with a scroll bar when needed.">
+                            <Label Content="Lines" Style="{StaticResource FieldLabel}" />
+                            <CheckBox x:Name="MultilineBox" Content="Multi-line" VerticalAlignment="Center"
+                                      Click="MultilineBox_Click" />
+                        </DockPanel>
+                        <DockPanel x:Name="RangeRow" Style="{StaticResource FieldRow}"
+                                   ToolTip="Whole numbers: the lowest and highest values, and the value shown.">
+                            <Label Content="Range" Style="{StaticResource FieldLabel}" VerticalContentAlignment="Top" />
+                            <UniformGrid Columns="2">
+                                <Label Content="M_inimum" Target="{Binding ElementName=MinimumBox}" Padding="0,0,4,0" VerticalContentAlignment="Center" />
+                                <TextBox x:Name="MinimumBox" Style="{StaticResource FieldBox}" Margin="0,0,0,4" />
+                                <Label Content="Maxim_um" Target="{Binding ElementName=MaximumBox}" Padding="0,0,4,0" VerticalContentAlignment="Center" />
+                                <TextBox x:Name="MaximumBox" Style="{StaticResource FieldBox}" Margin="0,0,0,4" />
+                                <Label Content="_Value" Target="{Binding ElementName=ValueBox}" Padding="0,0,4,0" VerticalContentAlignment="Center" />
+                                <TextBox x:Name="ValueBox" Style="{StaticResource FieldBox}" />
+                            </UniformGrid>
+                        </DockPanel>
                         <DockPanel x:Name="IsCheckedRow" Style="{StaticResource FieldRow}">
                             <Label Content="Checked" Style="{StaticResource FieldLabel}" />
                             <CheckBox x:Name="IsCheckedBox" VerticalAlignment="Center"

@@ -10,10 +10,10 @@ public sealed record ProjectDocument
 {
     /// <summary>
     /// The format version this builder writes. Older versions (1: no anchors, 2: no containers,
-    /// 3: no grid spans, 4: no sized grid rows and columns, 5: one screen) are still read. See
-    /// docs/project-format.md for the history.
+    /// 3: no grid spans, 4: no sized grid rows and columns, 5: one screen, 6: the first seven
+    /// control types only) are still read. See docs/project-format.md for the history.
     /// </summary>
-    public const int CurrentSchemaVersion = 6;
+    public const int CurrentSchemaVersion = 7;
 
     public const int OldestSupportedSchemaVersion = 1;
     public const string DefaultName = "Untitled";
@@ -139,10 +139,22 @@ public sealed record ControlProperties
 
     public ImmutableList<string>? Items { get; init; }
 
-    /// <summary>StackPanel: the direction children are lined up.</summary>
+    /// <summary>TextBox: true for several lines of text that wrap; null for a single line.</summary>
+    public bool? IsMultiline { get; init; }
+
+    /// <summary>Slider and ProgressBar: the lowest value.</summary>
+    public int? Minimum { get; init; }
+
+    /// <summary>Slider and ProgressBar: the highest value.</summary>
+    public int? Maximum { get; init; }
+
+    /// <summary>Slider and ProgressBar: the current value, from Minimum to Maximum.</summary>
+    public int? Value { get; init; }
+
+    /// <summary>StackPanel and GroupBox: the direction children are lined up.</summary>
     public StackOrientation? Orientation { get; init; }
 
-    /// <summary>StackPanel: the gap between children, in DIPs.</summary>
+    /// <summary>StackPanel and GroupBox: the gap between children, in DIPs.</summary>
     public int? Spacing { get; init; }
 
     /// <summary>Grid: the number of rows.</summary>

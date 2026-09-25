@@ -39,6 +39,11 @@ public static class WpfGenerator
         ControlType.CheckBox => ("Click", "RoutedEventArgs"),
         ControlType.TextBox => ("TextChanged", "TextChangedEventArgs"),
         ControlType.ComboBox => ("SelectionChanged", "SelectionChangedEventArgs"),
+        ControlType.RadioButton => ("Click", "RoutedEventArgs"),
+        ControlType.ListBox => ("SelectionChanged", "SelectionChangedEventArgs"),
+        ControlType.Slider => ("ValueChanged", "RoutedPropertyChangedEventArgs<double>"),
+        ControlType.DatePicker => ("SelectedDateChanged", "SelectionChangedEventArgs"),
+        ControlType.PasswordBox => ("PasswordChanged", "RoutedEventArgs"),
         _ => null,
     };
 
@@ -200,6 +205,12 @@ public static class WpfGenerator
     /// </summary>
     private static void AppendElement(StringBuilder xaml, ControlDocument control, List<string> layout, int depth)
     {
+        if (control.Type == ControlType.GroupBox)
+        {
+            AppendGroupBox(xaml, control, layout, depth);
+            return;
+        }
+
         var indent = new string(' ', depth * 4);
         var properties = control.Properties;
         var element = control.Type.ToString();
@@ -216,9 +227,40 @@ public static class WpfGenerator
             case ControlType.Button:
                 attributes.Add($"Content=\"{Attribute(LiteralAccessText(properties.Text))}\"");
                 break;
+            case ControlType.TextBox when properties.IsMultiline == true:
+                attributes.Add("VerticalContentAlignment=\"Top\"");
+                attributes.Add("AcceptsReturn=\"True\"");
+                attributes.Add("TextWrapping=\"Wrap\"");
+                attributes.Add("VerticalScrollBarVisibility=\"Auto\"");
+                attributes.Add($"Text=\"{Attribute(properties.Text ?? "")}\"");
+                break;
             case ControlType.TextBox:
                 attributes.Add("VerticalContentAlignment=\"Center\"");
                 attributes.Add($"Text=\"{Attribute(properties.Text ?? "")}\"");
+                break;
+            case ControlType.PasswordBox:
+            case ControlType.DatePicker:
+                attributes.Add("VerticalContentAlignment=\"Center\"");
+                break;
+            case ControlType.RadioButton:
+                attributes.Add("VerticalContentAlignment=\"Center\"");
+                attributes.Add($"IsChecked=\"{(properties.IsChecked == true ? "True" : "False")}\"");
+                attributes.Add($"Content=\"{Attribute(LiteralAccessText(properties.Text))}\"");
+                break;
+            case ControlType.ListBox:
+                break;
+            case ControlType.Slider:
+            case ControlType.ProgressBar:
+                attributes.Add($"Minimum=\"{Number(properties.Minimum ?? 0)}\"");
+                attributes.Add($"Maximum=\"{Number(properties.Maximum ?? 100)}\"");
+                attributes.Add($"Value=\"{Number(properties.Value ?? 0)}\"");
+                if (control.Type == ControlType.Slider)
+                {
+                    // Whole numbers, as designed.
+                    attributes.Add("IsSnapToTickEnabled=\"True\"");
+                    attributes.Add("TickFrequency=\"1\"");
+                }
+
                 break;
             case ControlType.CheckBox:
                 attributes.Add("VerticalContentAlignment=\"Center\"");
@@ -245,7 +287,8 @@ public static class WpfGenerator
         }
 
         var opening = $"{indent}<{element} {string.Join(" ", attributes)}";
-        var items = control.Type == ControlType.ComboBox ? properties.Items ?? [] : [];
+        var items = control.Type is ControlType.ComboBox or ControlType.ListBox ? properties.Items ?? [] : [];
+        var itemElement = control.Type == ControlType.ListBox ? "ListBoxItem" : "ComboBoxItem";
         var children = control.Children ?? [];
         if (items.Count == 0 && children.Count == 0 && control.Type != ControlType.Grid)
         {
@@ -256,26 +299,12 @@ public static class WpfGenerator
         xaml.AppendLine(opening + ">");
         foreach (var item in items)
         {
-            xaml.AppendLine($"{indent}    <ComboBoxItem Content=\"{Attribute(item)}\" />");
+            xaml.AppendLine($"{indent}    <{itemElement} Content=\"{Attribute(item)}\" />");
         }
 
         if (control.Type == ControlType.StackPanel)
         {
-            var vertical = properties.Orientation != StackOrientation.Horizontal;
-            for (var i = 0; i < children.Count; i++)
-            {
-                var child = children[i];
-                var gap = i > 0 ? properties.Spacing ?? 0 : 0;
-                var childLayout = vertical
-                    ? new List<string> { "HorizontalAlignment=\"Stretch\"", $"Height=\"{Number(child.Height)}\"" }
-                    : new List<string> { "VerticalAlignment=\"Stretch\"", $"Width=\"{Number(child.Width)}\"" };
-                if (gap > 0)
-                {
-                    childLayout.Add($"Margin=\"{(vertical ? $"0,{Number(gap)},0,0" : $"{Number(gap)},0,0,0")}\"");
-                }
-
-                AppendElement(xaml, child, childLayout, depth + 1);
-            }
+            AppendStackChildren(xaml, control, depth + 1);
         }
         else if (control.Type == ControlType.Grid)
         {
@@ -318,6 +347,61 @@ public static class WpfGenerator
         }
 
         xaml.AppendLine($"{indent}</{element}>");
+    }
+
+    /// <summary>
+    /// A StackPanel's children: each keeps its size along the stack, stretches across it and
+    /// has the spacing as a leading margin.
+    /// </summary>
+    private static void AppendStackChildren(StringBuilder xaml, ControlDocument stack, int depth)
+    {
+        var properties = stack.Properties;
+        var children = stack.Children ?? [];
+        var vertical = properties.Orientation != StackOrientation.Horizontal;
+        for (var i = 0; i < children.Count; i++)
+        {
+            var child = children[i];
+            var gap = i > 0 ? properties.Spacing ?? 0 : 0;
+            var childLayout = vertical
+                ? new List<string> { "HorizontalAlignment=\"Stretch\"", $"Height=\"{Number(child.Height)}\"" }
+                : new List<string> { "VerticalAlignment=\"Stretch\"", $"Width=\"{Number(child.Width)}\"" };
+            if (gap > 0)
+            {
+                childLayout.Add($"Margin=\"{(vertical ? $"0,{Number(gap)},0,0" : $"{Number(gap)},0,0,0")}\"");
+            }
+
+            AppendElement(xaml, child, childLayout, depth);
+        }
+    }
+
+    /// <summary>
+    /// A GroupBox: a Grid in its place holding the real GroupBox, which draws the frame and
+    /// title, and on top of it a StackPanel inset by <see cref="ContainerLayout.GroupBoxInset"/>
+    /// for the children. The fixed inset puts children exactly where the design has them,
+    /// whatever the theme's frame looks like.
+    /// </summary>
+    private static void AppendGroupBox(StringBuilder xaml, ControlDocument group, List<string> layout, int depth)
+    {
+        var indent = new string(' ', depth * 4);
+        var properties = group.Properties;
+        var (left, top, right, bottom) = ContainerLayout.GroupBoxInset;
+        xaml.AppendLine($"{indent}<Grid {string.Join(" ", layout)}>");
+        xaml.AppendLine($"{indent}    <GroupBox x:Name=\"{group.Name}\" Header=\"{Attribute(properties.Text ?? "")}\" />");
+        var orientation = properties.Orientation == StackOrientation.Horizontal ? "Horizontal" : "Vertical";
+        var margin = string.Join(",", new[] { left, top, right, bottom }.Select(Number));
+        var opening = $"{indent}    <StackPanel Margin=\"{margin}\" Orientation=\"{orientation}\" ClipToBounds=\"True\"";
+        if (group.Children is not { Count: > 0 })
+        {
+            xaml.AppendLine(opening + " />");
+        }
+        else
+        {
+            xaml.AppendLine(opening + ">");
+            AppendStackChildren(xaml, group, depth + 2);
+            xaml.AppendLine($"{indent}    </StackPanel>");
+        }
+
+        xaml.AppendLine($"{indent}</Grid>");
     }
 
     /// <summary>

@@ -189,14 +189,14 @@ public sealed class DesignEditor
     }
 
     /// <summary>
-    /// Sets the size of a control inside a StackPanel along the stack's direction: its height
-    /// in a vertical stack, its width in a horizontal one.
+    /// Sets the size of a control inside a StackPanel or GroupBox along the stack's direction:
+    /// its height in a vertical stack, its width in a horizontal one.
     /// </summary>
     public string? SetStackSize(Guid id, int size)
     {
-        if (FindControl(id) is not { } control || ParentOf(id) is not { Type: ControlType.StackPanel } stack)
+        if (FindControl(id) is not { } control || ParentOf(id) is not { } stack || !ControlCatalog.Get(stack.Type).IsStack)
         {
-            return "The control is not in a StackPanel.";
+            return "The control is not in a StackPanel or GroupBox.";
         }
 
         var definition = ControlCatalog.Get(control.Type);
@@ -433,10 +433,75 @@ public sealed class DesignEditor
     public string? SetText(Guid id, string text) =>
         EditProperties(id, d => d.HasText, "text", p => p.Text == text ? p : p with { Text = text });
 
-    public string? SetIsChecked(Guid id, bool isChecked) =>
-        EditProperties(id, d => d.HasIsChecked, "a checked state", p => p.IsChecked == isChecked ? p : p with { IsChecked = isChecked });
+    /// <summary>
+    /// Ticks or clears a CheckBox or RadioButton. Choosing a RadioButton clears the other
+    /// RadioButtons beside it (in the same container, or directly on the screen) in the same
+    /// step, as the running application would.
+    /// </summary>
+    public string? SetIsChecked(Guid id, bool isChecked)
+    {
+        if (FindControl(id) is not { Type: ControlType.RadioButton } radio || !isChecked)
+        {
+            return EditProperties(id, d => d.HasIsChecked, "a checked state", p => p.IsChecked == isChecked ? p : p with { IsChecked = isChecked });
+        }
 
-    /// <summary>Replaces a ComboBox's items. Blank entries are dropped; order is kept.</summary>
+        static ControlDocument Choose(ControlDocument control, Guid chosen) =>
+            control.Type != ControlType.RadioButton ? control
+            : control.Properties.IsChecked == (control.Id == chosen) ? control
+            : control with { Properties = control.Properties with { IsChecked = control.Id == chosen } };
+
+        var screen = Screen;
+        var controls = ParentOf(id) is { } parent
+            ? ControlTree.Replace(screen.Controls, parent.Id, p => p with { Children = p.Children!.ConvertAll(c => Choose(c, radio.Id)) })
+            : screen.Controls.ConvertAll(c => Choose(c, radio.Id));
+        if (!controls.SequenceEqual(screen.Controls))
+        {
+            Commit(Document.WithScreen(screen with { Controls = controls }));
+        }
+
+        return null;
+    }
+
+    /// <summary>Makes a TextBox hold several wrapping lines of text, or one line.</summary>
+    public string? SetIsMultiline(Guid id, bool isMultiline) =>
+        EditProperties(id, d => d.HasMultiline, "a multi-line setting", p =>
+            (p.IsMultiline == true) == isMultiline ? p : p with { IsMultiline = isMultiline ? true : null });
+
+    /// <summary>Sets a Slider's or ProgressBar's minimum, maximum and value together.</summary>
+    public string? SetRange(Guid id, int minimum, int maximum, int value)
+    {
+        if (ValidateRange(minimum, maximum, value) is { } error)
+        {
+            return error;
+        }
+
+        return EditProperties(id, d => d.HasRange, "a range", p =>
+            p.Minimum == minimum && p.Maximum == maximum && p.Value == value ? p : p with { Minimum = minimum, Maximum = maximum, Value = value });
+    }
+
+    /// <summary>Checks a Slider's or ProgressBar's minimum, maximum and value; returns an error message or null.</summary>
+    public static string? ValidateRange(int minimum, int maximum, int value)
+    {
+        const int Limit = ControlDefinition.MaxRangeValue;
+        if (Math.Abs((long)minimum) > Limit || Math.Abs((long)maximum) > Limit)
+        {
+            return $"Minimum and maximum must be between {-Limit} and {Limit}.";
+        }
+
+        if (minimum >= maximum)
+        {
+            return "Maximum must be greater than minimum.";
+        }
+
+        if (value < minimum || value > maximum)
+        {
+            return $"Value must be between {minimum} and {maximum}.";
+        }
+
+        return null;
+    }
+
+    /// <summary>Replaces a ComboBox's or ListBox's items. Blank entries are dropped; order is kept.</summary>
     public string? SetItems(Guid id, IEnumerable<string> items)
     {
         var cleaned = items.Select(i => i.Trim()).Where(i => i.Length > 0).ToImmutableList();

@@ -53,17 +53,26 @@ overwritten. The namespace of an earlier export is kept, as for WPF.
   Children fill their cell (`Dock = Fill`), with the stack spacing as their leading `Margin`.
 - Draw order is kept (WinForms puts the first control added on top, so they are added in
   reverse). Tab order follows the design's control order.
-- Label, Button and CheckBox text becomes `Text` with `&` doubled, so it shows literally as
-  in the designer. Labels do not auto-size and centre their text vertically. CheckBox
-  checked state becomes `Checked`. ComboBox items are added in order, and the ComboBox is a
-  drop-down list.
+- Label, Button, CheckBox, RadioButton and GroupBox text becomes `Text` with `&` doubled, so
+  it shows literally as in the designer. Labels do not auto-size and centre their text
+  vertically. Checked states become `Checked`. ComboBox and ListBox items are added in order;
+  the ComboBox is a drop-down list, and the ListBox keeps its designed height
+  (`IntegralHeight = false`).
+- A multi-line TextBox gets `Multiline` and a vertical scroll bar. A PasswordBox is a
+  `TextBox` with `UseSystemPasswordChar`. A Slider is a `TrackBar` without ticks that keeps
+  its designed height; it and the ProgressBar get `Minimum`, `Maximum` and `Value`. A
+  DatePicker is a `DateTimePicker` with a tick box, unticked, meaning no date chosen yet.
+- A GroupBox holds a `TableLayoutPanel` called `<Name>Layout`, set 8 pixels in from its
+  sides and bottom and 20 from its top and anchored to all four sides. The panel lines up the
+  children like a StackPanel's. A control named like that panel blocks the export.
+- RadioButtons group by their parent, as in the design.
 
 ### Differences from the design surface
 
 WinForms controls look and measure differently from WPF controls:
 
-- A single-line TextBox or ComboBox takes its height from its font, so a height set in the
-  builder is not applied. Position, width and anchors are.
+- A single-line TextBox, PasswordBox, ComboBox or DatePicker takes its height from its font,
+  so a height set in the builder is not applied. Position, width and anchors are.
 - Fonts, padding and borders are WinForms' own, so text sits slightly differently.
 - `TableLayoutPanel` rounds each percentage row and column down and gives the leftover
   pixels to the last one, so a 300-pixel grid with three rows gets 99, 99 and 102 rather than
@@ -73,8 +82,8 @@ WinForms controls look and measure differently from WPF controls:
 
 ## Responding to controls
 
-As in WPF output, each Button, CheckBox, TextBox and ComboBox has a hook: a partial method you
-can implement in `MainForm.cs`.
+As in WPF output, each control you can interact with has a hook: a partial method you can
+implement in the form's `.cs` file.
 
 | Control | Event | Hook |
 |---|---|---|
@@ -82,6 +91,11 @@ can implement in `MainForm.cs`.
 | CheckBox | `Click` | `partial void On<Name>Click(EventArgs e)` |
 | TextBox | `TextChanged` | `partial void On<Name>TextChanged(EventArgs e)` |
 | ComboBox | `SelectedIndexChanged` | `partial void On<Name>SelectedIndexChanged(EventArgs e)` |
+| RadioButton | `Click` | `partial void On<Name>Click(EventArgs e)` |
+| ListBox | `SelectedIndexChanged` | `partial void On<Name>SelectedIndexChanged(EventArgs e)` |
+| Slider (`TrackBar`) | `ValueChanged` | `partial void On<Name>ValueChanged(EventArgs e)` |
+| DatePicker (`DateTimePicker`) | `ValueChanged` | `partial void On<Name>ValueChanged(EventArgs e)` |
+| PasswordBox (`TextBox`) | `TextChanged` | `partial void On<Name>TextChanged(EventArgs e)` |
 
 ```csharp
 partial void OnSubmitButtonClick(EventArgs e)

@@ -16,10 +16,15 @@ public sealed record ControlDefinition(
     bool HasIsChecked,
     bool HasItems,
     bool IsStack = false,
-    bool IsGrid = false)
+    bool IsGrid = false,
+    bool HasRange = false,
+    bool HasMultiline = false)
 {
     public const int MaxSpacing = 200;
     public const int MaxRowsOrColumns = 20;
+
+    /// <summary>The largest magnitude a Slider or ProgressBar value may have.</summary>
+    public const int MaxRangeValue = 1_000_000;
 
     /// <summary>True for types that hold child controls.</summary>
     public bool IsContainer => IsStack || IsGrid;
@@ -27,9 +32,12 @@ public sealed record ControlDefinition(
     public ControlProperties CreateDefaultProperties(string name) => Type switch
     {
         ControlType.TextBox => new ControlProperties { Text = "" },
-        ControlType.CheckBox => new ControlProperties { Text = name, IsChecked = false },
-        ControlType.ComboBox => new ControlProperties { Items = ["Item 1", "Item 2", "Item 3"] },
+        ControlType.CheckBox or ControlType.RadioButton => new ControlProperties { Text = name, IsChecked = false },
+        ControlType.ComboBox or ControlType.ListBox => new ControlProperties { Items = ["Item 1", "Item 2", "Item 3"] },
+        ControlType.Slider or ControlType.ProgressBar => new ControlProperties { Minimum = 0, Maximum = 100, Value = 50 },
+        ControlType.DatePicker or ControlType.PasswordBox => new ControlProperties(),
         ControlType.StackPanel => new ControlProperties { Orientation = StackOrientation.Vertical, Spacing = 6 },
+        ControlType.GroupBox => new ControlProperties { Text = name, Orientation = StackOrientation.Vertical, Spacing = 6 },
         ControlType.Grid => new ControlProperties { Rows = 2, Columns = 2 },
         _ => new ControlProperties { Text = name },
     };
@@ -49,6 +57,12 @@ public sealed record ControlDefinition(
         Columns = IsGrid ? properties.Columns ?? 1 : null,
         RowSizes = IsGrid ? properties.RowSizes : null,
         ColumnSizes = IsGrid ? properties.ColumnSizes : null,
+
+        // Stored only when true, so single-line text boxes read and write as before.
+        IsMultiline = HasMultiline && properties.IsMultiline == true ? true : null,
+        Minimum = HasRange ? properties.Minimum ?? 0 : null,
+        Maximum = HasRange ? properties.Maximum ?? 100 : null,
+        Value = HasRange ? properties.Value ?? properties.Minimum ?? 0 : null,
     };
 }
 
@@ -59,11 +73,18 @@ public static class ControlCatalog
     [
         new(ControlType.Label, 80, 20, 20, 16, HasText: true, HasIsChecked: false, HasItems: false),
         new(ControlType.Button, 100, 30, 30, 20, HasText: true, HasIsChecked: false, HasItems: false),
-        new(ControlType.TextBox, 120, 30, 30, 20, HasText: true, HasIsChecked: false, HasItems: false),
+        new(ControlType.TextBox, 120, 30, 30, 20, HasText: true, HasIsChecked: false, HasItems: false, HasMultiline: true),
+        new(ControlType.PasswordBox, 120, 30, 30, 20, HasText: false, HasIsChecked: false, HasItems: false),
         new(ControlType.CheckBox, 100, 20, 20, 16, HasText: true, HasIsChecked: true, HasItems: false),
+        new(ControlType.RadioButton, 100, 20, 20, 16, HasText: true, HasIsChecked: true, HasItems: false),
         new(ControlType.ComboBox, 120, 30, 40, 20, HasText: false, HasIsChecked: false, HasItems: true),
+        new(ControlType.ListBox, 120, 100, 40, 30, HasText: false, HasIsChecked: false, HasItems: true),
+        new(ControlType.Slider, 150, 30, 40, 20, HasText: false, HasIsChecked: false, HasItems: false, HasRange: true),
+        new(ControlType.ProgressBar, 150, 20, 20, 8, HasText: false, HasIsChecked: false, HasItems: false, HasRange: true),
+        new(ControlType.DatePicker, 140, 30, 80, 20, HasText: false, HasIsChecked: false, HasItems: false),
         new(ControlType.StackPanel, 200, 150, 20, 20, HasText: false, HasIsChecked: false, HasItems: false, IsStack: true),
         new(ControlType.Grid, 240, 160, 20, 20, HasText: false, HasIsChecked: false, HasItems: false, IsGrid: true),
+        new(ControlType.GroupBox, 220, 160, 40, 40, HasText: true, HasIsChecked: false, HasItems: false, IsStack: true),
     ];
 
     public static bool TryGet(ControlType type, out ControlDefinition definition)

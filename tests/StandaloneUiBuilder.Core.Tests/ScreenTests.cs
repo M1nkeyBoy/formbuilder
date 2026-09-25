@@ -222,14 +222,14 @@ public class ScreenTests
                 { "id": "main", "name": "Main", "controls": [] },
                 { "id": "b", "name": "Other", "controls": [
                   { "id": "9e651cb8-84b8-4140-a171-62075666768e", "type": "StackPanel", "name": "Stack1", "width": 100, "height": 100,
-                    "children": [ { "id": "9e651cb8-84b8-4140-a171-62075666768f", "type": "Slider", "name": "Volume" } ] } ] }
+                    "children": [ { "id": "9e651cb8-84b8-4140-a171-62075666768f", "type": "Calendar", "name": "Volume" } ] } ] }
               ]
             }
             """;
 
         var error = Assert.Throws<ProjectFileException>(() => ProjectFile.Deserialize(json));
 
-        Assert.Contains("\"Slider\" (control \"Volume\")", error.Message);
+        Assert.Contains("\"Calendar\" (control \"Volume\")", error.Message);
     }
 
     [Fact]

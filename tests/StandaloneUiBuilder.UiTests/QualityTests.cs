@@ -22,9 +22,10 @@ public sealed class QualityTests : IDisposable
     [UiWalkthroughFact]
     public void LargeScreenStaysResponsive()
     {
-        // 60 controls: every type, in a 6 × 10 grid covering the screen.
+        // 60 controls of the five original types, in a 6 × 10 grid covering the screen. (Taller
+        // types such as ListBox would overlap the next row and hide the target.)
         var editor = new DesignEditor();
-        var types = ControlCatalog.All.Where(d => !d.IsContainer).Select(d => d.Type).ToArray();
+        Core.ControlType[] types = [Core.ControlType.Label, Core.ControlType.Button, Core.ControlType.TextBox, Core.ControlType.CheckBox, Core.ControlType.ComboBox];
         for (var i = 0; i < 60; i++)
         {
             editor.AddControl(types[i % types.Length], 10 + i % 6 * 130, 10 + i / 6 * 50);

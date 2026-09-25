@@ -64,13 +64,22 @@ existing code-behind.
   are the design's sizes, in the same notation (`60`, `*`, `2*`); each child has `Grid.Row`
   and `Grid.Column` (plus `Grid.RowSpan`/`Grid.ColumnSpan` when it spans cells) and stretches
   to fill them.
+- A **GroupBox** becomes a `Grid` holding a WPF `GroupBox` (named after the design, with its
+  text as `Header`) and, over it, a `StackPanel` with `Margin="8,20,8,8"` for the children.
+  The fixed margin puts children exactly where the design has them, whatever the theme's
+  frame looks like.
 - Containers nest in the XAML exactly as in the design.
 - If any control is anchored to the right or bottom edge, the window can be resized
   (`ResizeMode="CanResize"`) and the Grid has the design size as its minimum. Otherwise the
   window keeps the design size and can only be minimised.
 - Each control's name becomes its `x:Name`, so it is a field you can use from code-behind.
-- Label, Button and CheckBox text becomes `Content`, TextBox text becomes `Text`, CheckBox
-  checked state becomes `IsChecked`, and ComboBox items become `ComboBoxItem`s in order.
+- Label, Button, CheckBox and RadioButton text becomes `Content`, TextBox text becomes `Text`,
+  checked states become `IsChecked`, and ComboBox and ListBox items become `ComboBoxItem`s and
+  `ListBoxItem`s in order. A multi-line TextBox gets `AcceptsReturn`, `TextWrapping="Wrap"`
+  and a vertical scroll bar when needed. Slider and ProgressBar get `Minimum`, `Maximum` and
+  `Value`; a Slider snaps to whole numbers. PasswordBox and DatePicker start empty.
+- RadioButtons group by their parent, as the design does: those on the screen are one group,
+  and those in each container another.
 - The same padding and alignment the designer uses are written out (Label `Padding="2,0"`,
   vertically centred content), so the window looks like the design surface.
 - Text is XML-escaped. Underscores in Label, Button and CheckBox text are doubled so WPF
@@ -93,8 +102,9 @@ Example (`docs/samples/customer-form.uibproj`):
 
 ## Responding to controls
 
-Every Button, CheckBox, TextBox and ComboBox is wired to one event, and each has a *hook*: a
-partial method you can implement in `MainWindow.xaml.cs`.
+Every control you can interact with is wired to one event, and each has a *hook*: a partial
+method you can implement in the window's `.xaml.cs` file. Labels, ProgressBars and
+containers have none.
 
 | Control | Event | Hook to implement |
 |---|---|---|
@@ -102,6 +112,11 @@ partial method you can implement in `MainWindow.xaml.cs`.
 | CheckBox | `Click` | `partial void On<Name>Click(RoutedEventArgs e)` |
 | TextBox | `TextChanged` | `partial void On<Name>TextChanged(TextChangedEventArgs e)` |
 | ComboBox | `SelectionChanged` | `partial void On<Name>SelectionChanged(SelectionChangedEventArgs e)` |
+| RadioButton | `Click` | `partial void On<Name>Click(RoutedEventArgs e)` |
+| ListBox | `SelectionChanged` | `partial void On<Name>SelectionChanged(SelectionChangedEventArgs e)` |
+| Slider | `ValueChanged` | `partial void On<Name>ValueChanged(RoutedPropertyChangedEventArgs<double> e)` |
+| DatePicker | `SelectedDateChanged` | `partial void On<Name>SelectedDateChanged(SelectionChangedEventArgs e)` |
+| PasswordBox | `PasswordChanged` | `partial void On<Name>PasswordChanged(RoutedEventArgs e)` |
 
 For example, in `MainWindow.xaml.cs`:
 

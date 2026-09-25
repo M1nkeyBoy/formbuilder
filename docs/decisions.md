@@ -358,3 +358,31 @@ Choices made during the prototype slices that affect later work.
   Files are never deleted on export: a renamed or removed screen's old files stay, with any
   code the developer wrote in them.
 
+
+## Slice 20 — More controls
+
+- **The batch:** RadioButton, ListBox, Slider, ProgressBar, DatePicker, PasswordBox, a
+  multi-line option on TextBox, and the GroupBox container. Each exists in both WPF and
+  WinForms and needs no new concept. TabControl, images, menus and data grids are left for
+  later: they need tabs within a screen, stored images, or data binding.
+- **Radio groups follow the container.** Both frameworks group radio buttons by their parent
+  when no group name is given, so the builder does the same rather than adding a group-name
+  property WinForms lacks. Choosing one in the editor clears the others in that container in
+  one undo step. In Preview, controls on the screen each sit in their own host, so their
+  radio buttons share a group name there to behave like the generated window.
+- **GroupBox is a titled stack.** A frame whose children are placed at absolute positions
+  would be a new layout model; lining them up like a StackPanel reuses the existing rules.
+  Children sit inside a fixed inset (8, 20, 8, 8), not the theme's content area, which
+  differs between WPF, WinForms and DPI settings. Both generators draw the real GroupBox and
+  lay the children out in a panel at that inset, so positions match exactly.
+- **Only what is portable is stored.** Slider and ProgressBar keep whole-number minimum,
+  maximum and value. A DatePicker has no stored date (WPF shows an empty picker; WinForms an
+  unticked one), and a PasswordBox never stores a password. Multi-line is stored only when
+  on, so existing files and single-line text boxes are unchanged.
+- **Format version 7,** since an older builder would reject the new types (clearly) but
+  silently drop `isMultiline`.
+- **WinForms sizes.** `ListBox.IntegralHeight` and `TrackBar.AutoSize` are turned off so the
+  designed height holds; single-line text boxes and date pickers still take their height
+  from the font, as ComboBox already did.
+- The layout demo's Settings screen now uses every new control, so the Windows layout
+  checks cover them in Preview, WPF and WinForms.

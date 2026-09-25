@@ -25,11 +25,42 @@ internal static class ControlFactory
                 VerticalContentAlignment = VerticalAlignment.Center,
             },
             ControlType.Button => CreateButton(control, buttonClicked),
+            ControlType.TextBox when properties.IsMultiline == true => new TextBox
+            {
+                Text = properties.Text ?? "",
+                VerticalContentAlignment = VerticalAlignment.Top,
+                AcceptsReturn = true,
+                TextWrapping = TextWrapping.Wrap,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            },
             ControlType.TextBox => new TextBox
             {
                 Text = properties.Text ?? "",
                 VerticalContentAlignment = VerticalAlignment.Center,
             },
+            ControlType.PasswordBox => new PasswordBox { VerticalContentAlignment = VerticalAlignment.Center },
+            ControlType.RadioButton => new RadioButton
+            {
+                Content = new TextBlock { Text = properties.Text ?? "" },
+                IsChecked = properties.IsChecked ?? false,
+                VerticalContentAlignment = VerticalAlignment.Center,
+            },
+            ControlType.ListBox => new ListBox { ItemsSource = properties.Items?.ToList() ?? [] },
+            ControlType.Slider => new Slider
+            {
+                Minimum = properties.Minimum ?? 0,
+                Maximum = properties.Maximum ?? 100,
+                Value = properties.Value ?? 0,
+                IsSnapToTickEnabled = true,
+                TickFrequency = 1,
+            },
+            ControlType.ProgressBar => new ProgressBar
+            {
+                Minimum = properties.Minimum ?? 0,
+                Maximum = properties.Maximum ?? 100,
+                Value = properties.Value ?? 0,
+            },
+            ControlType.DatePicker => new DatePicker { VerticalContentAlignment = VerticalAlignment.Center },
             ControlType.CheckBox => new CheckBox
             {
                 Content = new TextBlock { Text = properties.Text ?? "" },
@@ -43,11 +74,17 @@ internal static class ControlFactory
                 VerticalContentAlignment = VerticalAlignment.Center,
             },
             ControlType.StackPanel or ControlType.Grid => CreatePanel(control, buttonClicked),
+            ControlType.GroupBox => CreateGroupBox(control, buttonClicked),
             _ => throw new ArgumentOutOfRangeException(nameof(control), control.Type, "Unknown control type."),
         };
 
-        // Named after the design, so tools and tests can find controls in the Preview.
-        element.Name = control.Name;
+        // Named after the design, so tools and tests can find controls in the Preview. A
+        // GroupBox's name is on the GroupBox inside the element, as in generated XAML.
+        if (control.Type != ControlType.GroupBox)
+        {
+            element.Name = control.Name;
+        }
+
         element.Width = control.Width;
         element.Height = control.Height;
         return element;
@@ -61,7 +98,7 @@ internal static class ControlFactory
     {
         var children = container.Children ?? [];
         var properties = container.Properties;
-        if (container.Type == ControlType.StackPanel)
+        if (container.Type is ControlType.StackPanel or ControlType.GroupBox)
         {
             var vertical = properties.Orientation != StackOrientation.Horizontal;
             var stack = new StackPanel { Orientation = vertical ? Orientation.Vertical : Orientation.Horizontal, ClipToBounds = true };
@@ -109,6 +146,25 @@ internal static class ControlFactory
     }
 
     /// <summary>
+    /// A GroupBox as generated XAML builds it: a Grid holding the real GroupBox, for the frame
+    /// and title, and a StackPanel for the children, inset by the fixed GroupBox inset.
+    /// </summary>
+    private static Grid CreateGroupBox(ControlDocument group, Action<ControlDocument>? buttonClicked)
+    {
+        var (left, top, right, bottom) = ContainerLayout.GroupBoxInset;
+        var content = CreatePanel(group, buttonClicked);
+        content.Margin = new Thickness(left, top, right, bottom);
+        return new Grid
+        {
+            Children =
+            {
+                new GroupBox { Name = group.Name, Header = new TextBlock { Text = group.Properties.Text ?? "" } },
+                content,
+            },
+        };
+    }
+
+    /// <summary>
     /// How a container looks in Design mode: a tinted, outlined area with its name, and cell
     /// lines for a Grid. Its children are drawn separately, on top, by the design surface.
     /// </summary>
@@ -137,6 +193,18 @@ internal static class ControlFactory
                     content.Children.Add(cell);
                 }
             }
+        }
+
+        // A GroupBox shows its real frame and title; its children are drawn over it.
+        if (container.Type == ControlType.GroupBox)
+        {
+            return new Grid
+            {
+                Width = container.Width,
+                Height = container.Height,
+                Background = new SolidColorBrush(Color.FromArgb(0x08, 0x5A, 0x7A, 0xA8)),
+                Children = { new GroupBox { Header = new TextBlock { Text = container.Properties.Text ?? "" } } },
+            };
         }
 
         var caption = new TextBlock

@@ -223,6 +223,11 @@ public static partial class DocumentValidator
             }
         }
 
+        if (definition.HasRange && DesignEditor.ValidateRange(control.Properties.Minimum ?? 0, control.Properties.Maximum ?? 0, control.Properties.Value ?? 0) is { } rangeError)
+        {
+            errors.Add($"{label}: {rangeError}");
+        }
+
         if (definition.IsContainer)
         {
             var properties = control.Properties;

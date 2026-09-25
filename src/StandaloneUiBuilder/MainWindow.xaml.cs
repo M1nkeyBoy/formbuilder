@@ -62,7 +62,8 @@ public partial class MainWindow : Window
 
         foreach (var box in new[] { NameBox, XBox, YBox, WidthBox, HeightBox, TextValueBox, ItemsBox, ScreenWidthBox, ScreenHeightBox,
                                     RowBox, ColumnBox, RowSpanBox, ColumnSpanBox, SpacingBox, RowsBox, ColumnsBox,
-                                    RowSizesBox, ColumnSizesBox, ScreenNameBox })
+                                    RowSizesBox, ColumnSizesBox, ScreenNameBox,
+                                    MinimumBox, MaximumBox, ValueBox })
         {
             box.LostKeyboardFocus += (_, _) => CommitField(box);
             box.KeyDown += InspectorField_KeyDown;
@@ -293,7 +294,7 @@ public partial class MainWindow : Window
 
         // Inside a container, the container decides placement: show only what still applies.
         var parent = editor.ParentOf(control.Id);
-        var inStack = parent?.Type == ControlType.StackPanel;
+        var inStack = parent is not null && ControlCatalog.Get(parent.Type).IsStack;
         var verticalStack = inStack && parent!.Properties.Orientation != StackOrientation.Horizontal;
         XRow.Visibility = YRow.Visibility = AnchorRow.Visibility = Show(parent is null);
         WidthRow.Visibility = Show(parent is null || (inStack && !verticalStack));
@@ -334,6 +335,13 @@ public partial class MainWindow : Window
         AnchorTopBox.IsChecked = control.Anchor.HasFlag(AnchorEdges.Top);
         AnchorRightBox.IsChecked = control.Anchor.HasFlag(AnchorEdges.Right);
         AnchorBottomBox.IsChecked = control.Anchor.HasFlag(AnchorEdges.Bottom);
+
+        MultilineRow.Visibility = Show(definition.HasMultiline);
+        MultilineBox.IsChecked = properties.IsMultiline == true;
+        RangeRow.Visibility = Show(definition.HasRange);
+        SetField(MinimumBox, (properties.Minimum ?? 0).ToString(CultureInfo.CurrentCulture));
+        SetField(MaximumBox, (properties.Maximum ?? 0).ToString(CultureInfo.CurrentCulture));
+        SetField(ValueBox, (properties.Value ?? 0).ToString(CultureInfo.CurrentCulture));
 
         IsCheckedRow.Visibility = definition.HasIsChecked ? Visibility.Visible : Visibility.Collapsed;
         IsCheckedBox.IsChecked = properties.IsChecked == true;
@@ -408,6 +416,8 @@ public partial class MainWindow : Window
             : box == RowBox || box == ColumnBox ? CommitWholeNumbers(values => editor.SetGridCell(id, values[0], values[1]), RowBox, ColumnBox)
             : box == RowSpanBox || box == ColumnSpanBox ? CommitWholeNumbers(values => editor.SetGridSpan(id, values[0], values[1]), RowSpanBox, ColumnSpanBox)
             : box == RowSizesBox || box == ColumnSizesBox ? editor.SetGridTrackSizes(id, SplitSizes(RowSizesBox), SplitSizes(ColumnSizesBox))
+            : box == MinimumBox || box == MaximumBox || box == ValueBox
+                ? CommitWholeNumbers(values => editor.SetRange(id, values[0], values[1], values[2]), MinimumBox, MaximumBox, ValueBox)
             : box == SpacingBox ? CommitWholeNumbers(values => editor.SetSpacing(id, values[0]), SpacingBox)
             : box == RowsBox || box == ColumnsBox ? CommitWholeNumbers(values => editor.SetGridSize(id, values[0], values[1]), RowsBox, ColumnsBox)
             : CommitBoundsField(control, box);
@@ -415,6 +425,12 @@ public partial class MainWindow : Window
         SetFieldError(box, error);
         if (error is null)
         {
+            // Fields applied together were all accepted, including any flagged earlier.
+            foreach (var partner in FieldGroup(box))
+            {
+                SetFieldError(partner, null);
+            }
+
             // Show the value as stored, for example trimmed or with blank items removed.
             RefreshInspector();
         }
@@ -439,6 +455,17 @@ public partial class MainWindow : Window
             RefreshInspector();
         }
     }
+
+    /// <summary>The fields applied together with a field, which share its outcome.</summary>
+    private TextBox[] FieldGroup(TextBox box) =>
+        new[]
+        {
+            new[] { RowBox, ColumnBox },
+            [RowSpanBox, ColumnSpanBox],
+            [RowsBox, ColumnsBox],
+            [RowSizesBox, ColumnSizesBox],
+            [MinimumBox, MaximumBox, ValueBox],
+        }.FirstOrDefault(group => group.Contains(box)) ?? [box];
 
     private static string[] SplitSizes(TextBox box) => box.Text.Split(',');
 
@@ -562,6 +589,14 @@ public partial class MainWindow : Window
             RefreshInspector();
             box.SelectAll();
             e.Handled = true;
+        }
+    }
+
+    private void MultilineBox_Click(object sender, RoutedEventArgs e)
+    {
+        if (inspectedId is { } id)
+        {
+            editor.SetIsMultiline(id, MultilineBox.IsChecked == true);
         }
     }
 

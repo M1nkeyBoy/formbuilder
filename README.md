@@ -6,21 +6,24 @@ choices are recorded in `docs/decisions.md`.
 
 ## What it does
 
-- **Place controls.** Drag Label, Button, TextBox, CheckBox or ComboBox from the toolbox onto
-  the 800 × 600 canvas. Or select a toolbox item and then click the canvas, or press Enter.
+- **Place controls.** Drag Label, Button, TextBox, PasswordBox, CheckBox, RadioButton,
+  ComboBox, ListBox, Slider, ProgressBar or DatePicker from the toolbox onto the 800 × 600
+  canvas. Or select a toolbox item and then click the canvas, or press Enter.
   Placement snaps to the 10-DIP grid.
 - **Edit.** Click a control to select it. Drag it to move it, or drag its handles to resize
   it. Moves and resizes snap to the grid and stay inside the canvas. Delete removes the
   selected control.
 - **Properties.** The Properties panel edits name, X, Y, width and height for every control,
-  plus text, checked state or ComboBox items (one per line) where they apply. Press Enter or
+  plus text, checked state, list items (one per line), a Slider's or ProgressBar's minimum,
+  maximum and value, or a TextBox's multi-line option where they apply. Press Enter or
   leave a field to apply it; Esc restores the stored value. Invalid values are flagged in red
   and never written to the design.
 - **Anchoring.** Each control's Anchor setting (Left, Top, Right, Bottom) says which window
   edges it follows when the window is resized: anchored to Right it moves with the right
   edge, anchored to Left and Right it stretches. Dashed lines show the anchors of the
   selected control. In Preview, drag the corner grip to try them.
-- **Containers.** StackPanel lines controls up vertically or horizontally with a gap; Grid
+- **Containers.** StackPanel lines controls up vertically or horizontally with a gap;
+  GroupBox does the same inside a titled frame; Grid
   divides itself into equal rows and columns with one control per cell. Drag or click a
   toolbox item into a container, or drag a control in or out; the target container is
   outlined in green. Inside a stack a control keeps its height (or width) and stretches
@@ -135,7 +138,8 @@ tests use this so they never touch your own drafts.
 
 - Screens do not open each other by themselves: exported code opens a screen from a hook you
   write.
-- Five built-in controls and two containers. Grid rows and columns can be fixed or shared,
+- Eleven built-in controls and three containers; no tabs, images, menus or data grids yet.
+  RadioButtons group by the container they are in. Grid rows and columns can be fixed or shared,
   but not sized to their content. Copy and paste stay within the editor rather than using the system clipboard.
 - Layout is absolute positions plus anchors, with StackPanel and Grid containers.
 - Output is WPF and WinForms. It covers layout and one event hook per control; there is no

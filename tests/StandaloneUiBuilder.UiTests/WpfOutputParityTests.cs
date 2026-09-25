@@ -177,8 +177,18 @@ public sealed partial class WpfOutputParityTests
 
             switch (designed)
             {
-                case CheckBox designedCheck:
-                    Assert.Equal(designedCheck.IsChecked, ((CheckBox)generated).IsChecked);
+                case System.Windows.Controls.Primitives.ToggleButton designedToggle:
+                    Assert.Equal(designedToggle.IsChecked, ((System.Windows.Controls.Primitives.ToggleButton)generated).IsChecked);
+                    break;
+                case ListBox designedList:
+                    Assert.Equal(designedList.ItemsSource.Cast<string>(), ((ListBox)generated).Items.Cast<ListBoxItem>().Select(item => (string)item.Content));
+                    break;
+                case System.Windows.Controls.Primitives.RangeBase designedRange:
+                    var generatedRange = (System.Windows.Controls.Primitives.RangeBase)generated;
+                    Assert.Equal((designedRange.Minimum, designedRange.Maximum, designedRange.Value), (generatedRange.Minimum, generatedRange.Maximum, generatedRange.Value));
+                    break;
+                case TextBox designedText:
+                    Assert.Equal((designedText.AcceptsReturn, designedText.TextWrapping), (((TextBox)generated).AcceptsReturn, ((TextBox)generated).TextWrapping));
                     break;
                 case ComboBox designedCombo:
                     var designedItems = designedCombo.ItemsSource.Cast<string>();

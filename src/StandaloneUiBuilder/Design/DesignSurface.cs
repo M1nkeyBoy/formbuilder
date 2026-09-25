@@ -330,6 +330,13 @@ internal sealed class DesignSurface : Grid
     {
         var element = ControlFactory.Create(control, buttonClicked);
 
+        // Each control on the screen has its own host here, but in a generated window they
+        // share one parent, so RadioButtons on the screen form one group.
+        if (element is RadioButton radio)
+        {
+            radio.GroupName = "Screen";
+        }
+
         // The host is placed like the generated WPF control; the control fills the host.
         element.ClearValue(WidthProperty);
         element.ClearValue(HeightProperty);

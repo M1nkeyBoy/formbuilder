@@ -16,15 +16,16 @@ A complete example is in [`samples/customer-form.uibproj`](samples/customer-form
 | 4 | Adds `rowSpan` and `columnSpan` for controls inside a Grid. | None: older files have no spans (every control covers one cell). |
 | 5 | Adds `rowSizes` and `columnSizes` to Grid properties. | None: older files have equal rows and columns. |
 | 6 | Replaces the single `screen` with a list of `screens`. | The file's `screen` becomes the only entry in `screens`. Its name becomes `Main` if it is not an identifier (only possible in a hand-edited file). |
+| 7 | Adds the types `RadioButton`, `ListBox`, `Slider`, `ProgressBar`, `DatePicker`, `PasswordBox` and the container `GroupBox`, and the properties `isMultiline`, `minimum`, `maximum` and `value`. | None: older files use none of them. |
 
-The builder reads versions 1 to 6 and always saves version 6. An older builder rejects a
+The builder reads versions 1 to 7 and always saves version 7. An older builder rejects a
 newer file with a clear message instead of silently dropping what it does not know.
 
-## Schema version 6
+## Schema version 7
 
 ```json
 {
-  "schemaVersion": 6,
+  "schemaVersion": 7,
   "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971",
   "name": "Customer form",
   "screens": [{
@@ -54,7 +55,7 @@ newer file with a clear message instead of silently dropping what it does not kn
 
 | Field | Type | Notes |
 |---|---|---|
-| `schemaVersion` | integer | Required. `6` when saved by this builder; `1` to `5` are still read. |
+| `schemaVersion` | integer | Required. `7` when saved by this builder; `1` to `6` are still read. |
 | `projectId` | GUID string | Required. Stable for the life of the project. |
 | `name` | string | Written as the file name (without extension) on save. |
 | `screens` | array | Required, at least one. In order: the first is the main screen, which a generated application opens with. Versions 1 to 5 had a single `screen` object instead. |
@@ -74,7 +75,7 @@ newer file with a clear message instead of silently dropping what it does not kn
 | Field | Type | Notes |
 |---|---|---|
 | `id` | GUID string | Required, unique within the project, never empty. |
-| `type` | string | Required. One of `Label`, `Button`, `TextBox`, `CheckBox`, `ComboBox`, or the containers `StackPanel` and `Grid`. |
+| `type` | string | Required. One of `Label`, `Button`, `TextBox`, `PasswordBox`, `CheckBox`, `RadioButton`, `ComboBox`, `ListBox`, `Slider`, `ProgressBar`, `DatePicker`, or the containers `StackPanel`, `Grid` and `GroupBox`. |
 | `name` | string | Required. Letter or underscore first, then letters, digits or underscores. Unique within its screen, ignoring case; other screens may reuse it. |
 | `x`, `y` | integer | DIPs from the screen's top-left corner; not negative. |
 | `width`, `height` | integer | DIPs; at least the type's minimum size. The control must fit inside the screen. |
@@ -84,8 +85,9 @@ newer file with a clear message instead of silently dropping what it does not kn
 | `rowSpan`, `columnSpan` | integer | Only for a control inside a Grid: how many rows and columns it covers, starting at its cell. Optional; omitted when 1. It must fit inside the grid. |
 | `anchor` | array of strings | Screen edges the control follows when the window is resized: any of `left`, `top`, `right`, `bottom`, with at least one of left/right and one of top/bottom. Optional; defaults to `["left", "top"]`. |
 
-Minimum sizes: Label 20 × 16, Button 30 × 20, TextBox 30 × 20, CheckBox 20 × 16,
-ComboBox 40 × 20, StackPanel 20 × 20, Grid 20 × 20.
+Minimum sizes: Label 20 × 16, Button 30 × 20, TextBox and PasswordBox 30 × 20, CheckBox and
+RadioButton 20 × 16, ComboBox 40 × 20, ListBox 40 × 30, Slider 40 × 20, ProgressBar 20 × 8,
+DatePicker 80 × 20, StackPanel and Grid 20 × 20, GroupBox 40 × 40.
 
 ### Containers
 
@@ -95,6 +97,9 @@ A control inside a container has no position of its own; the container places it
   is `Vertical`, left to right when `Horizontal`, with `spacing` DIPs between them. Each
   child keeps its `height` (vertical) or `width` (horizontal) and stretches across the
   stack. Children that do not fit are clipped.
+- **GroupBox** is a frame with its `text` as a title. It lines up its children exactly like a
+  StackPanel, inside an area 8 DIPs in from its left, right and bottom edges and 20 DIPs
+  down from its top, which leaves room for the frame and title.
 - **Grid** divides itself into `rows` × `columns` cells. Fixed rows and columns get their size;
   the rest share the remaining space by weight (equally by default). If the fixed sizes do
   not fit, the shared ones get nothing and the overflow is clipped. Each child fills the cell
@@ -121,11 +126,24 @@ Anchors describe what happens when a generated window is made larger than the de
 | Button | ✓ | | |
 | TextBox | ✓ | | |
 | CheckBox | ✓ | ✓ | |
+| RadioButton | ✓ | ✓ | |
 | ComboBox | | | ✓ (in display order) |
+| ListBox | | | ✓ (in display order) |
+| GroupBox | ✓ (the title) | | |
+
+PasswordBox and DatePicker have no type-specific properties: a password is never stored, and
+a DatePicker starts with no date chosen. RadioButtons in the same container (or directly on
+the screen) are one group: choosing one in the editor clears the others.
+
+A TextBox may have `isMultiline: true` for several lines of text that wrap; it is omitted for
+a single line.
+
+Slider and ProgressBar have whole-number `minimum`, `maximum` and `value`: the minimum is less
+than the maximum, the value lies between them, and all are within ±1,000,000.
 
 | Type | `orientation` | `spacing` | `rows` | `columns` |
 |---|---|---|---|---|
-| StackPanel | `Vertical` or `Horizontal` | 0 to 200 DIPs | | |
+| StackPanel, GroupBox | `Vertical` or `Horizontal` | 0 to 200 DIPs | | |
 | Grid | | | 1 to 20 | 1 to 20 |
 
 A Grid may also have `rowSizes` and `columnSizes`: one string per row or column, in WPF's

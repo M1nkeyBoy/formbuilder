@@ -92,7 +92,7 @@ public sealed class ProjectFileTests : IDisposable
     {
         var json = ProjectFile.Serialize(PopulatedDocument());
 
-        Assert.Contains("\"schemaVersion\": 6", json);
+        Assert.Contains("\"schemaVersion\": 7", json);
         Assert.Contains("\"screens\": [", json);
         Assert.DoesNotContain("mainScreen", json, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("\"type\": \"Button\"", json);
@@ -115,7 +115,7 @@ public sealed class ProjectFileTests : IDisposable
     [InlineData("not json", "not valid JSON")]
     [InlineData("[]", "no schema version")]
     [InlineData("""{ "name": "x" }""", "no schema version")]
-    [InlineData("""{ "schemaVersion": 7, "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971", "screen": {} }""", "newer version")]
+    [InlineData("""{ "schemaVersion": 8, "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971", "screen": {} }""", "newer version")]
     [InlineData("""{ "schemaVersion": 0, "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971", "screen": {} }""", "not valid")]
     [InlineData("""{ "schemaVersion": 1, "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971" }""", "not a valid project")]
     public void InvalidFilesAreRejectedWithAClearReason(string json, string expected)
@@ -128,11 +128,11 @@ public sealed class ProjectFileTests : IDisposable
     [Fact]
     public void UnsupportedControlTypeIsNamed()
     {
-        var json = ProjectFile.Serialize(PopulatedDocument()).Replace("\"type\": \"Button\"", "\"type\": \"Slider\"");
+        var json = ProjectFile.Serialize(PopulatedDocument()).Replace("\"type\": \"Button\"", "\"type\": \"Calendar\"");
 
         var ex = Assert.Throws<ProjectFileException>(() => ProjectFile.Deserialize(json));
 
-        Assert.Contains("\"Slider\"", ex.Message);
+        Assert.Contains("\"Calendar\"", ex.Message);
         Assert.Contains("SubmitButton", ex.Message);
     }
 

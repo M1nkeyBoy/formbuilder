@@ -132,8 +132,9 @@ public sealed class WinFormsOutputTests
             bool Near(int a, int b) => Math.Abs(a - b) <= tolerance;
             Assert.True(Near(expected.X, actual.X) && Near(expected.Y, actual.Y) && Near(expected.Width, actual.Width), $"{what}: form has {actual}, expected {expected}");
 
-            // Single-line TextBox and ComboBox heights follow the font in WinForms.
-            if (control.Type is not (Core.ControlType.TextBox or Core.ControlType.ComboBox))
+            // Single-line text box, ComboBox and date picker heights follow the font in WinForms.
+            if (control.Type is not (Core.ControlType.TextBox or Core.ControlType.PasswordBox or Core.ControlType.ComboBox or Core.ControlType.DatePicker)
+                || control.Properties.IsMultiline == true)
             {
                 Assert.True(Near(expected.Height, actual.Height), $"{what}: height {actual.Height}, expected {expected.Height}");
             }

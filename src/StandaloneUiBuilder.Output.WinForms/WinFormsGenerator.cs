@@ -47,6 +47,11 @@ public static class WinFormsGenerator
         ControlType.CheckBox => "Click",
         ControlType.TextBox => "TextChanged",
         ControlType.ComboBox => "SelectedIndexChanged",
+        ControlType.RadioButton => "Click",
+        ControlType.ListBox => "SelectedIndexChanged",
+        ControlType.Slider => "ValueChanged",
+        ControlType.DatePicker => "ValueChanged",
+        ControlType.PasswordBox => "TextChanged",
         _ => null,
     };
 
@@ -87,6 +92,16 @@ public static class WinFormsGenerator
             else if (ReservedNames.Contains(control.Name) || control.Name == className)
             {
                 problems.Add($"\"{control.Name}\" clashes with a member of the generated form. Rename the control.");
+            }
+        }
+
+        // A GroupBox's children sit in a generated layout panel named after it.
+        var names = all.Select(c => c.Name).ToHashSet(StringComparer.Ordinal);
+        foreach (var group in all.Where(c => c.Type == ControlType.GroupBox))
+        {
+            if (names.Contains(LayoutPanelName(group)))
+            {
+                problems.Add($"\"{LayoutPanelName(group)}\" clashes with the layout panel generated for GroupBox \"{group.Name}\". Rename one of them.");
             }
         }
 
@@ -167,11 +182,19 @@ public static class WinFormsGenerator
         foreach (var control in all)
         {
             code.AppendLine($"        this.{control.Name} = new System.Windows.Forms.{WinFormsType(control.Type)}();");
+            if (control.Type == ControlType.GroupBox)
+            {
+                code.AppendLine($"        this.{LayoutPanelName(control)} = new System.Windows.Forms.TableLayoutPanel();");
+            }
         }
 
         foreach (var container in containers)
         {
             code.AppendLine($"        this.{container.Name}.SuspendLayout();");
+            if (container.Type == ControlType.GroupBox)
+            {
+                code.AppendLine($"        this.{LayoutPanelName(container)}.SuspendLayout();");
+            }
         }
 
         code.AppendLine("        this.SuspendLayout();");
@@ -212,6 +235,11 @@ public static class WinFormsGenerator
         code.AppendLine($"        this.Text = {Literal(screen.Id == document.MainScreen.Id ? document.Name : screen.Name)};");
         for (var i = containers.Count - 1; i >= 0; i--)
         {
+            if (containers[i].Type == ControlType.GroupBox)
+            {
+                code.AppendLine($"        this.{LayoutPanelName(containers[i])}.ResumeLayout(false);");
+            }
+
             code.AppendLine($"        this.{containers[i].Name}.ResumeLayout(false);");
         }
 
@@ -230,6 +258,10 @@ public static class WinFormsGenerator
         {
             var hides = HiddenFormMembers.Contains(control.Name) ? "new " : "";
             code.AppendLine($"    private {hides}System.Windows.Forms.{WinFormsType(control.Type)} {control.Name};");
+            if (control.Type == ControlType.GroupBox)
+            {
+                code.AppendLine($"    private System.Windows.Forms.TableLayoutPanel {LayoutPanelName(control)};");
+            }
         }
 
         code.AppendLine("}");
@@ -237,10 +269,20 @@ public static class WinFormsGenerator
     }
 
     /// <summary>
-    /// Containers become a TableLayoutPanel, set up so it follows the builder's layout rules.
+    /// The WinForms control for each type. StackPanel and Grid become a TableLayoutPanel set
+    /// up to follow the builder's layout rules; a GroupBox holds one too.
     /// </summary>
-    private static string WinFormsType(ControlType type) =>
-        type is ControlType.StackPanel or ControlType.Grid ? "TableLayoutPanel" : type.ToString();
+    private static string WinFormsType(ControlType type) => type switch
+    {
+        ControlType.StackPanel or ControlType.Grid => "TableLayoutPanel",
+        ControlType.Slider => "TrackBar",
+        ControlType.DatePicker => "DateTimePicker",
+        ControlType.PasswordBox => "TextBox",
+        _ => type.ToString(),
+    };
+
+    /// <summary>The TableLayoutPanel inside a GroupBox that lines up its children.</summary>
+    public static string LayoutPanelName(ControlDocument group) => group.Name + "Layout";
 
     /// <summary>
     /// Writes one control's settings, then its children's. A control on the form has a location,
@@ -262,7 +304,7 @@ public static class WinFormsGenerator
         }
         else
         {
-            var gap = parent.Type == ControlType.StackPanel && index > 0 ? parent.Properties.Spacing ?? 0 : 0;
+            var gap = ControlCatalog.Get(parent.Type).IsStack && index > 0 ? parent.Properties.Spacing ?? 0 : 0;
             var vertical = parent.Properties.Orientation != StackOrientation.Horizontal;
             Set("Dock", "System.Windows.Forms.DockStyle.Fill");
             Set("Margin", gap == 0 ? "new System.Windows.Forms.Padding(0)"
@@ -277,22 +319,76 @@ public static class WinFormsGenerator
                 Set("TextAlign", "System.Drawing.ContentAlignment.MiddleLeft");
                 break;
             case ControlType.CheckBox:
+            case ControlType.RadioButton:
                 Set("AutoSize", "false");
                 Set("Checked", properties.IsChecked == true ? "true" : "false");
                 break;
             case ControlType.ComboBox:
                 Set("DropDownStyle", "System.Windows.Forms.ComboBoxStyle.DropDownList");
-                if (properties.Items is { Count: > 0 } items)
-                {
-                    code.AppendLine($"        this.{name}.Items.AddRange(new object[] {{ {string.Join(", ", items.Select(Literal))} }});");
-                }
-
+                AddItems();
+                break;
+            case ControlType.ListBox:
+                // Otherwise the list shrinks to a whole number of items.
+                Set("IntegralHeight", "false");
+                AddItems();
+                break;
+            case ControlType.TextBox when properties.IsMultiline == true:
+                Set("Multiline", "true");
+                Set("ScrollBars", "System.Windows.Forms.ScrollBars.Vertical");
+                break;
+            case ControlType.PasswordBox:
+                Set("UseSystemPasswordChar", "true");
+                break;
+            case ControlType.Slider:
+                // A TrackBar sizes itself unless told not to; ticks off, like WPF's Slider.
+                Set("AutoSize", "false");
+                Set("TickStyle", "System.Windows.Forms.TickStyle.None");
+                SetRange();
+                break;
+            case ControlType.ProgressBar:
+                SetRange();
+                break;
+            case ControlType.DatePicker:
+                // Unticked: no date chosen yet, as in WPF's DatePicker.
+                Set("Format", "System.Windows.Forms.DateTimePickerFormat.Short");
+                Set("ShowCheckBox", "true");
+                Set("Checked", "false");
                 break;
         }
 
-        if (control.Children is { } children)
+        void AddItems()
         {
-            AppendTable(code, control, children);
+            if (properties.Items is { Count: > 0 } items)
+            {
+                code.AppendLine($"        this.{name}.Items.AddRange(new object[] {{ {string.Join(", ", items.Select(Literal))} }});");
+            }
+        }
+
+        // Minimum first: WinForms raises the maximum to meet it, and rejects a value outside them.
+        void SetRange()
+        {
+            Set("Minimum", Number(properties.Minimum ?? 0));
+            Set("Maximum", Number(properties.Maximum ?? 100));
+            Set("Value", Number(properties.Value ?? 0));
+        }
+
+        if (control.Type == ControlType.GroupBox)
+        {
+            // The GroupBox has its design size before its layout panel is anchored inside it, so
+            // the panel keeps the fixed inset however the GroupBox is later stretched.
+            var layoutName = LayoutPanelName(control);
+            var (left, top, right, bottom) = ContainerLayout.GroupBoxInset;
+            Set("Size", $"new System.Drawing.Size({Number(control.Width)}, {Number(control.Height)})");
+            code.AppendLine($"        this.{name}.Controls.Add(this.{layoutName});");
+            AppendTable(code, layoutName, control, control.Children ?? []);
+            code.AppendLine($"        this.{layoutName}.Anchor = {AnchorStyles(AnchorEdges.Left | AnchorEdges.Top | AnchorEdges.Right | AnchorEdges.Bottom)};");
+            code.AppendLine($"        this.{layoutName}.Location = new System.Drawing.Point({Number(left)}, {Number(top)});");
+            code.AppendLine($"        this.{layoutName}.Name = {Literal(layoutName)};");
+            code.AppendLine($"        this.{layoutName}.Size = new System.Drawing.Size({Number(control.Width - left - right)}, {Number(control.Height - top - bottom)});");
+        }
+        else if (control.Children is { } children)
+        {
+            AppendTable(code, name, control, children);
         }
 
         if (parent is null)
@@ -301,7 +397,7 @@ public static class WinFormsGenerator
         }
 
         Set("Name", Literal(name));
-        if (parent is null)
+        if (parent is null && control.Type != ControlType.GroupBox)
         {
             Set("Size", $"new System.Drawing.Size({Number(control.Width)}, {Number(control.Height)})");
         }
@@ -313,6 +409,8 @@ public static class WinFormsGenerator
             case ControlType.Label:
             case ControlType.Button:
             case ControlType.CheckBox:
+            case ControlType.RadioButton:
+            case ControlType.GroupBox:
                 // "&" marks an access key in these controls; the designer shows text literally.
                 Set("Text", Literal((properties.Text ?? "").Replace("&", "&&", StringComparison.Ordinal)));
                 break;
@@ -321,7 +419,7 @@ public static class WinFormsGenerator
                 break;
         }
 
-        if (control.Type is ControlType.Button or ControlType.CheckBox)
+        if (control.Type is ControlType.Button or ControlType.CheckBox or ControlType.RadioButton)
         {
             Set("UseVisualStyleBackColor", "true");
         }
@@ -337,15 +435,14 @@ public static class WinFormsGenerator
         }
     }
 
-    private static void AppendTable(StringBuilder code, ControlDocument container, IReadOnlyList<ControlDocument> children)
+    private static void AppendTable(StringBuilder code, string name, ControlDocument container, IReadOnlyList<ControlDocument> children)
     {
-        var name = container.Name;
         var properties = container.Properties;
         void Line(string text) => code.AppendLine($"        this.{name}.{text}");
         Line("Margin = new System.Windows.Forms.Padding(0);");
         Line("Padding = new System.Windows.Forms.Padding(0);");
 
-        if (container.Type == ControlType.StackPanel)
+        if (ControlCatalog.Get(container.Type).IsStack)
         {
             // One fixed-size row (or column) per child, holding the child and the gap before
             // it, and a last one that takes up whatever space is left.

@@ -10,13 +10,32 @@ public sealed record PlacedControl(ControlDocument Control, ControlBounds Bounds
 /// <remarks>
 /// A vertical StackPanel places its children top to bottom, each keeping its height and
 /// stretching to the stack's width, with Spacing between them; a horizontal one does the same
-/// left to right. Children that do not fit are clipped. A Grid divides itself into rows and
+/// left to right. Children that do not fit are clipped. A GroupBox arranges its children the
+/// same way inside its frame, <see cref="GroupBoxInset"/> in from its edges. A Grid divides itself into rows and
 /// columns, each a fixed size or a share of the space left (equal shares by default); each
 /// child fills the cell at its Row and Column, extended over RowSpan rows and ColumnSpan
 /// columns.
 /// </remarks>
 public static class ContainerLayout
 {
+    /// <summary>
+    /// How far a GroupBox's children are from its edges: room for the frame, and for the title
+    /// at the top. Fixed, so every target places children exactly, whatever its frame style.
+    /// </summary>
+    public static (int Left, int Top, int Right, int Bottom) GroupBoxInset { get; } = (8, 20, 8, 8);
+
+    /// <summary>The area of a container its children are arranged in, relative to its top-left.</summary>
+    public static ControlBounds ContentArea(ControlDocument container, int width, int height)
+    {
+        if (container.Type != ControlType.GroupBox)
+        {
+            return new ControlBounds(0, 0, width, height);
+        }
+
+        var (left, top, right, bottom) = GroupBoxInset;
+        return new ControlBounds(left, top, Math.Max(0, width - left - right), Math.Max(0, height - top - bottom));
+    }
+
     /// <summary>Where each child of a container goes, relative to the container's top-left.</summary>
     public static IReadOnlyList<(ControlDocument Child, ControlBounds Bounds)> Arrange(ControlDocument container, int width, int height)
     {
@@ -24,8 +43,9 @@ public static class ContainerLayout
         var properties = container.Properties;
         var arranged = new List<(ControlDocument, ControlBounds)>(children.Count);
 
-        if (container.Type == ControlType.StackPanel)
+        if (container.Type is ControlType.StackPanel or ControlType.GroupBox)
         {
+            var area = ContentArea(container, width, height);
             var spacing = properties.Spacing ?? 0;
             var vertical = properties.Orientation != StackOrientation.Horizontal;
             var offset = 0;
@@ -38,8 +58,8 @@ public static class ContainerLayout
                 }
 
                 arranged.Add((child, vertical
-                    ? new ControlBounds(0, offset, width, child.Height)
-                    : new ControlBounds(offset, 0, child.Width, height)));
+                    ? new ControlBounds(area.X, area.Y + offset, area.Width, child.Height)
+                    : new ControlBounds(area.X + offset, area.Y, child.Width, area.Height)));
                 offset += vertical ? child.Height : child.Width;
             }
         }
@@ -92,7 +112,7 @@ public static class ContainerLayout
             .FirstOrDefault();
     }
 
-    /// <summary>For a StackPanel, the index a control dropped at a screen point goes to.</summary>
+    /// <summary>For a StackPanel or GroupBox, the index a control dropped at a screen point goes to.</summary>
     public static int StackIndexAt(PlacedControl stack, double x, double y, Guid? ignore = null)
     {
         var vertical = stack.Control.Properties.Orientation != StackOrientation.Horizontal;
