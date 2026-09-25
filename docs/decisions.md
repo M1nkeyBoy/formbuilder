@@ -31,3 +31,14 @@ Choices made during the prototype slices that affect later work.
   them directly.
 - **Grid.** The grid is drawn by a non-hit-testable element, with a slightly darker line
   every 50 DIPs.
+
+## Slice 2
+
+- **Placement.** A dropped control's top-left corner goes where the pointer was, snapped to
+  the nearest grid line and moved inside the screen if needed. Controls get the lowest free
+  default name for their type (`Button1`, `Button2`, …) and default text equal to the name.
+- **Design hit testing.** In Design mode each control sits in a transparent host that takes
+  the pointer, and the control itself does not respond. The canvas is rebuilt from the
+  document after every change, so the document stays the only source of truth.
+- **Keyboard placement.** Selecting a toolbox item and pressing Enter adds the control near
+  the top-left, stepping 20 DIPs for each control so new ones do not stack exactly.
