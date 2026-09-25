@@ -288,7 +288,8 @@ public static class MauiGenerator
         }
 
         // MAUI controls have their own minimum sizes on some platforms; the design's size wins.
-        if (!ControlCatalog.Get(control.Type).IsContainer)
+        // Not for a RadioButton, which, like a CheckBox, is not drawn squeezed below its own.
+        if (!ControlCatalog.Get(control.Type).IsContainer && control.Type != ControlType.RadioButton)
         {
             attributes.Add("MinimumWidthRequest=\"0\" MinimumHeightRequest=\"0\"");
         }

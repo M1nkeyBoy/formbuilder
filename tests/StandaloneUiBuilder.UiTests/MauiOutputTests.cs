@@ -97,6 +97,13 @@ public sealed class MauiOutputTests
             var shifted = actual with { X = actual.X - origin.Value.X, Y = actual.Y - origin.Value.Y };
             report.Add($"{control.Name} ({control.Type}): page has {shifted}, expected {expected}");
 
+            // MAUI reports a RadioButton's box as just its circle and text, and lets it keep its
+            // own height, so only where it starts is compared.
+            if (control.Type == Core.ControlType.RadioButton)
+            {
+                shifted = shifted with { Width = expected.Width, Height = expected.Height };
+            }
+
             var tolerance = placed.ParentId is not null && ControlTree.Find(screen.Controls, placed.ParentId.Value)?.Type == Core.ControlType.Grid ? 3 : 1;
             bool Near(int a, int b) => Math.Abs(a - b) <= tolerance;
             bool Matches(ControlBounds box) => Near(box.X, shifted.X) && Near(box.Y, shifted.Y) && Near(box.Width, shifted.Width) && Near(box.Height, shifted.Height);
