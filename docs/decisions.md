@@ -91,3 +91,14 @@ Choices made during the prototype slices that affect later work.
   unsaved work linked to the original path; nothing is written to that file until the user
   saves. Declining deletes the draft and leaves the saved file untouched. Older drafts, if
   any, are offered on later starts.
+
+## Slice 6
+
+- **Automated acceptance walkthrough.** Development happens where WPF cannot run, so the
+  spec's manual walkthrough is also automated: `tests/StandaloneUiBuilder.UiTests` drives
+  the real editor through Windows UI Automation using FlaUI (`FlaUI.UIA3`). That package is
+  used only by this test project and ships in no product binary. The test is opt-in
+  (`UIB_RUN_UI_TESTS=1`) because it takes over the mouse and keyboard; CI always runs it.
+- **Release build.** A self-contained, single-file `win-x64` publish, built and started in
+  CI on every push and uploaded as an artifact.
+- **Accessibility.** Toolbox items expose their control type as their accessible name.
