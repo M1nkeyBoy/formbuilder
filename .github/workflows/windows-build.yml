@@ -31,6 +31,16 @@ jobs:
           UIB_EXPORT_DIR: ${{ github.workspace }}\artifacts\generated
         run: dotnet test tests/StandaloneUiBuilder.UiTests --configuration Release --no-build --logger "console;verbosity=normal"
 
+      # Builds and runs the Blazor export of every sample and checks, in Edge, where every
+      # control is on every page and that buttons move between pages.
+      - name: Web output tests
+        if: always()
+        env:
+          UIB_RUN_WEB_TESTS: "1"
+          UIB_UI_TEST_ARTIFACTS: ${{ github.workspace }}\artifacts\screenshots
+          UIB_EXPORT_DIR: ${{ github.workspace }}\artifacts\generated
+        run: dotnet test tests/StandaloneUiBuilder.Web.Tests --configuration Release --no-build --logger "console;verbosity=normal"
+
       - name: Screenshot of the sample project
         if: always()
         shell: pwsh

@@ -405,3 +405,27 @@ Choices made during the prototype slices that affect later work.
   and a closing button goes back to the screen that opened it. Switching waits until the
   click has finished, since it rebuilds the Preview, including the button.
 - **Format version 8.**
+
+## Slice 22 — Blazor output
+
+- **Why Blazor next.** Of the targets the spec names, it is the one that reaches beyond
+  Windows desktops, and the one that can be built, run and checked everywhere, including on
+  the Linux machine the builder is developed on. WinUI 3 and MAUI need platform workloads.
+- **Interactive server rendering,** from the standard Blazor Web App template, trimmed: one
+  project, `dotnet run`, no JavaScript of its own. WebAssembly would need a second project.
+- **Plain CSS for layout,** following the Core rules one to one: absolute positions from
+  anchors on the screen, flex boxes for stacks, CSS grid (with `px` and `fr` tracks) for
+  grids, and border-box sizing so every box is the designed size. No layout library.
+- **Values are fields.** Where WPF and WinForms code reads a control (`NameTextBox.Text`),
+  Blazor code binds controls to page fields. Each value control gets a field named after it,
+  initialised from the design, and hooks take no arguments. Hook names match the WPF output.
+- **Radio groups** use the container as the HTML `name`, and the generated handler clears
+  the rest of the group, since HTML radios bound to separate fields do not do it themselves.
+- **Closing a screen goes back.** A web page cannot close itself; `history.back()` returns to
+  the page that opened it, which is what closing a dialog does in the desktop output.
+- **Checked in a real browser.** A new opt-in test project builds and runs each exported
+  sample and compares every control's box, read with `getBoundingClientRect`, with the Core
+  layout at the design size and larger (within a pixel, for fractional grid tracks). It uses
+  Microsoft.Playwright to drive an installed Edge on Windows or a given Chromium elsewhere, so
+  nothing is downloaded. Playwright's own box query briefly returned nothing while Blazor
+  re-rendered the page on connecting, so boxes are read directly from the page instead.

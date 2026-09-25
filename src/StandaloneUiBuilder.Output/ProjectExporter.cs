@@ -38,12 +38,17 @@ public static partial class ProjectExporter
     /// <param name="namespaceSource">A developer-owned file whose namespace an earlier export chose.</param>
     /// <param name="defaultNamespace">The namespace to use for a first export.</param>
     /// <param name="generate">Produces the files for a given root namespace.</param>
+    /// <param name="namespaceSuffix">
+    /// What the namespace in <paramref name="namespaceSource"/> adds to the root namespace, if
+    /// that file lives in a sub-namespace (".Components.Pages").
+    /// </param>
     public static ExportResult Export(
         string folder,
         string guardedFile,
         string namespaceSource,
         string defaultNamespace,
-        Func<string, IReadOnlyList<GeneratedFile>> generate)
+        Func<string, IReadOnlyList<GeneratedFile>> generate,
+        string namespaceSuffix = "")
     {
         var created = new List<string>();
         var updated = new List<string>();
@@ -63,11 +68,18 @@ public static partial class ProjectExporter
 
             // Keep the namespace of an earlier export, even if the project has been renamed
             // since, so regenerated files still match the developer's code.
-            var rootNamespace = ExistingNamespace(Path.Combine(folder, namespaceSource)) ?? defaultNamespace;
+            var existing = ExistingNamespace(Path.Combine(folder, namespaceSource));
+            if (existing is not null && namespaceSuffix.Length > 0 && existing.EndsWith(namespaceSuffix, StringComparison.Ordinal))
+            {
+                existing = existing[..^namespaceSuffix.Length];
+            }
+
+            var rootNamespace = existing ?? defaultNamespace;
 
             foreach (var file in generate(rootNamespace))
             {
                 var path = Path.Combine(folder, file.RelativePath);
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 var exists = File.Exists(path);
                 if (exists && (!file.Regenerate || File.ReadAllText(path) == file.Content))
                 {

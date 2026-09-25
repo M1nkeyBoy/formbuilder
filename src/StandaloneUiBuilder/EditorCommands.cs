@@ -17,6 +17,11 @@ public static class EditorCommands
         typeof(EditorCommands),
         [new KeyGesture(Key.E, ModifierKeys.Control | ModifierKeys.Shift)]);
 
+    public static RoutedUICommand ExportBlazor { get; } = new(
+        "Export to _Blazor…",
+        nameof(ExportBlazor),
+        typeof(EditorCommands));
+
     public static RoutedUICommand Duplicate { get; } = new(
         "D_uplicate",
         nameof(Duplicate),
