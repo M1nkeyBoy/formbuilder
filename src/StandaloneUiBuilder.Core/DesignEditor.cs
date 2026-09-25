@@ -483,6 +483,48 @@ public sealed class DesignEditor
             : p with { OpensScreen = opensScreen, ClosesScreen = closesScreen ? true : null });
     }
 
+    /// <summary>Sets a control's text size (null for the default) and weight.</summary>
+    public string? SetFont(Guid id, int? size, bool isBold)
+    {
+        if (size is < ControlDefinition.MinFontSize or > ControlDefinition.MaxFontSize)
+        {
+            return $"Text size must be between {ControlDefinition.MinFontSize} and {ControlDefinition.MaxFontSize}.";
+        }
+
+        return EditProperties(id, d => d.HasFont, "a font", p =>
+            p.FontSize == size && (p.IsBold == true) == isBold ? p : p with { FontSize = size, IsBold = isBold ? true : null });
+    }
+
+    /// <summary>
+    /// Sets a control's text and background colours as "#RRGGBB" (or "RRGGBB"); blank for the
+    /// default. Only controls that show text have a text colour.
+    /// </summary>
+    public string? SetColors(Guid id, string? foreground, string? background)
+    {
+        if (FindControl(id) is not { } control)
+        {
+            return "The control no longer exists.";
+        }
+
+        if (!ControlColor.TryParse(foreground, out var text) || !ControlColor.TryParse(background, out var fill))
+        {
+            return "Enter colours as #RRGGBB, for example #1E6FD9, or leave them blank.";
+        }
+
+        if (text is not null && !ControlCatalog.Get(control.Type).HasFont)
+        {
+            return $"A {control.Type} does not have a text colour.";
+        }
+
+        var properties = control.Properties;
+        if (properties.Foreground != text || properties.Background != fill)
+        {
+            Replace(control, control with { Properties = properties with { Foreground = text, Background = fill } });
+        }
+
+        return null;
+    }
+
     /// <summary>Makes a TextBox hold several wrapping lines of text, or one line.</summary>
     public string? SetIsMultiline(Guid id, bool isMultiline) =>
         EditProperties(id, d => d.HasMultiline, "a multi-line setting", p =>

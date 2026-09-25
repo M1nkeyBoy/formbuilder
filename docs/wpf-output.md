@@ -77,6 +77,8 @@ existing code-behind.
   `Value`; a Slider snaps to whole numbers. PasswordBox and DatePicker start empty.
 - RadioButtons group by their parent, as the design does: those on the screen are one group,
   and those in each container another.
+- A control's text size, bold and colours become `FontSize`, `FontWeight="Bold"`,
+  `Foreground` and `Background`.
 - The same padding and alignment the designer uses are written out (Label `Padding="2,0"`,
   vertically centred content), so the window looks like the design surface.
 - Text is XML-escaped. Underscores in Label, Button and CheckBox text are doubled so WPF

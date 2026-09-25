@@ -175,6 +175,13 @@ public sealed partial class WpfOutputParityTests
             }
 
             Assert.Equal(DisplayedText(designed), DisplayedText(generated));
+            if (designed is WpfControl designedStyle && generated is WpfControl generatedStyle)
+            {
+                Assert.True(
+                    (designedStyle.FontSize, designedStyle.FontWeight, designedStyle.Foreground?.ToString(), designedStyle.Background?.ToString())
+                        == (generatedStyle.FontSize, generatedStyle.FontWeight, generatedStyle.Foreground?.ToString(), generatedStyle.Background?.ToString()),
+                    $"{what}: font and colours differ from the designer");
+            }
 
             switch (designed)
             {

@@ -67,7 +67,7 @@ public partial class MainWindow : Window
         foreach (var box in new[] { NameBox, XBox, YBox, WidthBox, HeightBox, TextValueBox, ItemsBox, ScreenWidthBox, ScreenHeightBox,
                                     RowBox, ColumnBox, RowSpanBox, ColumnSpanBox, SpacingBox, RowsBox, ColumnsBox,
                                     RowSizesBox, ColumnSizesBox, ScreenNameBox,
-                                    MinimumBox, MaximumBox, ValueBox })
+                                    MinimumBox, MaximumBox, ValueBox, FontSizeBox, TextColorBox, BackgroundBox })
         {
             box.LostKeyboardFocus += (_, _) => CommitField(box);
             box.KeyDown += InspectorField_KeyDown;
@@ -364,6 +364,13 @@ public partial class MainWindow : Window
         SetField(MaximumBox, (properties.Maximum ?? 0).ToString(CultureInfo.CurrentCulture));
         SetField(ValueBox, (properties.Value ?? 0).ToString(CultureInfo.CurrentCulture));
 
+        FontRow.Visibility = Show(definition.HasFont);
+        SetField(FontSizeBox, properties.FontSize?.ToString(CultureInfo.CurrentCulture) ?? "");
+        BoldBox.IsChecked = properties.IsBold == true;
+        TextColorLabel.Visibility = TextColorBox.Visibility = Show(definition.HasFont);
+        SetField(TextColorBox, properties.Foreground ?? "");
+        SetField(BackgroundBox, properties.Background ?? "");
+
         IsCheckedRow.Visibility = definition.HasIsChecked ? Visibility.Visible : Visibility.Collapsed;
         IsCheckedBox.IsChecked = properties.IsChecked == true;
         ItemsRow.Visibility = definition.HasItems ? Visibility.Visible : Visibility.Collapsed;
@@ -439,6 +446,8 @@ public partial class MainWindow : Window
             : box == RowSizesBox || box == ColumnSizesBox ? editor.SetGridTrackSizes(id, SplitSizes(RowSizesBox), SplitSizes(ColumnSizesBox))
             : box == MinimumBox || box == MaximumBox || box == ValueBox
                 ? CommitWholeNumbers(values => editor.SetRange(id, values[0], values[1], values[2]), MinimumBox, MaximumBox, ValueBox)
+            : box == FontSizeBox ? CommitFont(id)
+            : box == TextColorBox || box == BackgroundBox ? editor.SetColors(id, TextColorBox.Text, BackgroundBox.Text)
             : box == SpacingBox ? CommitWholeNumbers(values => editor.SetSpacing(id, values[0]), SpacingBox)
             : box == RowsBox || box == ColumnsBox ? CommitWholeNumbers(values => editor.SetGridSize(id, values[0], values[1]), RowsBox, ColumnsBox)
             : CommitBoundsField(control, box);
@@ -486,6 +495,7 @@ public partial class MainWindow : Window
             [RowsBox, ColumnsBox],
             [RowSizesBox, ColumnSizesBox],
             [MinimumBox, MaximumBox, ValueBox],
+            [TextColorBox, BackgroundBox],
         }.FirstOrDefault(group => group.Contains(box)) ?? [box];
 
     private static string[] SplitSizes(TextBox box) => box.Text.Split(',');
@@ -624,6 +634,31 @@ public partial class MainWindow : Window
 
     /// <summary>A choice in the Properties panel's "On click" list.</summary>
     private sealed record ButtonAction(string Label, string? OpensScreen, bool ClosesScreen);
+
+    /// <summary>Applies the text size (blank for the standard size) and the Bold setting together.</summary>
+    private string? CommitFont(Guid id)
+    {
+        int? size = null;
+        if (FontSizeBox.Text.Trim().Length > 0)
+        {
+            if (!int.TryParse(FontSizeBox.Text.Trim(), NumberStyles.Integer, CultureInfo.CurrentCulture, out var value))
+            {
+                return "Enter a whole number for the text size, or leave it blank.";
+            }
+
+            size = value;
+        }
+
+        return editor.SetFont(id, size, BoldBox.IsChecked == true);
+    }
+
+    private void BoldBox_Click(object sender, RoutedEventArgs e)
+    {
+        if (inspectedId is { } id)
+        {
+            SetFieldError(FontSizeBox, CommitFont(id));
+        }
+    }
 
     private void MultilineBox_Click(object sender, RoutedEventArgs e)
     {

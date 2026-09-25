@@ -16,7 +16,9 @@ choices are recorded in `docs/decisions.md`.
   selected control.
 - **Properties.** The Properties panel edits name, X, Y, width and height for every control,
   plus text, checked state, list items (one per line), a Slider's or ProgressBar's minimum,
-  maximum and value, or a TextBox's multi-line option where they apply. Press Enter or
+  maximum and value, or a TextBox's multi-line option where they apply. Text size, bold,
+  text colour and background colour (`#RRGGBB`) style a control in the designer and in every
+  export. Press Enter or
   leave a field to apply it; Esc restores the stored value. Invalid values are flagged in red
   and never written to the design.
 - **Anchoring.** Each control's Anchor setting (Left, Top, Right, Bottom) says which window

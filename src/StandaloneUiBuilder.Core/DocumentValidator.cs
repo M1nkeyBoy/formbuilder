@@ -236,6 +236,20 @@ public static partial class DocumentValidator
             }
         }
 
+        var style = control.Properties;
+        if (style.FontSize is < ControlDefinition.MinFontSize or > ControlDefinition.MaxFontSize)
+        {
+            errors.Add($"{label}: text size must be between {ControlDefinition.MinFontSize} and {ControlDefinition.MaxFontSize}.");
+        }
+
+        foreach (var color in new[] { style.Foreground, style.Background })
+        {
+            if (color is not null && !ControlColor.IsCanonical(color))
+            {
+                errors.Add($"{label}: \"{color}\" is not a colour; colours are written #RRGGBB.");
+            }
+        }
+
         if (definition.HasRange && DesignEditor.ValidateRange(control.Properties.Minimum ?? 0, control.Properties.Maximum ?? 0, control.Properties.Value ?? 0) is { } rangeError)
         {
             errors.Add($"{label}: {rangeError}");

@@ -363,6 +363,23 @@
                                      MinLines="4" MaxLines="12" VerticalScrollBarVisibility="Auto"
                                      VerticalContentAlignment="Top" />
                         </StackPanel>
+                        <DockPanel x:Name="FontRow" Style="{StaticResource FieldRow}"
+                                   ToolTip="Text size in DIPs; leave blank for the standard size (12).">
+                            <Label Content="Font" Target="{Binding ElementName=FontSizeBox}" Style="{StaticResource FieldLabel}" />
+                            <CheckBox x:Name="BoldBox" DockPanel.Dock="Right" Content="Bold" VerticalAlignment="Center"
+                                      Margin="8,0,0,0" Click="BoldBox_Click" />
+                            <TextBox x:Name="FontSizeBox" Style="{StaticResource FieldBox}" AutomationProperties.Name="Text size" />
+                        </DockPanel>
+                        <DockPanel x:Name="ColorRow" Style="{StaticResource FieldRow}"
+                                   ToolTip="Colours as #RRGGBB, for example #1E6FD9; leave blank for the standard colours.">
+                            <Label Content="Colours" Style="{StaticResource FieldLabel}" VerticalContentAlignment="Top" />
+                            <UniformGrid Columns="2">
+                                <Label x:Name="TextColorLabel" Content="Text" Target="{Binding ElementName=TextColorBox}" Padding="0,0,4,0" VerticalContentAlignment="Center" />
+                                <TextBox x:Name="TextColorBox" Style="{StaticResource FieldBox}" Margin="0,0,0,4" AutomationProperties.Name="Text colour" />
+                                <Label Content="Back" Target="{Binding ElementName=BackgroundBox}" Padding="0,0,4,0" VerticalContentAlignment="Center" />
+                                <TextBox x:Name="BackgroundBox" Style="{StaticResource FieldBox}" AutomationProperties.Name="Background colour" />
+                            </UniformGrid>
+                        </DockPanel>
                         <TextBlock x:Name="InspectorErrorText" Margin="10,4,10,6" TextWrapping="Wrap"
                                    Foreground="#FFC42B1C" Visibility="Collapsed" />
                         <TextBlock Style="{StaticResource PlaceholderText}" Margin="10,4,10,10"

@@ -29,6 +29,18 @@ public sealed record ControlDefinition(
     /// <summary>True for types that hold child controls.</summary>
     public bool IsContainer => IsStack || IsGrid;
 
+    /// <summary>True for types that show text, and so have a font and a text colour.</summary>
+    public bool HasFont => Type is ControlType.Label or ControlType.Button or ControlType.TextBox or ControlType.PasswordBox
+        or ControlType.CheckBox or ControlType.RadioButton or ControlType.ComboBox or ControlType.ListBox
+        or ControlType.DatePicker or ControlType.GroupBox;
+
+    /// <summary>The text size used when a control has none of its own, in DIPs.</summary>
+    public const int DefaultFontSize = 12;
+
+    public const int MinFontSize = 6;
+
+    public const int MaxFontSize = 72;
+
     /// <summary>True for types that can open or close a screen when clicked.</summary>
     public bool HasAction => Type == ControlType.Button;
 
@@ -61,6 +73,10 @@ public sealed record ControlDefinition(
         RowSizes = IsGrid ? properties.RowSizes : null,
         ColumnSizes = IsGrid ? properties.ColumnSizes : null,
 
+        FontSize = HasFont ? properties.FontSize : null,
+        IsBold = HasFont && properties.IsBold == true ? true : null,
+        Foreground = HasFont ? properties.Foreground : null,
+        Background = properties.Background,
         OpensScreen = HasAction ? properties.OpensScreen : null,
         ClosesScreen = HasAction && properties.ClosesScreen == true ? true : null,
 

@@ -69,6 +69,10 @@ overwritten. The namespace of an earlier export is kept, as for WPF.
   sides and bottom and 20 from its top and anchored to all four sides. The panel lines up the
   children like a StackPanel's. A control named like that panel blocks the export.
 - RadioButtons group by their parent, as in the design.
+- A text size and bold become a Segoe UI `Font` in points (a DIP is 3/4 of a point, so the
+  designer's 12 is WinForms' usual 9 pt); colours become `ForeColor` and `BackColor`. A
+  GroupBox's font and text colour are reset on its layout panel, so they style only its
+  title, as in WPF.
 
 ### Differences from the design surface
 

@@ -281,6 +281,12 @@ public static class WinFormsGenerator
         _ => type.ToString(),
     };
 
+    private static string ColorCode(string color)
+    {
+        var (red, green, blue) = ControlColor.Parts(color);
+        return $"System.Drawing.Color.FromArgb({Number(red)}, {Number(green)}, {Number(blue)})";
+    }
+
     /// <summary>The TableLayoutPanel inside a GroupBox that lines up its children.</summary>
     public static string LayoutPanelName(ControlDocument group) => group.Name + "Layout";
 
@@ -356,6 +362,25 @@ public static class WinFormsGenerator
                 break;
         }
 
+        // Sizes are designed in DIPs; a WinForms font size is in points (3/4 of a DIP), and the
+        // WinForms default font is Segoe UI 9 pt, the designer's 12 DIPs.
+        if (properties.FontSize is not null || properties.IsBold == true)
+        {
+            var points = (properties.FontSize ?? ControlDefinition.DefaultFontSize) * 0.75;
+            var bold = properties.IsBold == true ? ", System.Drawing.FontStyle.Bold" : "";
+            Set("Font", $"new System.Drawing.Font(\"Segoe UI\", {points.ToString("0.##", CultureInfo.InvariantCulture)}F{bold})");
+        }
+
+        if (properties.Foreground is { } foreground)
+        {
+            Set("ForeColor", ColorCode(foreground));
+        }
+
+        if (properties.Background is { } background)
+        {
+            Set("BackColor", ColorCode(background));
+        }
+
         void AddItems()
         {
             if (properties.Items is { Count: > 0 } items)
@@ -384,6 +409,18 @@ public static class WinFormsGenerator
             code.AppendLine($"        this.{layoutName}.Anchor = {AnchorStyles(AnchorEdges.Left | AnchorEdges.Top | AnchorEdges.Right | AnchorEdges.Bottom)};");
             code.AppendLine($"        this.{layoutName}.Location = new System.Drawing.Point({Number(left)}, {Number(top)});");
             code.AppendLine($"        this.{layoutName}.Name = {Literal(layoutName)};");
+
+            // WinForms controls take their parent's font and text colour; a GroupBox's apply to
+            // its title only, as in WPF, so its layout panel goes back to the defaults.
+            if (properties.FontSize is not null || properties.IsBold == true)
+            {
+                code.AppendLine($"        this.{layoutName}.Font = new System.Drawing.Font(\"Segoe UI\", 9F);");
+            }
+
+            if (properties.Foreground is not null)
+            {
+                code.AppendLine($"        this.{layoutName}.ForeColor = System.Drawing.SystemColors.ControlText;");
+            }
             code.AppendLine($"        this.{layoutName}.Size = new System.Drawing.Size({Number(control.Width - left - right)}, {Number(control.Height - top - bottom)});");
         }
         else if (control.Children is { } children)

@@ -39,6 +39,9 @@ other screen is named after itself, with its name in lower case as its address.
 - A **GroupBox** is a framed box with its title, and its children in a flex box 8 pixels in
   from the sides and bottom and 20 from the top, as in the design.
 - Every element uses border-box sizing, so its box is exactly the designed size.
+- Text size, bold and colours become `font-size`, `font-weight`, `color` and
+  `background-color`. A GroupBox's font and text colour style its title, and its background
+  fills its frame.
 - Each control's name is its element `id`, for your own CSS and scripts.
 
 | Control | HTML |

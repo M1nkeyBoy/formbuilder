@@ -231,6 +231,13 @@ public static class BlazorGenerator
         var properties = control.Properties;
         var name = control.Name;
 
+        // Text size, weight and colours go in the same style attribute. A GroupBox's apply to its
+        // title and frame only, not to the controls inside, as in WPF.
+        if (control.Type != ControlType.GroupBox)
+        {
+            style = [.. style, .. StyleRules(properties, background: true)];
+        }
+
         // A container's own layout goes in the same style attribute as its placement.
         if (control.Type == ControlType.StackPanel)
         {
@@ -310,8 +317,11 @@ public static class BlazorGenerator
             case ControlType.GroupBox:
                 var (left, top, right, bottom) = ContainerLayout.GroupBoxInset;
                 markup.AppendLine($"{indent}<div {common} class=\"uib-group\">");
-                markup.AppendLine($"{indent}    <div class=\"uib-frame\"></div>");
-                markup.AppendLine($"{indent}    <span class=\"uib-title\">{Text(properties.Text)}</span>");
+                var frameStyle = properties.Background is { } frameFill ? $" style=\"background-color:{frameFill}\"" : "";
+                markup.AppendLine($"{indent}    <div class=\"uib-frame\"{frameStyle}></div>");
+                var titleRules = StyleRules(properties, background: false).ToList();
+                var titleStyle = titleRules.Count > 0 ? $" style=\"{string.Join(";", titleRules)}\"" : "";
+                markup.AppendLine($"{indent}    <span class=\"uib-title\"{titleStyle}>{Text(properties.Text)}</span>");
                 markup.AppendLine($"{indent}    <div class=\"uib-content\" style=\"left:{Px(left)};top:{Px(top)};right:{Px(right)};bottom:{Px(bottom)};{StackStyle(properties)}\">");
                 AppendStackChildren(markup, control, depth + 2);
                 markup.AppendLine($"{indent}    </div>");
@@ -333,6 +343,29 @@ public static class BlazorGenerator
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(control), control.Type, "Unknown control type.");
+        }
+    }
+
+    private static IEnumerable<string> StyleRules(ControlProperties properties, bool background)
+    {
+        if (properties.FontSize is { } size)
+        {
+            yield return $"font-size:{Px(size)}";
+        }
+
+        if (properties.IsBold == true)
+        {
+            yield return "font-weight:bold";
+        }
+
+        if (properties.Foreground is { } text)
+        {
+            yield return $"color:{text}";
+        }
+
+        if (background && properties.Background is { } fill)
+        {
+            yield return $"background-color:{fill}";
         }
     }
 

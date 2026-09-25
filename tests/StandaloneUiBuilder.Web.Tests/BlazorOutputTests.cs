@@ -21,6 +21,21 @@ public sealed class BlazorOutputTests
     public Task LayoutDemoLaysOutContainersOnEveryScreen() => AssertLayout(Sample("layout-demo"));
 
     [WebFact]
+    public async Task StylesFromTheDesignAreApplied()
+    {
+        using var app = await GeneratedApp.StartAsync(Sample("layout-demo"), BlazorExporter.Export);
+        await using var browser = await LaunchAsync();
+        var page = await browser.NewPageAsync();
+        await page.GotoAsync(app.Url);
+
+        var header = await page.EvaluateAsync<string[]>("() => { const s = getComputedStyle(document.getElementById('HeaderLabel')); return [s.fontSize, s.fontWeight, s.color]; }");
+        var ok = await page.EvaluateAsync<string>("() => getComputedStyle(document.getElementById('OkButton')).backgroundColor");
+
+        Assert.Equal(["16px", "700", "rgb(30, 78, 140)"], header);
+        Assert.Equal("rgb(30, 111, 217)", ok);
+    }
+
+    [WebFact]
     public async Task ButtonsOpenAndCloseScreens()
     {
         var document = Sample("layout-demo");

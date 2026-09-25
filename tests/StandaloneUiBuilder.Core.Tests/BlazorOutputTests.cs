@@ -88,7 +88,7 @@ public class BlazorOutputTests
         var document = Sample();
         var page = BlazorGenerator.PageRazor(document, document.Screens[1]);
 
-        Assert.Contains("<span class=\"uib-title\">Mode</span>", page);
+        Assert.Contains("<span class=\"uib-title\" style=\"font-weight:bold\">Mode</span>", page);
         Assert.Contains("<div class=\"uib-content\" style=\"left:8px;top:20px;right:8px;bottom:8px;flex-direction:column\">", page);
         Assert.Contains("<input type=\"radio\" name=\"ModeGroup\" checked=\"@FastRadio\" @onchange=\"FastRadio_Click\" />", page);
         Assert.Contains("type=\"range\" class=\"uib-range\" min=\"0\" max=\"10\" step=\"1\" @bind=\"LevelSlider\"", page);

@@ -429,3 +429,21 @@ Choices made during the prototype slices that affect later work.
   Microsoft.Playwright to drive an installed Edge on Windows or a given Chromium elsewhere, so
   nothing is downloaded. Playwright's own box query briefly returned nothing while Blazor
   re-rendered the page on connecting, so boxes are read directly from the page instead.
+
+## Slice 23 — Text size, bold and colours
+
+- **The smallest useful styling.** The spec defers themes; four per-control settings (text
+  size, bold, text colour, background) cover most of what a form needs to look deliberate,
+  and every target has a direct equivalent. Font families, italics, borders and shared
+  styles are left for a real theming design.
+- **Sizes in DIPs, colours as `#RRGGBB`.** DIPs match the rest of the design and WPF and CSS
+  pixels; WinForms gets points (3/4 of a DIP). `#RRGGBB` is read by WPF and CSS as is, and
+  WinForms builds it with `Color.FromArgb`. Input accepts either case and an optional `#`;
+  files store the upper-case form, and anything else is rejected on load.
+- **Only text controls have a font and text colour;** any control can have a background.
+  Unset values are not stored, so existing files and output are unchanged.
+- **A GroupBox's font and text colour style its title only,** as WPF does, since its children
+  are not inside the WPF GroupBox. WinForms and CSS pass fonts down to children, so the
+  WinForms layout panel resets them and the Blazor output styles the title element instead.
+- **Format version 9.** The WPF parity test now also compares font and colours between the
+  designer and the generated window, and the browser test reads computed styles.

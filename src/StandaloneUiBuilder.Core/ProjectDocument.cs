@@ -11,10 +11,10 @@ public sealed record ProjectDocument
     /// <summary>
     /// The format version this builder writes. Older versions (1: no anchors, 2: no containers,
     /// 3: no grid spans, 4: no sized grid rows and columns, 5: one screen, 6: the first seven
-    /// control types only, 7: no button actions) are still read. See docs/project-format.md for
-    /// the history.
+    /// control types only, 7: no button actions, 8: no fonts or colours) are still read. See
+    /// docs/project-format.md for the history.
     /// </summary>
-    public const int CurrentSchemaVersion = 8;
+    public const int CurrentSchemaVersion = 9;
 
     public const int OldestSupportedSchemaVersion = 1;
     public const string DefaultName = "Untitled";
@@ -139,6 +139,18 @@ public sealed record ControlProperties
     public bool? IsChecked { get; init; }
 
     public ImmutableList<string>? Items { get; init; }
+
+    /// <summary>Controls that show text: the text size in DIPs; null for the default (12).</summary>
+    public int? FontSize { get; init; }
+
+    /// <summary>Controls that show text: true for bold text; null for normal.</summary>
+    public bool? IsBold { get; init; }
+
+    /// <summary>Controls that show text: the text colour as "#RRGGBB"; null for the default.</summary>
+    public string? Foreground { get; init; }
+
+    /// <summary>Any control: the background colour as "#RRGGBB"; null for the default.</summary>
+    public string? Background { get; init; }
 
     /// <summary>Button: the ID of a screen the button opens, as a dialog over its own.</summary>
     public string? OpensScreen { get; init; }

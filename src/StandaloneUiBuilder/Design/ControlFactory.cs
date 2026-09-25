@@ -78,6 +78,8 @@ internal static class ControlFactory
             _ => throw new ArgumentOutOfRangeException(nameof(control), control.Type, "Unknown control type."),
         };
 
+        ApplyStyle(control, element is Grid { Children: [GroupBox group, ..] } ? group : element);
+
         // Named after the design, so tools and tests can find controls in the Preview. A
         // GroupBox's name is on the GroupBox inside the element, as in generated XAML.
         if (control.Type != ControlType.GroupBox)
@@ -145,6 +147,44 @@ internal static class ControlFactory
         return grid;
     }
 
+    /// <summary>A control's own text size, weight and colours, where it has them.</summary>
+    public static void ApplyStyle(ControlDocument control, FrameworkElement element)
+    {
+        var properties = control.Properties;
+        if (element is Control styled)
+        {
+            if (properties.FontSize is { } size)
+            {
+                styled.FontSize = size;
+            }
+
+            if (properties.IsBold == true)
+            {
+                styled.FontWeight = FontWeights.Bold;
+            }
+
+            if (properties.Foreground is { } text)
+            {
+                styled.Foreground = Brush(text);
+            }
+
+            if (properties.Background is { } fill)
+            {
+                styled.Background = Brush(fill);
+            }
+        }
+        else if (element is Panel panel && properties.Background is { } fill)
+        {
+            panel.Background = Brush(fill);
+        }
+    }
+
+    public static SolidColorBrush Brush(string color)
+    {
+        var (red, green, blue) = ControlColor.Parts(color);
+        return new SolidColorBrush(Color.FromRgb((byte)red, (byte)green, (byte)blue));
+    }
+
     /// <summary>
     /// A GroupBox as generated XAML builds it: a Grid holding the real GroupBox, for the frame
     /// and title, and a StackPanel for the children, inset by the fixed GroupBox inset.
@@ -198,12 +238,14 @@ internal static class ControlFactory
         // A GroupBox shows its real frame and title; its children are drawn over it.
         if (container.Type == ControlType.GroupBox)
         {
+            var frame = new GroupBox { Header = new TextBlock { Text = container.Properties.Text ?? "" } };
+            ApplyStyle(container, frame);
             return new Grid
             {
                 Width = container.Width,
                 Height = container.Height,
                 Background = new SolidColorBrush(Color.FromArgb(0x08, 0x5A, 0x7A, 0xA8)),
-                Children = { new GroupBox { Header = new TextBlock { Text = container.Properties.Text ?? "" } } },
+                Children = { frame },
             };
         }
 
@@ -222,7 +264,7 @@ internal static class ControlFactory
 
         return new Border
         {
-            Background = new SolidColorBrush(Color.FromArgb(0x10, 0x5A, 0x7A, 0xA8)),
+            Background = container.Properties.Background is { } fill ? Brush(fill) : new SolidColorBrush(Color.FromArgb(0x10, 0x5A, 0x7A, 0xA8)),
             BorderBrush = outline,
             BorderThickness = new Thickness(1),
             Child = content,

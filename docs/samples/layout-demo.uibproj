@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 8,
+  "schemaVersion": 9,
   "projectId": "5b7c2f4e-8d1a-4e6b-9f3c-2a7d8e9b0c11",
   "name": "Layout demo",
   "screens": [
@@ -19,7 +19,10 @@
           "width": 760,
           "height": 30,
           "properties": {
-            "text": "Layout demo: resize the window"
+            "text": "Layout demo: resize the window",
+            "fontSize": 16,
+            "isBold": true,
+            "foreground": "#1E4E8C"
           },
           "anchor": [
             "left",
@@ -314,7 +317,10 @@
               "height": 30,
               "properties": {
                 "text": "OK",
-                "opensScreen": "settings"
+                "opensScreen": "settings",
+                "foreground": "#FFFFFF",
+                "background": "#1E6FD9",
+                "isBold": true
               },
               "anchor": [
                 "left",
@@ -377,7 +383,9 @@
           "width": 600,
           "height": 30,
           "properties": {
-            "text": "Settings"
+            "text": "Settings",
+            "fontSize": 16,
+            "isBold": true
           },
           "anchor": [
             "left",
@@ -399,7 +407,8 @@
             "columnSizes": [
               "100",
               "*"
-            ]
+            ],
+            "background": "#F3F6FA"
           },
           "anchor": [
             "left",
@@ -491,7 +500,8 @@
           "properties": {
             "text": "Mode",
             "orientation": "Vertical",
-            "spacing": 6
+            "spacing": 6,
+            "isBold": true
           },
           "anchor": [
             "left",

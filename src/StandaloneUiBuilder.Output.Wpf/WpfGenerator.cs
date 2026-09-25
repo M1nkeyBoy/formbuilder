@@ -281,6 +281,7 @@ public static class WpfGenerator
                 throw new ArgumentOutOfRangeException(nameof(control), control.Type, "Unknown control type.");
         }
 
+        attributes.AddRange(StyleAttributes(properties));
         if (EventFor(control.Type) is { } hook)
         {
             attributes.Add($"{hook.Event}=\"{HandlerName(control)}\"");
@@ -349,6 +350,30 @@ public static class WpfGenerator
         xaml.AppendLine($"{indent}</{element}>");
     }
 
+    /// <summary>A control's own text size, weight and colours, where the design sets them.</summary>
+    private static IEnumerable<string> StyleAttributes(ControlProperties properties)
+    {
+        if (properties.FontSize is { } size)
+        {
+            yield return $"FontSize=\"{Number(size)}\"";
+        }
+
+        if (properties.IsBold == true)
+        {
+            yield return "FontWeight=\"Bold\"";
+        }
+
+        if (properties.Foreground is { } text)
+        {
+            yield return $"Foreground=\"{text}\"";
+        }
+
+        if (properties.Background is { } fill)
+        {
+            yield return $"Background=\"{fill}\"";
+        }
+    }
+
     /// <summary>
     /// A StackPanel's children: each keeps its size along the stack, stretches across it and
     /// has the spacing as a leading margin.
@@ -386,7 +411,8 @@ public static class WpfGenerator
         var properties = group.Properties;
         var (left, top, right, bottom) = ContainerLayout.GroupBoxInset;
         xaml.AppendLine($"{indent}<Grid {string.Join(" ", layout)}>");
-        xaml.AppendLine($"{indent}    <GroupBox x:Name=\"{group.Name}\" Header=\"{Attribute(properties.Text ?? "")}\" />");
+        var style = string.Concat(StyleAttributes(properties).Select(a => " " + a));
+        xaml.AppendLine($"{indent}    <GroupBox x:Name=\"{group.Name}\" Header=\"{Attribute(properties.Text ?? "")}\"{style} />");
         var orientation = properties.Orientation == StackOrientation.Horizontal ? "Horizontal" : "Vertical";
         var margin = string.Join(",", new[] { left, top, right, bottom }.Select(Number));
         var opening = $"{indent}    <StackPanel Margin=\"{margin}\" Orientation=\"{orientation}\" ClipToBounds=\"True\"";
