@@ -71,3 +71,23 @@ Choices made during the prototype slices that affect later work.
   Open, New or close.
 - **Command-line open.** The first command-line argument is opened as a project at startup.
   CI uses this to screenshot the sample project.
+
+## Slice 5
+
+- **Preview isolation.** Preview builds fresh, interactive WPF controls from the document.
+  Nothing typed, checked or selected in them is written back; switching to Design rebuilds
+  the canvas from the document, which restores the design values. The toolbox, inspector,
+  Delete, Undo and Redo are disabled in Preview.
+- **Recovery location and format.** Drafts are JSON files in
+  `%LOCALAPPDATA%\StandaloneUiBuilder\Recovery`, separate from `.uibproj` files. A draft
+  wraps the project JSON with the original project path and the time it was written.
+- **Detecting an abnormal exit.** Each running editor holds an exclusive, delete-on-close
+  lock file. A draft whose lock is not held was left by a session that ended without
+  cleaning up. This also keeps two editors running at once from offering each other's drafts.
+- **When drafts are written and removed.** Written two seconds after the last edit while the
+  project has unsaved changes; removed whenever it becomes clean (saved, discarded, opened,
+  or undone back to the saved state) and on normal close.
+- **Recovering.** The newest orphaned draft is offered at startup. Recovering opens it as
+  unsaved work linked to the original path; nothing is written to that file until the user
+  saves. Declining deletes the draft and leaves the saved file untouched. Older drafts, if
+  any, are offered on later starts.

@@ -3,12 +3,14 @@
 A Windows desktop designer for placing and editing controls on a gridded canvas.
 It is being built in review-gated slices; see `docs/decisions.md` for choices made so far.
 
-**Current state (Slice 4):** drag Label, Button, TextBox, CheckBox or ComboBox from the
+**Current state (Slice 5):** drag Label, Button, TextBox, CheckBox or ComboBox from the
 toolbox onto the 800 × 600 gridded canvas (or select a toolbox item and click the canvas or
 press Enter). Select a control to move it by dragging, resize it with its handles, or edit
 its name, position, size and type-specific values in the Properties panel. Delete removes
 it; Ctrl+Z and Ctrl+Y undo and redo. File > New, Open, Save and Save As work with
-`.uibproj` project files, and you are asked before unsaved changes are lost.
+`.uibproj` project files, and you are asked before unsaved changes are lost. **Preview**
+makes the controls usable without changing the design. If the editor closes unexpectedly,
+it offers to recover unsaved work the next time it starts.
 
 ## Requirements
 
@@ -37,6 +39,12 @@ To open a project at startup, pass its path:
 ```powershell
 dotnet run --project src/StandaloneUiBuilder -- docs\samples\customer-form.uibproj
 ```
+
+## Recovery copies
+
+While a project has unsaved changes, a recovery copy is written two seconds after the last
+edit to `%LOCALAPPDATA%\StandaloneUiBuilder\Recovery`. It is deleted when you save, discard
+or close normally. These copies never overwrite your project file.
 
 ## Tests
 

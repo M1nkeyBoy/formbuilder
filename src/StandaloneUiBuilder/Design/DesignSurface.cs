@@ -55,6 +55,7 @@ internal sealed class DesignSurface : Grid
     private readonly Dictionary<Guid, Border> hosts = [];
     private ScreenDocument screen = new();
     private Guid? selectedId;
+    private bool isPreview;
 
     private DragMode dragMode;
     private Guid dragId;
@@ -128,20 +129,28 @@ internal sealed class DesignSurface : Grid
     /// <summary>A move or resize is in progress; for live feedback such as the status bar.</summary>
     public event EventHandler<BoundsChangedEventArgs>? BoundsChanging;
 
-    public void Render(ScreenDocument screen, Guid? selectedId)
+    /// <summary>
+    /// Rebuilds the surface from the document. In Preview the grid and selection are hidden
+    /// and the controls respond to input; their state is thrown away on the next render.
+    /// </summary>
+    public void Render(ScreenDocument screen, Guid? selectedId, bool isPreview = false, Action<ControlDocument>? buttonClicked = null)
     {
         CancelDrag();
 
         this.screen = screen;
+        this.isPreview = isPreview;
         Width = screen.Width;
         Height = screen.Height;
         gridOverlay.GridSize = screen.GridSize;
+        gridOverlay.Visibility = isPreview ? Visibility.Collapsed : Visibility.Visible;
+        adornerLayer.Visibility = isPreview ? Visibility.Collapsed : Visibility.Visible;
+        AllowDrop = !isPreview;
 
         controlsLayer.Children.Clear();
         hosts.Clear();
         foreach (var control in screen.Controls)
         {
-            var host = CreateDesignHost(control);
+            var host = isPreview ? CreatePreviewHost(control, buttonClicked) : CreateDesignHost(control);
             hosts[control.Id] = host;
             controlsLayer.Children.Add(host);
         }
@@ -172,6 +181,14 @@ internal sealed class DesignSurface : Grid
             Cursor = Cursors.SizeAll,
             ToolTip = control.Name,
         };
+        PlaceHost(host, element, control.Bounds);
+        return host;
+    }
+
+    private static Border CreatePreviewHost(ControlDocument control, Action<ControlDocument>? buttonClicked)
+    {
+        var element = ControlFactory.Create(control, buttonClicked);
+        var host = new Border { Child = element, Tag = control.Id };
         PlaceHost(host, element, control.Bounds);
         return host;
     }
@@ -233,6 +250,12 @@ internal sealed class DesignSurface : Grid
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonDown(e);
+        if (isPreview)
+        {
+            // Preview controls handle their own input.
+            return;
+        }
+
         Focus();
         e.Handled = true;
 
@@ -365,14 +388,14 @@ internal sealed class DesignSurface : Grid
     protected override void OnDragOver(DragEventArgs e)
     {
         base.OnDragOver(e);
-        e.Effects = TryGetDroppedType(e.Data, out _) ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Effects = !isPreview && TryGetDroppedType(e.Data, out _) ? DragDropEffects.Copy : DragDropEffects.None;
         e.Handled = true;
     }
 
     protected override void OnDrop(DragEventArgs e)
     {
         base.OnDrop(e);
-        if (TryGetDroppedType(e.Data, out var type))
+        if (!isPreview && TryGetDroppedType(e.Data, out var type))
         {
             var position = e.GetPosition(controlsLayer);
             ControlDropped?.Invoke(this, new ControlDropEventArgs(type, position.X, position.Y));

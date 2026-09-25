@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 using StandaloneUiBuilder.Core;
 using StandaloneUiBuilder.Design;
 
@@ -20,6 +21,13 @@ public partial class MainWindow : Window
     private Guid? inspectedId;
     private Point? toolboxDragStart;
     private string? projectPath;
+    private bool isPreview;
+
+    private readonly RecoveryStore recoveryStore = new(Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "StandaloneUiBuilder", "Recovery"));
+
+    private readonly DispatcherTimer draftTimer = new() { Interval = TimeSpan.FromSeconds(2) };
+    private RecoverySession? recoverySession;
 
     public MainWindow()
     {
@@ -39,19 +47,34 @@ public partial class MainWindow : Window
         }
 
         editor.Changed += (_, _) => RefreshAll();
+        editor.Changed += (_, _) => ScheduleRecoveryDraft();
+        draftTimer.Tick += (_, _) => WriteRecoveryDraft();
         RefreshAll();
+
+        try
+        {
+            recoverySession = recoveryStore.StartSession();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            StatusText.Text = $"Recovery copies are off: {ex.Message}";
+        }
 
         // Keep the default size within small screens so the window opens fully visible.
         var workArea = SystemParameters.WorkArea;
         Width = Math.Max(MinWidth, Math.Min(Width, workArea.Width));
         Height = Math.Max(MinHeight, Math.Min(Height, workArea.Height));
 
-        // A project path on the command line (for example from Explorer) is opened at startup.
-        var startupPath = Environment.GetCommandLineArgs().Skip(1).FirstOrDefault();
-        if (startupPath is not null)
+        Loaded += (_, _) =>
         {
-            Loaded += (_, _) => OpenPath(startupPath);
-        }
+            // A project path on the command line (for example from Explorer) is opened at
+            // startup, unless the user chooses to recover unsaved work instead.
+            var startupPath = Environment.GetCommandLineArgs().Skip(1).FirstOrDefault();
+            if (!OfferRecovery() && startupPath is not null)
+            {
+                OpenPath(startupPath);
+            }
+        };
     }
 
     private string ProjectDisplayName =>
@@ -66,7 +89,7 @@ public partial class MainWindow : Window
             selectedId = null;
         }
 
-        Surface.Render(editor.Document.Screen, selectedId);
+        Surface.Render(editor.Document.Screen, selectedId, isPreview, PreviewButton_Clicked);
         RefreshInspector();
         Title = $"{ProjectDisplayName}{(editor.IsDirty ? " ●" : "")} — {AppTitle}";
         CommandManager.InvalidateRequerySuggested();
@@ -430,8 +453,18 @@ public partial class MainWindow : Window
         }
     }
 
+    protected override void OnClosed(EventArgs e)
+    {
+        base.OnClosed(e);
+
+        // A normal close: the user has saved or chosen to discard, so no draft is needed.
+        draftTimer.Stop();
+        recoverySession?.DeleteDraft();
+        recoverySession?.Dispose();
+    }
+
     private void Delete_CanExecute(object sender, CanExecuteRoutedEventArgs e) =>
-        e.CanExecute = selectedId is not null;
+        e.CanExecute = !isPreview && selectedId is not null;
 
     private void Delete_Executed(object sender, ExecutedRoutedEventArgs e)
     {
@@ -442,7 +475,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void Undo_CanExecute(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = editor.CanUndo;
+    private void Undo_CanExecute(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = !isPreview && editor.CanUndo;
 
     private void Undo_Executed(object sender, ExecutedRoutedEventArgs e)
     {
@@ -450,7 +483,7 @@ public partial class MainWindow : Window
         StatusText.Text = "Undo";
     }
 
-    private void Redo_CanExecute(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = editor.CanRedo;
+    private void Redo_CanExecute(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = !isPreview && editor.CanRedo;
 
     private void Redo_Executed(object sender, ExecutedRoutedEventArgs e)
     {
@@ -464,7 +497,6 @@ public partial class MainWindow : Window
 
     private void PreviewMenuItem_Click(object sender, RoutedEventArgs e) => PreviewModeButton.IsChecked = true;
 
-    // Shell only: the mode switch updates the UI state; preview behavior arrives in Slice 5.
     private void DesignModeButton_Checked(object sender, RoutedEventArgs e) => SetMode(isPreview: false);
 
     private void PreviewModeButton_Checked(object sender, RoutedEventArgs e) => SetMode(isPreview: true);
@@ -477,8 +509,100 @@ public partial class MainWindow : Window
             return;
         }
 
+        CommitFocusedField();
+        this.isPreview = isPreview;
         DesignMenuItem.IsChecked = !isPreview;
         PreviewMenuItem.IsChecked = isPreview;
-        StatusText.Text = isPreview ? "Preview mode (not yet implemented)" : "Design mode";
+        ToolboxList.IsEnabled = !isPreview;
+        InspectorPanel.IsEnabled = !isPreview;
+
+        // Rendering from the document again is what discards anything typed or toggled in Preview.
+        RefreshAll();
+        StatusText.Text = isPreview
+            ? "Preview: try the controls. Nothing you do here changes the design."
+            : "Design mode";
+    }
+
+    private void PreviewButton_Clicked(ControlDocument button) => StatusText.Text = $"{button.Name} clicked";
+
+    private void ScheduleRecoveryDraft()
+    {
+        draftTimer.Stop();
+        if (editor.IsDirty)
+        {
+            // Written after a short pause in editing, not on every change.
+            draftTimer.Start();
+        }
+        else
+        {
+            // Saved, discarded or undone back to the saved state: the draft is stale.
+            recoverySession?.DeleteDraft();
+        }
+    }
+
+    private void WriteRecoveryDraft()
+    {
+        draftTimer.Stop();
+        if (recoverySession is null || !editor.IsDirty)
+        {
+            return;
+        }
+
+        try
+        {
+            recoverySession.WriteDraft(editor.Document, projectPath);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            StatusText.Text = $"Could not write a recovery copy to \"{recoverySession.DraftPath}\": {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Offers unsaved work left by a session that did not close normally. Returns true if the
+    /// user recovered it. Declining deletes the draft and never touches the saved project file.
+    /// </summary>
+    private bool OfferRecovery()
+    {
+        IReadOnlyList<RecoveryDraft> drafts;
+        try
+        {
+            drafts = recoveryStore.FindOrphanedDrafts();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            StatusText.Text = $"Could not check for recovery copies: {ex.Message}";
+            return false;
+        }
+
+        if (drafts.Count == 0)
+        {
+            return false;
+        }
+
+        // Offer the newest; any older drafts are offered on a later start.
+        var draft = drafts[0];
+        var name = draft.ProjectPath is not null ? Path.GetFileNameWithoutExtension(draft.ProjectPath) : draft.Document.Name;
+        var keep = draft.ProjectPath is not null ? "keep the last saved version" : "discard these changes";
+        var answer = MessageBox.Show(this,
+            $"{AppTitle} did not close normally. Unsaved changes to \"{name}\" from {draft.SavedAt.LocalDateTime:g} can be recovered."
+                + $"{Environment.NewLine}{Environment.NewLine}Recover them? Choose No to {keep}.",
+            AppTitle, MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+        if (answer != MessageBoxResult.Yes)
+        {
+            RecoveryStore.Discard(draft.DraftPath);
+            return false;
+        }
+
+        projectPath = draft.ProjectPath;
+        selectedId = null;
+        editor.Reset(draft.Document, isDirty: true);
+
+        // Take over the draft in this session before removing the old one.
+        WriteRecoveryDraft();
+        RecoveryStore.Discard(draft.DraftPath);
+        StatusText.Text = "Recovered unsaved changes. Save to keep them.";
+        return true;
     }
 }
