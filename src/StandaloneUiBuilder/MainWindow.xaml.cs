@@ -21,6 +21,7 @@ public partial class MainWindow : Window
 
     private readonly DesignEditor editor = new();
     private readonly Dictionary<TextBox, string> fieldErrors = [];
+    private bool refreshingInspector;
     private string? anchorError;
     private List<Guid> selection = [];
     private List<ControlDocument> clipboard = [];
@@ -51,12 +52,14 @@ public partial class MainWindow : Window
         Surface.BlankClicked += Surface_BlankClicked;
         Surface.BandSelected += Surface_BandSelected;
         Surface.MoveCommitted += (_, e) => MoveSelection(e.Ids, e.Dx, e.Dy);
+        Surface.ReparentRequested += Surface_ReparentRequested;
         Surface.NudgeRequested += (_, e) => MoveSelection(e.Ids, e.Dx, e.Dy);
         Surface.ControlDropped += (_, e) => AddControl(e.Type, e.X, e.Y);
         Surface.BoundsChanging += (_, e) => ShowBounds(e.Id, e.Bounds);
         Surface.BoundsCommitted += Surface_BoundsCommitted;
 
-        foreach (var box in new[] { NameBox, XBox, YBox, WidthBox, HeightBox, TextValueBox, ItemsBox, ScreenWidthBox, ScreenHeightBox })
+        foreach (var box in new[] { NameBox, XBox, YBox, WidthBox, HeightBox, TextValueBox, ItemsBox, ScreenWidthBox, ScreenHeightBox,
+                                    RowBox, ColumnBox, SpacingBox, RowsBox, ColumnsBox })
         {
             box.LostKeyboardFocus += (_, _) => CommitField(box);
             box.KeyDown += InspectorField_KeyDown;
@@ -130,6 +133,13 @@ public partial class MainWindow : Window
 
     private void Surface_ControlClicked(object? sender, ControlClickEventArgs e)
     {
+        // With a toolbox item chosen, a click places it: into a container if one is clicked.
+        if (ArmedToolboxItem is { } armed)
+        {
+            AddControl(armed.Type, e.Point.X, e.Point.Y);
+            return;
+        }
+
         if (e.Modifiers.HasFlag(ModifierKeys.Control))
         {
             // Ctrl+click adds or removes one control.
@@ -178,12 +188,31 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>Adds a control at a point: into the innermost container there, or onto the screen.</summary>
     private void AddControl(ControlType type, double x, double y)
     {
-        var control = editor.AddControl(type, x, y);
+        var container = ContainerLayout.ContainerAt(editor.Document.Screen, x, y);
+        var control = (container is not null ? editor.AddControlTo(type, container.Control.Id, x, y) : null)
+            ?? editor.AddControl(type, x, y);
         ToolboxList.SelectedItem = null;
         Select(control.Id);
-        StatusText.Text = $"Added {control.Name}";
+        StatusText.Text = container is null ? $"Added {control.Name}" : $"Added {control.Name} to {container.Control.Name}";
+    }
+
+    private void Surface_ReparentRequested(object? sender, ReparentEventArgs e)
+    {
+        var error = e.ContainerId is { } containerId
+            ? editor.MoveIntoContainer(e.Id, containerId, e.Point.X, e.Point.Y)
+            : editor.MoveToScreen(e.Id, e.Point.X, e.Point.Y);
+        Select(e.Id);
+        if (error is not null)
+        {
+            StatusText.Text = error;
+        }
+        else if (editor.FindControl(e.Id) is { } control)
+        {
+            StatusText.Text = editor.ParentOf(e.Id) is { } parent ? $"Moved {control.Name} into {parent.Name}" : $"Moved {control.Name} onto the screen";
+        }
     }
 
     private void ShowBounds(Guid id, ControlBounds bounds)
@@ -244,6 +273,34 @@ public partial class MainWindow : Window
         var definition = ControlCatalog.Get(control.Type);
         var properties = control.Properties;
         TypeText.Text = control.Type.ToString();
+
+        // Inside a container, the container decides placement: show only what still applies.
+        var parent = editor.ParentOf(control.Id);
+        var inStack = parent?.Type == ControlType.StackPanel;
+        var verticalStack = inStack && parent!.Properties.Orientation != StackOrientation.Horizontal;
+        XRow.Visibility = YRow.Visibility = AnchorRow.Visibility = Show(parent is null);
+        WidthRow.Visibility = Show(parent is null || (inStack && !verticalStack));
+        HeightRow.Visibility = Show(parent is null || verticalStack);
+        CellRow.Visibility = Show(parent?.Type == ControlType.Grid);
+        OrderRow.Visibility = Show(inStack);
+        if (inStack)
+        {
+            var index = parent!.Children!.FindIndex(c => c.Id == control.Id);
+            EarlierButton.IsEnabled = index > 0;
+            LaterButton.IsEnabled = index < parent.Children.Count - 1;
+        }
+
+        SetField(RowBox, (control.Row ?? 0).ToString(CultureInfo.CurrentCulture));
+        SetField(ColumnBox, (control.Column ?? 0).ToString(CultureInfo.CurrentCulture));
+
+        OrientationRow.Visibility = SpacingRow.Visibility = Show(definition.IsStack);
+        GridSizeRow.Visibility = Show(definition.IsGrid);
+        refreshingInspector = true;
+        OrientationBox.SelectedIndex = properties.Orientation == StackOrientation.Horizontal ? 1 : 0;
+        refreshingInspector = false;
+        SetField(SpacingBox, (properties.Spacing ?? 0).ToString(CultureInfo.CurrentCulture));
+        SetField(RowsBox, (properties.Rows ?? 1).ToString(CultureInfo.CurrentCulture));
+        SetField(ColumnsBox, (properties.Columns ?? 1).ToString(CultureInfo.CurrentCulture));
         SetField(NameBox, control.Name);
         SetField(XBox, control.X.ToString(CultureInfo.CurrentCulture));
         SetField(YBox, control.Y.ToString(CultureInfo.CurrentCulture));
@@ -261,6 +318,32 @@ public partial class MainWindow : Window
         IsCheckedBox.IsChecked = properties.IsChecked == true;
         ItemsRow.Visibility = definition.HasItems ? Visibility.Visible : Visibility.Collapsed;
         SetField(ItemsBox, string.Join(Environment.NewLine, properties.Items ?? []));
+    }
+
+    private static Visibility Show(bool visible) => visible ? Visibility.Visible : Visibility.Collapsed;
+
+    private void EarlierButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (inspectedId is { } id)
+        {
+            editor.MoveWithinContainer(id, -1);
+        }
+    }
+
+    private void LaterButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (inspectedId is { } id)
+        {
+            editor.MoveWithinContainer(id, 1);
+        }
+    }
+
+    private void OrientationBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!refreshingInspector && inspectedId is { } id && OrientationBox.SelectedIndex >= 0)
+        {
+            editor.SetOrientation(id, OrientationBox.SelectedIndex == 1 ? StackOrientation.Horizontal : StackOrientation.Vertical);
+        }
     }
 
     /// <summary>Shows a document value, unless the field holds rejected input the user has not fixed.</summary>
@@ -289,6 +372,9 @@ public partial class MainWindow : Window
             box == NameBox ? editor.Rename(id, box.Text)
             : box == TextValueBox ? editor.SetText(id, box.Text)
             : box == ItemsBox ? editor.SetItems(id, box.Text.Split('\n').Select(line => line.TrimEnd('\r')))
+            : box == RowBox || box == ColumnBox ? CommitWholeNumbers(values => editor.SetGridCell(id, values[0], values[1]), RowBox, ColumnBox)
+            : box == SpacingBox ? CommitWholeNumbers(values => editor.SetSpacing(id, values[0]), SpacingBox)
+            : box == RowsBox || box == ColumnsBox ? CommitWholeNumbers(values => editor.SetGridSize(id, values[0], values[1]), RowsBox, ColumnsBox)
             : CommitBoundsField(control, box);
 
         SetFieldError(box, error);
@@ -319,11 +405,32 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>Parses whole numbers from fields and applies them together.</summary>
+    private static string? CommitWholeNumbers(Func<int[], string?> apply, params TextBox[] boxes)
+    {
+        var values = new int[boxes.Length];
+        for (var i = 0; i < boxes.Length; i++)
+        {
+            if (!int.TryParse(boxes[i].Text.Trim(), NumberStyles.Integer, CultureInfo.CurrentCulture, out values[i]))
+            {
+                return "Enter a whole number.";
+            }
+        }
+
+        return apply(values);
+    }
+
     private string? CommitBoundsField(ControlDocument control, TextBox box)
     {
         if (!int.TryParse(box.Text.Trim(), NumberStyles.Integer, CultureInfo.CurrentCulture, out var value))
         {
             return "Enter a whole number of DIPs.";
+        }
+
+        // Inside a StackPanel only the size along the stack can change.
+        if (editor.ParentOf(control.Id) is not null)
+        {
+            return editor.SetStackSize(control.Id, value);
         }
 
         var bounds = control.Bounds;
@@ -723,8 +830,15 @@ public partial class MainWindow : Window
 
     private void Copy_Executed(object sender, ExecutedRoutedEventArgs e)
     {
-        // Copies keep the design's draw order, whatever order they were selected in.
-        clipboard = editor.Document.Screen.Controls.Where(c => selection.Contains(c.Id)).ToList();
+        // Copies keep the design's draw order, whatever order they were selected in. A control
+        // copied from inside a container becomes a free-standing copy at its screen position;
+        // one inside another selected control is already copied with it.
+        var screen = editor.Document.Screen;
+        clipboard = ContainerLayout.Flatten(screen)
+            .Where(p => selection.Contains(p.Control.Id))
+            .Where(p => !selection.Any(other => other != p.Control.Id && ControlTree.IsSelfOrDescendant(screen.Controls, other, p.Control.Id)))
+            .Select(p => p.Control.WithBounds(p.Bounds) with { Row = null, Column = null })
+            .ToList();
         pasteCount = 0;
         StatusText.Text = clipboard.Count == 1 ? $"Copied {clipboard[0].Name}" : $"Copied {clipboard.Count} controls";
         CommandManager.InvalidateRequerySuggested();

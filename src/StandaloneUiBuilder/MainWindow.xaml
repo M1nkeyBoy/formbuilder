@@ -191,29 +191,68 @@
                             <Label Content="_Name" Target="{Binding ElementName=NameBox}" Style="{StaticResource FieldLabel}" />
                             <TextBox x:Name="NameBox" Style="{StaticResource FieldBox}" />
                         </DockPanel>
-                        <DockPanel Style="{StaticResource FieldRow}">
+                        <DockPanel x:Name="XRow" Style="{StaticResource FieldRow}">
                             <Label Content="_X" Target="{Binding ElementName=XBox}" Style="{StaticResource FieldLabel}" />
                             <TextBox x:Name="XBox" Style="{StaticResource FieldBox}" />
                         </DockPanel>
-                        <DockPanel Style="{StaticResource FieldRow}">
+                        <DockPanel x:Name="YRow" Style="{StaticResource FieldRow}">
                             <Label Content="_Y" Target="{Binding ElementName=YBox}" Style="{StaticResource FieldLabel}" />
                             <TextBox x:Name="YBox" Style="{StaticResource FieldBox}" />
                         </DockPanel>
-                        <DockPanel Style="{StaticResource FieldRow}">
+                        <DockPanel x:Name="WidthRow" Style="{StaticResource FieldRow}">
                             <Label Content="_Width" Target="{Binding ElementName=WidthBox}" Style="{StaticResource FieldLabel}" />
                             <TextBox x:Name="WidthBox" Style="{StaticResource FieldBox}" />
                         </DockPanel>
-                        <DockPanel Style="{StaticResource FieldRow}">
+                        <DockPanel x:Name="HeightRow" Style="{StaticResource FieldRow}">
                             <Label Content="_Height" Target="{Binding ElementName=HeightBox}" Style="{StaticResource FieldLabel}" />
                             <TextBox x:Name="HeightBox" Style="{StaticResource FieldBox}" />
                         </DockPanel>
-                        <DockPanel Style="{StaticResource FieldRow}">
+                        <DockPanel x:Name="AnchorRow" Style="{StaticResource FieldRow}">
                             <Label Content="Anchor" Style="{StaticResource FieldLabel}" VerticalContentAlignment="Top" />
                             <UniformGrid Columns="2" ToolTip="Edges the control follows when the window is resized. Left and Right together, or Top and Bottom together, make it stretch.">
                                 <CheckBox x:Name="AnchorLeftBox" Content="Left" Margin="0,2" Click="AnchorBox_Click" />
                                 <CheckBox x:Name="AnchorTopBox" Content="Top" Margin="0,2" Click="AnchorBox_Click" />
                                 <CheckBox x:Name="AnchorRightBox" Content="Right" Margin="0,2" Click="AnchorBox_Click" />
                                 <CheckBox x:Name="AnchorBottomBox" Content="Bottom" Margin="0,2" Click="AnchorBox_Click" />
+                            </UniformGrid>
+                        </DockPanel>
+                        <DockPanel x:Name="CellRow" Style="{StaticResource FieldRow}"
+                                   ToolTip="The Grid cell this control fills, counted from 0.">
+                            <Label Content="Cell" Style="{StaticResource FieldLabel}" />
+                            <UniformGrid Columns="4">
+                                <Label Content="_Row" Target="{Binding ElementName=RowBox}" Padding="0,0,4,0" VerticalContentAlignment="Center" />
+                                <TextBox x:Name="RowBox" Style="{StaticResource FieldBox}" />
+                                <Label Content="C_ol" Target="{Binding ElementName=ColumnBox}" Padding="6,0,4,0" VerticalContentAlignment="Center" />
+                                <TextBox x:Name="ColumnBox" Style="{StaticResource FieldBox}" />
+                            </UniformGrid>
+                        </DockPanel>
+                        <DockPanel x:Name="OrderRow" Style="{StaticResource FieldRow}"
+                                   ToolTip="The control's place among the others in its StackPanel.">
+                            <Label Content="Order" Style="{StaticResource FieldLabel}" />
+                            <UniformGrid Columns="2">
+                                <Button x:Name="EarlierButton" Content="Earlier" Margin="0,0,3,0" Click="EarlierButton_Click" />
+                                <Button x:Name="LaterButton" Content="Later" Margin="3,0,0,0" Click="LaterButton_Click" />
+                            </UniformGrid>
+                        </DockPanel>
+                        <DockPanel x:Name="OrientationRow" Style="{StaticResource FieldRow}">
+                            <Label Content="Direction" Target="{Binding ElementName=OrientationBox}" Style="{StaticResource FieldLabel}" />
+                            <ComboBox x:Name="OrientationBox" SelectionChanged="OrientationBox_SelectionChanged"
+                                      AutomationProperties.Name="Direction">
+                                <ComboBoxItem Content="Vertical" />
+                                <ComboBoxItem Content="Horizontal" />
+                            </ComboBox>
+                        </DockPanel>
+                        <DockPanel x:Name="SpacingRow" Style="{StaticResource FieldRow}">
+                            <Label Content="_Spacing" Target="{Binding ElementName=SpacingBox}" Style="{StaticResource FieldLabel}" />
+                            <TextBox x:Name="SpacingBox" Style="{StaticResource FieldBox}" />
+                        </DockPanel>
+                        <DockPanel x:Name="GridSizeRow" Style="{StaticResource FieldRow}">
+                            <Label Content="Cells" Style="{StaticResource FieldLabel}" />
+                            <UniformGrid Columns="4">
+                                <Label Content="Ro_ws" Target="{Binding ElementName=RowsBox}" Padding="0,0,4,0" VerticalContentAlignment="Center" />
+                                <TextBox x:Name="RowsBox" Style="{StaticResource FieldBox}" />
+                                <Label Content="Co_ls" Target="{Binding ElementName=ColumnsBox}" Padding="6,0,4,0" VerticalContentAlignment="Center" />
+                                <TextBox x:Name="ColumnsBox" Style="{StaticResource FieldBox}" />
                             </UniformGrid>
                         </DockPanel>
                         <DockPanel x:Name="TextRow" Style="{StaticResource FieldRow}">

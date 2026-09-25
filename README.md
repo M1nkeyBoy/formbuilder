@@ -20,6 +20,13 @@ choices are recorded in `docs/decisions.md`.
   edges it follows when the window is resized: anchored to Right it moves with the right
   edge, anchored to Left and Right it stretches. Dashed lines show the anchors of the
   selected control. In Preview, drag the corner grip to try them.
+- **Containers.** StackPanel lines controls up vertically or horizontally with a gap; Grid
+  divides itself into equal rows and columns with one control per cell. Drag or click a
+  toolbox item into a container, or drag a control in or out; the target container is
+  outlined in green. Inside a stack a control keeps its height (or width) and stretches
+  across; in a grid it fills its cell. Containers can be nested and anchored like any
+  control, so whole groups resize with the window. The Properties panel sets a stack's
+  direction and spacing, a grid's rows and columns, and a control's order or cell.
 - **Work with several controls.** Ctrl+click, or drag a box across empty canvas, to select
   several controls; drag, nudge (arrow keys, Shift for a grid step), copy, cut, paste,
   duplicate (Ctrl+D) or delete them together. Ctrl+A selects all. Edit > Bring to Front
@@ -119,10 +126,9 @@ tests use this so they never touch your own drafts.
 ## Known limitations
 
 - One screen per project.
-- Only the five built-in controls. Copy and paste stay within the editor rather than using
-  the system clipboard.
-- Layout is absolute positions plus anchors. There are no nested containers (stacks, grids)
-  yet, which richer responsive layouts for WinUI, MAUI or Blazor would need.
+- Five built-in controls and two containers. Grid rows and columns are equal sizes, with no
+  spans. Copy and paste stay within the editor rather than using the system clipboard.
+- Layout is absolute positions plus anchors, with StackPanel and Grid containers.
 - Output is WPF and WinForms. It covers layout and one event hook per control; there is no
   data binding, styling, or import of existing projects.
 - The automated UI tests assume 100% display scaling. 150% scaling has been checked by hand.

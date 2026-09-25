@@ -252,3 +252,26 @@ Choices made during the prototype slices that affect later work.
   cell), move into or out of a container, reorder inside one, set a child's size along its
   stack or its grid cell, and edit orientation, spacing, rows and columns. Each is one undo
   step. A container cannot be put inside itself.
+
+## Slice 15 — Containers in the editor
+
+- **One host per control, drawn from the Core layout.** In Design mode every control,
+  including those inside containers, is drawn at the screen position Core computes, with
+  containers drawn before what they hold. The innermost control under the pointer is the one
+  clicked, and no separate layout code exists in the designer.
+- **Design-mode look.** Containers show as a tinted, outlined area with their name, and grid
+  cell lines. In Preview they are real WPF StackPanel and Grid controls holding the real
+  controls.
+- **Dragging.** Controls on the screen drag as before, snapped and together with the rest of
+  the selection; a container brings everything inside it. A single control dragged over a
+  container is dropped into it (the container is outlined in green), at the stack position or
+  grid cell under the pointer. A control dragged out of its container and not over another
+  is placed on the screen at its dragged position, snapped, with its own size.
+- **Placing.** Dropping or click-placing a toolbox item inside a container puts it there.
+- **Properties.** For a control inside a container, X, Y and Anchor are hidden. A stack shows
+  only the size along its direction plus Earlier/Later order buttons. A grid shows the cell's
+  row and column. Containers themselves show direction and spacing (StackPanel) or rows and
+  columns (Grid).
+- **Copying** a control from inside a container makes a free-standing copy at its screen
+  position and size.
+- **Resize handles and anchor lines** appear only for controls directly on the screen.
