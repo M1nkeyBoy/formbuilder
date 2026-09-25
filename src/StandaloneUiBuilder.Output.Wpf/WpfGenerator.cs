@@ -212,6 +212,12 @@ public static class WpfGenerator
             return;
         }
 
+        if (control.Type == ControlType.Image)
+        {
+            AppendImage(xaml, screen, control, layout, depth);
+            return;
+        }
+
         var indent = new string(' ', depth * 4);
         var properties = control.Properties;
         var element = control.Type.ToString();
@@ -249,14 +255,6 @@ public static class WpfGenerator
                 attributes.Add($"Content=\"{Attribute(LiteralAccessText(properties.Text))}\"");
                 break;
             case ControlType.ListBox:
-                break;
-            case ControlType.Image:
-                if (properties.ImageData is not null)
-                {
-                    attributes.Add($"Source=\"{ImageFile.ExportPath(screen, control)}\"");
-                }
-
-                attributes.Add($"Stretch=\"{properties.Stretch ?? ImageStretch.Uniform}\"");
                 break;
             case ControlType.Slider:
             case ControlType.ProgressBar:
@@ -357,6 +355,21 @@ public static class WpfGenerator
         }
 
         xaml.AppendLine($"{indent}</{element}>");
+    }
+
+    /// <summary>
+    /// An Image, in a Grid that has its designed box. An Image that keeps its picture's shape
+    /// shrinks to the picture, so on its own it would follow its anchors to one edge; in the
+    /// Grid it is centred in the box, as the other targets show it.
+    /// </summary>
+    private static void AppendImage(StringBuilder xaml, ScreenDocument screen, ControlDocument control, List<string> layout, int depth)
+    {
+        var indent = new string(' ', depth * 4);
+        var properties = control.Properties;
+        var source = properties.ImageData is not null ? $" Source=\"{ImageFile.ExportPath(screen, control)}\"" : "";
+        xaml.AppendLine($"{indent}<Grid {string.Join(" ", layout)}>");
+        xaml.AppendLine($"{indent}    <Image x:Name=\"{control.Name}\"{source} Stretch=\"{properties.Stretch ?? ImageStretch.Uniform}\" />");
+        xaml.AppendLine($"{indent}</Grid>");
     }
 
     /// <summary>A control's own text size, weight and colours, where the design sets them.</summary>

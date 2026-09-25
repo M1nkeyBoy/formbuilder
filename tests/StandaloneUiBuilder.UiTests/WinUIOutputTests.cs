@@ -95,7 +95,7 @@ public sealed class WinUIOutputTests
             {
                 actual = new ControlBounds(actual.X + 4, actual.Y + 4, actual.Width - 8, actual.Height - 8);
             }
-            var expected = placed.Bounds;
+            var expected = PictureFit.Expected(control, placed.Bounds);
 
             // Shared grid rows and columns are rounded to whole pixels; allow one per track.
             var tolerance = 1;

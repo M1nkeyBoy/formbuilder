@@ -198,6 +198,12 @@ public static class WinUIGenerator
             return;
         }
 
+        if (control.Type == ControlType.Image)
+        {
+            AppendImage(xaml, screen, control, layout, depth);
+            return;
+        }
+
         var indent = new string(' ', depth * 4);
         var properties = control.Properties;
         var element = control.Type switch
@@ -262,14 +268,6 @@ public static class WinUIGenerator
                     attributes.Add("StepFrequency=\"1\"");
                 }
 
-                break;
-            case ControlType.Image:
-                if (properties.ImageData is not null)
-                {
-                    attributes.Add($"Source=\"ms-appx:///{ImageFile.ExportPath(screen, control)}\"");
-                }
-
-                attributes.Add($"Stretch=\"{properties.Stretch ?? ImageStretch.Uniform}\"");
                 break;
             case ControlType.StackPanel:
                 attributes.Add($"Orientation=\"{(properties.Orientation == StackOrientation.Horizontal ? "Horizontal" : "Vertical")}\"");
@@ -403,6 +401,21 @@ public static class WinUIGenerator
             xaml.AppendLine($"{indent}    </StackPanel>");
         }
 
+        xaml.AppendLine($"{indent}</Grid>");
+    }
+
+    /// <summary>
+    /// An Image, in a Grid that has its designed box. An Image that keeps its picture's shape
+    /// shrinks to the picture, so on its own it would follow its anchors to one edge; in the
+    /// Grid it is centred in the box, as the other targets show it.
+    /// </summary>
+    private static void AppendImage(StringBuilder xaml, ScreenDocument screen, ControlDocument control, List<string> layout, int depth)
+    {
+        var indent = new string(' ', depth * 4);
+        var properties = control.Properties;
+        var source = properties.ImageData is not null ? $" Source=\"ms-appx:///{ImageFile.ExportPath(screen, control)}\"" : "";
+        xaml.AppendLine($"{indent}<Grid {string.Join(" ", layout)}>");
+        xaml.AppendLine($"{indent}    <Image x:Name=\"{control.Name}\"{source} Stretch=\"{properties.Stretch ?? ImageStretch.Uniform}\" />");
         xaml.AppendLine($"{indent}</Grid>");
     }
 

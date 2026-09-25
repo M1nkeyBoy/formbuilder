@@ -154,8 +154,9 @@ public sealed partial class WpfOutputParityTests
                 var previewed = FindByName(preview, name) ?? throw new InvalidOperationException($"{name} is not in the preview.");
                 var inWindow = BoundsWithin(generated, grid);
                 var inPreview = BoundsWithin(previewed, preview);
-                Assert.True(Near(expected.Bounds, inWindow), $"{what}: generated window has {inWindow}, expected {expected.Bounds}");
-                Assert.True(Near(expected.Bounds, inPreview), $"{what}: preview has {inPreview}, expected {expected.Bounds}");
+                var box = PictureFit.Expected(expected.Control, expected.Bounds);
+                Assert.True(Near(box, inWindow), $"{what}: generated window has {inWindow}, expected {box}");
+                Assert.True(Near(box, inPreview), $"{what}: preview has {inPreview}, expected {box}");
             }
         }
 

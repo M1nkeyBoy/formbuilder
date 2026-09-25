@@ -302,6 +302,13 @@ public static partial class WpfImporter
             return GroupBox(frame, inner, context);
         }
 
+        // The builder's own Image: a Grid with the designed box, holding the picture.
+        if (kind == "Grid" && !HasTracks(element) && element.Attribute(Xaml + "Name") is null
+            && Children(element).ToList() is [{ Name.LocalName: "Image" } picture])
+        {
+            return ReadControl(picture, context);
+        }
+
         if (kind == "GroupBox")
         {
             return Children(element).FirstOrDefault() is { Name.LocalName: "StackPanel" } content
