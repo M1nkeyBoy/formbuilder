@@ -12,15 +12,16 @@ A complete example is in [`samples/customer-form.uibproj`](samples/customer-form
 |---|---|---|
 | 1 | First prototype format. | — |
 | 2 | Adds `anchor` to each control. | Every control gets `["left", "top"]`, which is how version 1 designs behaved. |
+| 3 | Adds the `StackPanel` and `Grid` container types, with `children`, `row`, `column` and the container properties. | None: older files have no containers. |
 
-The builder reads versions 1 and 2 and always saves version 2. A version 1 builder rejects
-version 2 files with a clear message instead of silently dropping anchors.
+The builder reads versions 1 to 3 and always saves version 3. An older builder rejects a
+newer file with a clear message instead of silently dropping what it does not know.
 
-## Schema version 2
+## Schema version 3
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971",
   "name": "Customer form",
   "screen": {
@@ -70,15 +71,32 @@ version 2 files with a clear message instead of silently dropping anchors.
 | Field | Type | Notes |
 |---|---|---|
 | `id` | GUID string | Required, unique within the screen, never empty. |
-| `type` | string | Required. One of `Label`, `Button`, `TextBox`, `CheckBox`, `ComboBox`. |
+| `type` | string | Required. One of `Label`, `Button`, `TextBox`, `CheckBox`, `ComboBox`, or the containers `StackPanel` and `Grid`. |
 | `name` | string | Required. Letter or underscore first, then letters, digits or underscores. Unique within the screen, ignoring case. |
 | `x`, `y` | integer | DIPs from the screen's top-left corner; not negative. |
 | `width`, `height` | integer | DIPs; at least the type's minimum size. The control must fit inside the screen. |
 | `properties` | object | Type-specific values, below. |
+| `children` | array of controls | Containers only: the controls inside, in order. |
+| `row`, `column` | integer | Only for a control inside a Grid: the cell it fills, counted from 0. |
 | `anchor` | array of strings | Screen edges the control follows when the window is resized: any of `left`, `top`, `right`, `bottom`, with at least one of left/right and one of top/bottom. Optional; defaults to `["left", "top"]`. |
 
 Minimum sizes: Label 20 × 16, Button 30 × 20, TextBox 30 × 20, CheckBox 20 × 16,
-ComboBox 40 × 20.
+ComboBox 40 × 20, StackPanel 20 × 20, Grid 20 × 20.
+
+### Containers
+
+A control inside a container has no position of its own; the container places it:
+
+- **StackPanel** lines its children up in `children` order: top to bottom when `orientation`
+  is `Vertical`, left to right when `Horizontal`, with `spacing` DIPs between them. Each
+  child keeps its `height` (vertical) or `width` (horizontal) and stretches across the
+  stack. Children that do not fit are clipped.
+- **Grid** divides itself into `rows` × `columns` equal cells. Each child fills the cell at
+  its `row` and `column`.
+
+A child's `x`, `y` and `anchor` are ignored and saved as `0` and the default. Its `width` and
+`height` are kept, so it keeps its size if moved back onto the screen. Containers can be
+nested. Names and IDs are unique across the whole screen, including inside containers.
 
 ### Anchors
 
@@ -98,6 +116,11 @@ Anchors describe what happens when a generated window is made larger than the de
 | TextBox | ✓ | | |
 | CheckBox | ✓ | ✓ | |
 | ComboBox | | | ✓ (in display order) |
+
+| Type | `orientation` | `spacing` | `rows` | `columns` |
+|---|---|---|---|---|
+| StackPanel | `Vertical` or `Horizontal` | 0 to 200 DIPs | | |
+| Grid | | | 1 to 20 | 1 to 20 |
 
 A missing supported property is read as `""`, `false` or `[]`. A property the type does not
 support is ignored on load and not written on save.

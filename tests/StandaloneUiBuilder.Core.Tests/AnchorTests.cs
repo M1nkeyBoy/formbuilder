@@ -114,7 +114,7 @@ public class AnchorTests
     }
 
     [Fact]
-    public void VersionOneFilesLoadWithDefaultAnchorsAndSaveAsVersionTwo()
+    public void VersionOneFilesLoadWithDefaultAnchorsAndSaveAsTheCurrentVersion()
     {
         var json = """
             {
@@ -133,7 +133,7 @@ public class AnchorTests
         var document = ProjectFile.Deserialize(json);
 
         Assert.Equal(AnchorEdges.Default, document.Screen.Controls.Single().Anchor);
-        Assert.Contains("\"schemaVersion\": 2", ProjectFile.Serialize(document));
+        Assert.Contains($"\"schemaVersion\": {ProjectDocument.CurrentSchemaVersion}", ProjectFile.Serialize(document));
     }
 
     [Theory]

@@ -9,10 +9,10 @@ namespace StandaloneUiBuilder.Core;
 public sealed record ProjectDocument
 {
     /// <summary>
-    /// The format version this builder writes. Version 1 files (no anchors) are still read.
-    /// See docs/project-format.md for the history.
+    /// The format version this builder writes. Versions 1 (no anchors) and 2 (no containers)
+    /// are still read. See docs/project-format.md for the history.
     /// </summary>
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     public const int OldestSupportedSchemaVersion = 1;
     public const string DefaultName = "Untitled";
@@ -70,8 +70,20 @@ public sealed record ControlDocument
 
     public ControlProperties Properties { get; init; } = new();
 
-    /// <summary>Screen edges the control follows when the window is resized.</summary>
+    /// <summary>
+    /// Screen edges the control follows when the window is resized. Used only for controls
+    /// placed directly on the screen; a container positions its own children.
+    /// </summary>
     public AnchorEdges Anchor { get; init; } = AnchorEdges.Default;
+
+    /// <summary>The controls inside a container, in order; null for other controls.</summary>
+    public ImmutableList<ControlDocument>? Children { get; init; }
+
+    /// <summary>The row of the cell this control fills, when it is inside a Grid.</summary>
+    public int? Row { get; init; }
+
+    /// <summary>The column of the cell this control fills, when it is inside a Grid.</summary>
+    public int? Column { get; init; }
 
     [JsonIgnore]
     public ControlBounds Bounds => new(X, Y, Width, Height);
@@ -95,4 +107,16 @@ public sealed record ControlProperties
     public bool? IsChecked { get; init; }
 
     public ImmutableList<string>? Items { get; init; }
+
+    /// <summary>StackPanel: the direction children are lined up.</summary>
+    public StackOrientation? Orientation { get; init; }
+
+    /// <summary>StackPanel: the gap between children, in DIPs.</summary>
+    public int? Spacing { get; init; }
+
+    /// <summary>Grid: the number of equal rows.</summary>
+    public int? Rows { get; init; }
+
+    /// <summary>Grid: the number of equal columns.</summary>
+    public int? Columns { get; init; }
 }

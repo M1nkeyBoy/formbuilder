@@ -25,7 +25,8 @@ public static partial class DocumentValidator
         }
 
         // Case-insensitive so names stay unique for any later case-insensitive output target.
-        foreach (var other in screen.Controls)
+        // Names are unique across the whole screen, including inside containers.
+        foreach (var other in ControlTree.All(screen.Controls))
         {
             if (other.Id != controlId && string.Equals(other.Name, name, StringComparison.OrdinalIgnoreCase))
             {
@@ -99,28 +100,39 @@ public static partial class DocumentValidator
         var ids = new HashSet<Guid>();
         foreach (var control in screen.Controls)
         {
-            var label = string.IsNullOrEmpty(control.Name) ? $"A {control.Type}" : $"Control \"{control.Name}\"";
+            ValidateControl(screen, control, parent: null, ids, errors);
+        }
 
-            if (!ControlCatalog.TryGet(control.Type, out _))
-            {
-                errors.Add($"{label} has an unsupported type ({control.Type}).");
-                continue;
-            }
+        return errors;
+    }
 
-            if (control.Id == Guid.Empty)
-            {
-                errors.Add($"{label} has no ID.");
-            }
-            else if (!ids.Add(control.Id))
-            {
-                errors.Add($"{label} has the same ID as another control ({control.Id}).");
-            }
+    private static void ValidateControl(ScreenDocument screen, ControlDocument control, ControlDocument? parent, HashSet<Guid> ids, List<string> errors)
+    {
+        var label = string.IsNullOrEmpty(control.Name) ? $"A {control.Type}" : $"Control \"{control.Name}\"";
 
-            if (ValidateName(screen, control.Id, control.Name) is { } nameError)
-            {
-                errors.Add($"{label}: {nameError}");
-            }
+        if (!ControlCatalog.TryGet(control.Type, out var definition))
+        {
+            errors.Add($"{label} has an unsupported type ({control.Type}).");
+            return;
+        }
 
+        if (control.Id == Guid.Empty)
+        {
+            errors.Add($"{label} has no ID.");
+        }
+        else if (!ids.Add(control.Id))
+        {
+            errors.Add($"{label} has the same ID as another control ({control.Id}).");
+        }
+
+        if (ValidateName(screen, control.Id, control.Name) is { } nameError)
+        {
+            errors.Add($"{label}: {nameError}");
+        }
+
+        if (parent is null)
+        {
+            // On the screen: position, size and anchors matter.
             if (ValidateBounds(screen, control.Type, control.Bounds) is { } boundsError)
             {
                 errors.Add($"{label}: {boundsError}");
@@ -130,8 +142,55 @@ public static partial class DocumentValidator
             {
                 errors.Add($"{label}: {anchorError}");
             }
+
+            if (control.Row is not null || control.Column is not null)
+            {
+                errors.Add($"{label}: only controls inside a Grid have a row and column.");
+            }
+        }
+        else
+        {
+            // Inside a container, the container places the control; its own size is still used
+            // along a stack's direction and must respect the type's minimum.
+            if (control.Width < definition.MinWidth || control.Height < definition.MinHeight)
+            {
+                errors.Add($"{label}: its size must be at least {definition.MinWidth} × {definition.MinHeight}.");
+            }
+
+            var inGrid = parent.Type == ControlType.Grid;
+            if (inGrid && (control.Row is not { } row || control.Column is not { } column
+                || row < 0 || row >= (parent.Properties.Rows ?? 1) || column < 0 || column >= (parent.Properties.Columns ?? 1)))
+            {
+                errors.Add($"{label}: it needs a row and column inside Grid \"{parent.Name}\".");
+            }
+            else if (!inGrid && (control.Row is not null || control.Column is not null))
+            {
+                errors.Add($"{label}: only controls inside a Grid have a row and column.");
+            }
         }
 
-        return errors;
+        if (definition.IsContainer)
+        {
+            var properties = control.Properties;
+            if (definition.IsStack && properties.Spacing is < 0 or > ControlDefinition.MaxSpacing)
+            {
+                errors.Add($"{label}: spacing must be between 0 and {ControlDefinition.MaxSpacing}.");
+            }
+
+            if (definition.IsGrid && (properties.Rows is < 1 or > ControlDefinition.MaxRowsOrColumns
+                || properties.Columns is < 1 or > ControlDefinition.MaxRowsOrColumns))
+            {
+                errors.Add($"{label}: rows and columns must be between 1 and {ControlDefinition.MaxRowsOrColumns}.");
+            }
+
+            foreach (var child in control.Children ?? [])
+            {
+                ValidateControl(screen, child, control, ids, errors);
+            }
+        }
+        else if (control.Children is { Count: > 0 })
+        {
+            errors.Add($"{label}: a {control.Type} cannot hold other controls.");
+        }
     }
 }

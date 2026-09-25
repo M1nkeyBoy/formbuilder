@@ -50,6 +50,11 @@ public static class WpfGenerator
     public static IReadOnlyList<string> Check(ProjectDocument document)
     {
         var problems = new List<string>();
+        if (ControlTree.All(document.Screen.Controls).FirstOrDefault(c => c.Children is not null) is { } container)
+        {
+            problems.Add($"\"{container.Name}\" is a {container.Type}; containers cannot be exported to WPF yet.");
+        }
+
         foreach (var control in document.Screen.Controls)
         {
             if (CodeNames.CSharpKeywords.Contains(control.Name))

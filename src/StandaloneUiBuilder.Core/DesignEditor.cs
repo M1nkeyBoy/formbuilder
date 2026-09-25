@@ -50,7 +50,11 @@ public sealed class DesignEditor
         OnChanged();
     }
 
-    public ControlDocument? FindControl(Guid id) => Document.Screen.Controls.Find(c => c.Id == id);
+    /// <summary>Finds a control anywhere, including inside containers.</summary>
+    public ControlDocument? FindControl(Guid id) => ControlTree.Find(Document.Screen.Controls, id);
+
+    /// <summary>The container a control is in, or null if it is directly on the screen.</summary>
+    public ControlDocument? ParentOf(Guid id) => ControlTree.ParentOf(Document.Screen.Controls, id);
 
     /// <summary>
     /// Adds a control of the given type with its top-left corner at a point, snapped to the
@@ -62,31 +66,186 @@ public sealed class DesignEditor
         var screen = Document.Screen;
         var name = NextDefaultName(screen, type);
 
-        var control = new ControlDocument
-        {
-            Id = Guid.NewGuid(),
-            Type = type,
-            Name = name,
-            Properties = definition.CreateDefaultProperties(name),
-        }.WithBounds(DesignGeometry.Place(screen, definition, x, y));
+        var control = NewControl(type, name).WithBounds(DesignGeometry.Place(screen, definition, x, y));
 
         Commit(Document with { Screen = screen with { Controls = screen.Controls.Add(control) } });
         return control;
     }
 
-    /// <summary>Removes a control. Returns false if no control has that ID.</summary>
-    public bool DeleteControl(Guid id)
+    /// <summary>
+    /// Adds a new control inside a container, where a screen point falls: at that position in
+    /// a StackPanel, or in that cell of a Grid. Returns null if the container does not exist.
+    /// </summary>
+    public ControlDocument? AddControlTo(ControlType type, Guid containerId, double x, double y)
     {
         var screen = Document.Screen;
-        var index = screen.Controls.FindIndex(c => c.Id == id);
-        if (index < 0)
+        if (Placed(containerId) is not { } container)
+        {
+            return null;
+        }
+
+        var control = NewControl(type, NextDefaultName(screen, type));
+        var (index, row, column) = DropPosition(container, x, y, ignore: null);
+        control = control with { Row = row, Column = column };
+        Commit(Document with { Screen = screen with { Controls = ControlTree.Insert(screen.Controls, containerId, index, control) } });
+        return control;
+    }
+
+    /// <summary>
+    /// Moves a control (and anything inside it) into a container, where a screen point falls.
+    /// A control cannot be moved into itself or into a container inside it.
+    /// </summary>
+    public string? MoveIntoContainer(Guid id, Guid containerId, double x, double y)
+    {
+        var screen = Document.Screen;
+        if (FindControl(id) is not { } control || Placed(containerId) is not { } container)
+        {
+            return "The control no longer exists.";
+        }
+
+        if (ControlTree.IsSelfOrDescendant(screen.Controls, id, containerId))
+        {
+            return "A container cannot go inside itself.";
+        }
+
+        var (index, row, column) = DropPosition(container, x, y, ignore: id);
+        var moved = control with { X = 0, Y = 0, Anchor = AnchorEdges.Default, Row = row, Column = column };
+        var controls = ControlTree.Insert(ControlTree.Remove(screen.Controls, [id]), containerId, index, moved);
+        if (!ControlTree.All(controls).SequenceEqual(ControlTree.All(screen.Controls)))
+        {
+            Commit(Document with { Screen = screen with { Controls = controls } });
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Takes a control out of its container and puts it on the screen with its top-left at a
+    /// point, snapped to the grid, keeping its designed size.
+    /// </summary>
+    public string? MoveToScreen(Guid id, double x, double y)
+    {
+        var screen = Document.Screen;
+        if (FindControl(id) is not { } control)
+        {
+            return "The control no longer exists.";
+        }
+
+        if (ControlTree.IsRoot(screen.Controls, id))
+        {
+            return null;
+        }
+
+        var size = new ControlDefinition(control.Type, Math.Min(control.Width, screen.Width), Math.Min(control.Height, screen.Height), 0, 0, false, false, false);
+        var moved = control.WithBounds(DesignGeometry.Place(screen, size, x, y)) with { Row = null, Column = null };
+        var controls = ControlTree.Remove(screen.Controls, [id]).Add(moved);
+        Commit(Document with { Screen = screen with { Controls = controls } });
+        return null;
+    }
+
+    /// <summary>Moves a control earlier (negative) or later (positive) among its container's children.</summary>
+    public bool MoveWithinContainer(Guid id, int delta)
+    {
+        if (ParentOf(id) is not { Children: { } children } parent)
         {
             return false;
         }
 
-        Commit(Document with { Screen = screen with { Controls = screen.Controls.RemoveAt(index) } });
+        var index = children.FindIndex(c => c.Id == id);
+        var target = Math.Clamp(index + delta, 0, children.Count - 1);
+        if (target == index)
+        {
+            return false;
+        }
+
+        var reordered = children.RemoveAt(index).Insert(target, children[index]);
+        Replace(parent, parent with { Children = reordered });
         return true;
     }
+
+    /// <summary>
+    /// Sets the size of a control inside a StackPanel along the stack's direction: its height
+    /// in a vertical stack, its width in a horizontal one.
+    /// </summary>
+    public string? SetStackSize(Guid id, int size)
+    {
+        if (FindControl(id) is not { } control || ParentOf(id) is not { Type: ControlType.StackPanel } stack)
+        {
+            return "The control is not in a StackPanel.";
+        }
+
+        var definition = ControlCatalog.Get(control.Type);
+        var vertical = stack.Properties.Orientation != StackOrientation.Horizontal;
+        var minimum = vertical ? definition.MinHeight : definition.MinWidth;
+        if (size < minimum || size > 10000)
+        {
+            return $"{(vertical ? "Height" : "Width")} must be between {minimum} and 10000 for a {control.Type}.";
+        }
+
+        var resized = vertical ? control with { Height = size } : control with { Width = size };
+        if (resized != control)
+        {
+            Replace(control, resized);
+        }
+
+        return null;
+    }
+
+    /// <summary>Puts a control inside a Grid into another cell.</summary>
+    public string? SetGridCell(Guid id, int row, int column)
+    {
+        if (FindControl(id) is not { } control || ParentOf(id) is not { Type: ControlType.Grid } grid)
+        {
+            return "The control is not in a Grid.";
+        }
+
+        var rows = grid.Properties.Rows ?? 1;
+        var columns = grid.Properties.Columns ?? 1;
+        if (row < 0 || row >= rows || column < 0 || column >= columns)
+        {
+            return $"Row must be 0 to {rows - 1} and column 0 to {columns - 1}.";
+        }
+
+        if (control.Row != row || control.Column != column)
+        {
+            Replace(control, control with { Row = row, Column = column });
+        }
+
+        return null;
+    }
+
+    public string? SetOrientation(Guid id, StackOrientation orientation) =>
+        EditProperties(id, d => d.IsStack, "an orientation", p => p.Orientation == orientation ? p : p with { Orientation = orientation });
+
+    public string? SetSpacing(Guid id, int spacing) =>
+        spacing is < 0 or > ControlDefinition.MaxSpacing
+            ? $"Spacing must be between 0 and {ControlDefinition.MaxSpacing}."
+            : EditProperties(id, d => d.IsStack, "spacing", p => p.Spacing == spacing ? p : p with { Spacing = spacing });
+
+    /// <summary>Changes a Grid's rows and columns. Every child must still have a cell.</summary>
+    public string? SetGridSize(Guid id, int rows, int columns)
+    {
+        if (FindControl(id) is not { Type: ControlType.Grid } grid)
+        {
+            return "The control is not a Grid.";
+        }
+
+        if (rows is < 1 or > ControlDefinition.MaxRowsOrColumns || columns is < 1 or > ControlDefinition.MaxRowsOrColumns)
+        {
+            return $"Rows and columns must be between 1 and {ControlDefinition.MaxRowsOrColumns}.";
+        }
+
+        if (grid.Children?.FirstOrDefault(c => (c.Row ?? 0) >= rows || (c.Column ?? 0) >= columns) is { } outside)
+        {
+            return $"\"{outside.Name}\" is in row {outside.Row}, column {outside.Column}, which would no longer exist. Move it first.";
+        }
+
+        return EditProperties(id, d => d.IsGrid, "rows and columns", p =>
+            p.Rows == rows && p.Columns == columns ? p : p with { Rows = rows, Columns = columns });
+    }
+
+    /// <summary>Removes a control (and anything inside it). Returns false if no control has that ID.</summary>
+    public bool DeleteControl(Guid id) => DeleteControls([id]) > 0;
 
     /// <summary>Moves and/or resizes a control to exact bounds.</summary>
     public string? SetBounds(Guid id, ControlBounds bounds)
@@ -94,6 +253,11 @@ public sealed class DesignEditor
         if (FindControl(id) is not { } control)
         {
             return "The control no longer exists.";
+        }
+
+        if (!ControlTree.IsRoot(Document.Screen.Controls, id))
+        {
+            return "Its container decides where this control goes.";
         }
 
         if (DocumentValidator.ValidateBounds(Document.Screen, control.Type, bounds) is { } error)
@@ -213,11 +377,10 @@ public sealed class DesignEditor
     public int DeleteControls(IReadOnlyCollection<Guid> ids)
     {
         var screen = Document.Screen;
-        var remaining = screen.Controls.RemoveAll(c => ids.Contains(c.Id));
-        var removed = screen.Controls.Count - remaining.Count;
+        var removed = ControlTree.All(screen.Controls).Count(c => ids.Contains(c.Id));
         if (removed > 0)
         {
-            Commit(Document with { Screen = screen with { Controls = remaining } });
+            Commit(Document with { Screen = screen with { Controls = ControlTree.Remove(screen.Controls, ids) } });
         }
 
         return removed;
@@ -238,7 +401,7 @@ public sealed class DesignEditor
 
         var dx = Math.Clamp(offset, -copies.Min(c => c.X), screen.Width - copies.Max(c => c.X + c.Width));
         var dy = Math.Clamp(offset, -copies.Min(c => c.Y), screen.Height - copies.Max(c => c.Y + c.Height));
-        var taken = new HashSet<string>(screen.Controls.Select(c => c.Name), StringComparer.OrdinalIgnoreCase);
+        var taken = new HashSet<string>(ControlTree.All(screen.Controls).Select(c => c.Name), StringComparer.OrdinalIgnoreCase);
         var pasted = new List<ControlDocument>();
         foreach (var copy in copies)
         {
@@ -248,14 +411,12 @@ public sealed class DesignEditor
                 continue;
             }
 
-            var name = UniqueName(copy.Name, taken);
-            taken.Add(name);
-            pasted.Add(copy with
+            pasted.Add(Renamed(ControlTree.WithNewIds(copy), taken) with
             {
-                Id = Guid.NewGuid(),
-                Name = name,
                 X = Math.Clamp(copy.X + dx, 0, screen.Width - copy.Width),
                 Y = Math.Clamp(copy.Y + dy, 0, screen.Height - copy.Height),
+                Row = null,
+                Column = null,
             });
         }
 
@@ -317,6 +478,42 @@ public sealed class DesignEditor
         return true;
     }
 
+    /// <summary>Gives a pasted control and everything inside it names not already taken.</summary>
+    private static ControlDocument Renamed(ControlDocument control, HashSet<string> taken)
+    {
+        var name = UniqueName(control.Name, taken);
+        taken.Add(name);
+        return control with { Name = name, Children = control.Children?.ConvertAll(child => Renamed(child, taken)) };
+    }
+
+    private static ControlDocument NewControl(ControlType type, string name)
+    {
+        var definition = ControlCatalog.Get(type);
+        return new ControlDocument
+        {
+            Id = Guid.NewGuid(),
+            Type = type,
+            Name = name,
+            Properties = definition.CreateDefaultProperties(name),
+            Children = definition.IsContainer ? [] : null,
+        }.WithBounds(new ControlBounds(0, 0, definition.DefaultWidth, definition.DefaultHeight));
+    }
+
+    private PlacedControl? Placed(Guid containerId) =>
+        ContainerLayout.Flatten(Document.Screen).FirstOrDefault(p => p.Control.Id == containerId && p.Control.Children is not null);
+
+    /// <summary>Where a control dropped at a screen point goes in a container.</summary>
+    private static (int Index, int? Row, int? Column) DropPosition(PlacedControl container, double x, double y, Guid? ignore)
+    {
+        if (container.Control.Type == ControlType.Grid)
+        {
+            var (row, column) = ContainerLayout.GridCellAt(container, x, y);
+            return (container.Control.Children?.Count ?? 0, row, column);
+        }
+
+        return (ContainerLayout.StackIndexAt(container, x, y, ignore), null, null);
+    }
+
     /// <summary>
     /// The name itself if free; otherwise the name without trailing digits plus the lowest free
     /// number from 2 up: Button1 becomes Button2, SubmitButton becomes SubmitButton2.
@@ -347,7 +544,7 @@ public sealed class DesignEditor
     /// <summary>Returns the lowest free default name for a type: Button1, Button2, and so on.</summary>
     public static string NextDefaultName(ScreenDocument screen, ControlType type)
     {
-        var taken = new HashSet<string>(screen.Controls.Select(c => c.Name), StringComparer.OrdinalIgnoreCase);
+        var taken = new HashSet<string>(ControlTree.All(screen.Controls).Select(c => c.Name), StringComparer.OrdinalIgnoreCase);
         for (var n = 1; ; n++)
         {
             var candidate = $"{type}{n}";
@@ -389,7 +586,7 @@ public sealed class DesignEditor
     private void Replace(ControlDocument current, ControlDocument replacement)
     {
         var screen = Document.Screen;
-        Commit(Document with { Screen = screen with { Controls = screen.Controls.Replace(current, replacement) } });
+        Commit(Document with { Screen = screen with { Controls = ControlTree.Replace(screen.Controls, current.Id, _ => replacement) } });
     }
 
     private void Commit(ProjectDocument next)

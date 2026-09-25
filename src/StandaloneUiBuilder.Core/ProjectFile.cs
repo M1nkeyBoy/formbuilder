@@ -65,13 +65,7 @@ public static class ProjectFile
 
         // Fill in type-specific values that older or hand-edited files omit, and drop values
         // the control type does not use.
-        var screen = document.Screen with
-        {
-            Controls = document.Screen.Controls.ConvertAll(c =>
-                ControlCatalog.TryGet(c.Type, out var definition)
-                    ? c with { Properties = definition.Normalize(c.Properties ?? new ControlProperties()) }
-                    : c),
-        };
+        var screen = document.Screen with { Controls = document.Screen.Controls.ConvertAll(Normalize) };
         document = document with { Screen = screen };
 
         var errors = DocumentValidator.Validate(document);
@@ -82,6 +76,26 @@ public static class ProjectFile
         }
 
         return document;
+    }
+
+    /// <summary>
+    /// Fills in type-specific values that older or hand-edited files omit, drops values the
+    /// type does not use, and gives containers an empty child list, all the way down the tree.
+    /// </summary>
+    private static ControlDocument Normalize(ControlDocument control)
+    {
+        if (!ControlCatalog.TryGet(control.Type, out var definition))
+        {
+            return control;
+        }
+
+        return control with
+        {
+            Properties = definition.Normalize(control.Properties ?? new ControlProperties()),
+            Children = definition.IsContainer ? (control.Children ?? []).ConvertAll(Normalize)
+                : control.Children is { Count: 0 } ? null
+                : control.Children,
+        };
     }
 
     /// <summary>
@@ -150,7 +164,8 @@ public static class ProjectFile
         }
 
         // Version 1 had no anchors; every control loads with the default (left and top), which
-        // is how version 1 designs behaved. Nothing else changed between versions 1 and 2.
+        // is how version 1 designs behaved. Version 3 added containers, which older files cannot
+        // contain, so version 1 and 2 files need nothing else.
     }
 
     // Unknown types would otherwise fail inside the JSON reader with an unhelpful message.

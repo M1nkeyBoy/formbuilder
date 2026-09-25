@@ -231,3 +231,24 @@ Choices made during the prototype slices that affect later work.
 - **Screen size.** With nothing selected, the Properties panel sets the screen's width and
   height (100 to 10000 DIPs). A size that would leave a control outside is refused with its
   name. This changes only existing fields, so the file format is unchanged.
+
+## Slice 14 — Containers: model and rules
+
+- **Two containers.** `StackPanel` lines children up vertically or horizontally with a gap;
+  `Grid` divides itself into equal rows and columns. Both are placed on the screen like any
+  control (position, size, anchors) and can be nested.
+- **The container owns placement.** A child's position comes from its container. Along a
+  stack's direction the child keeps its own size and it stretches across; in a grid it fills
+  its cell. This is what makes groups of controls resize together.
+- **Equal grid cells for now.** Rows and columns are counts, not per-row sizes. Cell edges
+  are rounded from exact fractions so cells tile with no gaps. Spans and sized rows can
+  come later without breaking files: they would be new optional fields.
+- **Reference rules in Core.** `ContainerLayout` arranges children and flattens the tree to
+  screen positions at any window size; `ControlTree` does tree edits. Everything else (the
+  designer, Preview, both generators, the tests) follows these rules.
+- **Format version 3.** New types and fields, documented with the version history. Older
+  files load unchanged.
+- **Editing operations.** Add into a container at a drop point (a stack position or a grid
+  cell), move into or out of a container, reorder inside one, set a child's size along its
+  stack or its grid cell, and edit orientation, spacing, rows and columns. Each is one undo
+  step. A container cannot be put inside itself.
