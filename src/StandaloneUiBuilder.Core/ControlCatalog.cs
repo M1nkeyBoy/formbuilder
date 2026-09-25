@@ -29,6 +29,9 @@ public sealed record ControlDefinition(
     /// <summary>True for types that hold child controls.</summary>
     public bool IsContainer => IsStack || IsGrid;
 
+    /// <summary>True for types that can open or close a screen when clicked.</summary>
+    public bool HasAction => Type == ControlType.Button;
+
     public ControlProperties CreateDefaultProperties(string name) => Type switch
     {
         ControlType.TextBox => new ControlProperties { Text = "" },
@@ -57,6 +60,9 @@ public sealed record ControlDefinition(
         Columns = IsGrid ? properties.Columns ?? 1 : null,
         RowSizes = IsGrid ? properties.RowSizes : null,
         ColumnSizes = IsGrid ? properties.ColumnSizes : null,
+
+        OpensScreen = HasAction ? properties.OpensScreen : null,
+        ClosesScreen = HasAction && properties.ClosesScreen == true ? true : null,
 
         // Stored only when true, so single-line text boxes read and write as before.
         IsMultiline = HasMultiline && properties.IsMultiline == true ? true : null,

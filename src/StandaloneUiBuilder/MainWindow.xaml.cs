@@ -32,6 +32,9 @@ public partial class MainWindow : Window
     private string? lastExportFolder;
     private bool isPreview;
     private string? shownScreenId;
+
+    // Screens opened by buttons in Preview, most recent last, so a closing button goes back.
+    private readonly Stack<string> previewTrail = new();
     private bool refreshingScreenTabs;
 
     // UIB_RECOVERY_DIR moves recovery drafts elsewhere, so automated tests never touch a
@@ -336,6 +339,23 @@ public partial class MainWindow : Window
         AnchorRightBox.IsChecked = control.Anchor.HasFlag(AnchorEdges.Right);
         AnchorBottomBox.IsChecked = control.Anchor.HasFlag(AnchorEdges.Bottom);
 
+        ActionRow.Visibility = Show(definition.HasAction);
+        if (definition.HasAction)
+        {
+            // Nothing, close this screen, or open any other screen, by name.
+            var actions = new List<ButtonAction> { new("Nothing else", null, false), new("Close this screen", null, true) };
+            actions.AddRange(editor.Document.Screens.Where(s => s.Id != editor.Screen.Id).Select(s => new ButtonAction($"Open {s.Name}", s.Id, false)));
+            if (properties.OpensScreen is { } target && actions.All(a => a.OpensScreen != target))
+            {
+                actions.Add(new ButtonAction("Open this screen again", target, false));
+            }
+
+            refreshingInspector = true;
+            ActionBox.ItemsSource = actions;
+            ActionBox.SelectedIndex = actions.FindIndex(a => a.OpensScreen == properties.OpensScreen && a.ClosesScreen == (properties.ClosesScreen == true));
+            refreshingInspector = false;
+        }
+
         MultilineRow.Visibility = Show(definition.HasMultiline);
         MultilineBox.IsChecked = properties.IsMultiline == true;
         RangeRow.Visibility = Show(definition.HasRange);
@@ -591,6 +611,18 @@ public partial class MainWindow : Window
             e.Handled = true;
         }
     }
+
+    private void ActionBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!refreshingInspector && inspectedId is { } id && ActionBox.SelectedItem is ButtonAction action)
+        {
+            anchorError = editor.SetButtonAction(id, action.OpensScreen, action.ClosesScreen);
+            UpdateInspectorErrors();
+        }
+    }
+
+    /// <summary>A choice in the Properties panel's "On click" list.</summary>
+    private sealed record ButtonAction(string Label, string? OpensScreen, bool ClosesScreen);
 
     private void MultilineBox_Click(object sender, RoutedEventArgs e)
     {
@@ -1125,6 +1157,7 @@ public partial class MainWindow : Window
 
         CommitFocusedField();
         this.isPreview = isPreview;
+        previewTrail.Clear();
         DesignMenuItem.IsChecked = !isPreview;
         PreviewMenuItem.IsChecked = isPreview;
         ToolboxList.IsEnabled = !isPreview;
@@ -1137,7 +1170,38 @@ public partial class MainWindow : Window
             : "Design mode";
     }
 
-    private void PreviewButton_Clicked(ControlDocument button) => StatusText.Text = $"{button.Name} clicked";
+    /// <summary>
+    /// A button clicked in Preview: it opens the screen it is set to open, or goes back from a
+    /// screen it closes, the way the exported application would.
+    /// </summary>
+    private void PreviewButton_Clicked(ControlDocument button) =>
+        // After the click finishes: switching screens rebuilds the Preview, button included.
+        Dispatcher.BeginInvoke(() => FollowPreviewButton(button));
+
+    private void FollowPreviewButton(ControlDocument button)
+    {
+        var properties = button.Properties;
+        if (properties.OpensScreen is { } target && editor.Document.FindScreen(target) is { } screen)
+        {
+            previewTrail.Push(editor.Screen.Id);
+            editor.SelectScreen(screen.Id);
+            StatusText.Text = $"{button.Name} clicked: opened {screen.Name}";
+        }
+        else if (properties.ClosesScreen == true && previewTrail.TryPop(out var previous))
+        {
+            var closed = editor.Screen.Name;
+            editor.SelectScreen(previous);
+            StatusText.Text = $"{button.Name} clicked: closed {closed}";
+        }
+        else if (properties.ClosesScreen == true)
+        {
+            StatusText.Text = $"{button.Name} clicked: this would close the {editor.Screen.Name} window";
+        }
+        else
+        {
+            StatusText.Text = $"{button.Name} clicked";
+        }
+    }
 
     private void ScheduleRecoveryDraft()
     {

@@ -11,9 +11,10 @@ public sealed record ProjectDocument
     /// <summary>
     /// The format version this builder writes. Older versions (1: no anchors, 2: no containers,
     /// 3: no grid spans, 4: no sized grid rows and columns, 5: one screen, 6: the first seven
-    /// control types only) are still read. See docs/project-format.md for the history.
+    /// control types only, 7: no button actions) are still read. See docs/project-format.md for
+    /// the history.
     /// </summary>
-    public const int CurrentSchemaVersion = 7;
+    public const int CurrentSchemaVersion = 8;
 
     public const int OldestSupportedSchemaVersion = 1;
     public const string DefaultName = "Untitled";
@@ -138,6 +139,12 @@ public sealed record ControlProperties
     public bool? IsChecked { get; init; }
 
     public ImmutableList<string>? Items { get; init; }
+
+    /// <summary>Button: the ID of a screen the button opens, as a dialog over its own.</summary>
+    public string? OpensScreen { get; init; }
+
+    /// <summary>Button: true if the button closes its own screen.</summary>
+    public bool? ClosesScreen { get; init; }
 
     /// <summary>TextBox: true for several lines of text that wrap; null for a single line.</summary>
     public bool? IsMultiline { get; init; }

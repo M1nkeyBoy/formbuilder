@@ -22,11 +22,14 @@ Exporting "Customer form" into `C:\Exports` produces `C:\Exports\CustomerForm\`:
 
 Each screen becomes its own form. The first screen is always `MainForm`, which `Program`
 runs; every other screen is named after itself (Settings becomes `SettingsForm`, titled
-"Settings"), and your code opens it:
+"Settings"). A button set in the builder to open it runs, after its hook:
 
 ```csharp
-partial void OnSettingsButtonClick(EventArgs e) => new SettingsForm().Show(this);
+using var form = new SettingsForm();
+form.ShowDialog(this);
 ```
+
+and a button set to close its screen calls `Close()`. Your own code can open forms too.
 
 A later screen named `Main` would clash with `MainForm` and blocks the export. Renaming,
 reordering or deleting screens after exporting leaves the old screen's files, and any code
@@ -120,6 +123,6 @@ refers to the control, not the Form property.
   containers), runs them, and reads each control's real
   position and size through UI Automation. It then enlarges the window and checks that
   anchored controls moved and stretched as the Core anchor rules say, and that an
-  implemented Click hook runs. For the layout demo, that hook opens its second screen's
-  form, whose layout is checked the same way.
+  implemented Click hook runs. For the layout demo, the OK button's action opens its second
+  screen's form, whose layout is checked the same way, and that form's Close button closes it.
 - CI builds and runs the exported sample and captures a screenshot.

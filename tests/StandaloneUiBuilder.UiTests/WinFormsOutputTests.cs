@@ -31,8 +31,8 @@ public sealed class WinFormsOutputTests
     public void GeneratedFormLaysOutControlsByTheirAnchors() => AssertGeneratedForm(Sample(), "CustomerForm", checkSubmitHook: true);
 
     /// <summary>
-    /// The layout demo has a second screen. Its OK button's hook is implemented to open that
-    /// screen's form, whose layout is then checked too.
+    /// The layout demo has a second screen, which its OK button opens (a button action from the
+    /// design, not hand-written code). Its layout is checked too, and its Close button closes it.
     /// </summary>
     [UiWalkthroughFact]
     public void GeneratedFormLaysOutContainers() => AssertGeneratedForm(
@@ -47,10 +47,6 @@ public sealed class WinFormsOutputTests
         }
 
         var secondScreen = document.Screens.Skip(1).FirstOrDefault();
-        if (secondScreen is not null)
-        {
-            ImplementHook(folder, "OnOkButtonClick", $"new {WinFormsGenerator.ClassName(document, secondScreen)}().Show(this)");
-        }
 
         var exe = Build(folder, projectName);
 
@@ -79,16 +75,24 @@ public sealed class WinFormsOutputTests
                 EditorSession.WaitUntil(() => window.Title.StartsWith("Submitted", StringComparison.Ordinal), () => $"Title after clicking Submit: {window.Title}");
             }
 
-            // Another screen is its own form, opened by the developer's code.
+            // Another screen is its own form, opened as a dialog by the OK button's action. A
+            // mouse click, since UI Automation's Invoke can wait for the dialog to close.
             if (secondScreen is not null)
             {
-                EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("OkButton")), "OK button").AsButton().Invoke();
-                // UI Automation lists a form opened with Show(this) under its owner, not at the top level.
+                EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("OkButton")), "OK button").Click();
+
+                // UI Automation lists an owned form under its owner, not at the top level.
                 var second = EditorSession.WaitFor(
                     () => app.GetAllTopLevelWindows(automation).FirstOrDefault(w => w.Title == secondScreen.Name)
                         ?? window.FindFirstChild(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Window).And(cf.ByName(secondScreen.Name)))?.AsWindow(),
                     $"the {secondScreen.Name} form");
                 AssertLayout(second, secondScreen, secondScreen.Width, secondScreen.Height);
+
+                EditorSession.WaitFor(() => second.FindFirstDescendant(cf => cf.ByAutomationId("CloseSettingsButton")), "Close button").Click();
+                EditorSession.WaitUntil(
+                    () => app.GetAllTopLevelWindows(automation).All(w => w.Title != secondScreen.Name)
+                        && window.FindFirstChild(cf => cf.ByName(secondScreen.Name)) is null,
+                    () => $"The {secondScreen.Name} form did not close.");
             }
         }
         finally

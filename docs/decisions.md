@@ -386,3 +386,22 @@ Choices made during the prototype slices that affect later work.
   from the font, as ComboBox already did.
 - The layout demo's Settings screen now uses every new control, so the Windows layout
   checks cover them in Preview, WPF and WinForms.
+
+## Slice 21 — Buttons that open and close screens
+
+- **The smallest useful action.** A Button can open another screen or close its own. That
+  makes multi-screen designs work end to end without code, while anything richer (passing
+  values, conditions) stays in the hooks, where C# already does it well. The spec defers
+  actions in general; this is deliberately the only one.
+- **Opened as a dialog.** Dialogs are the common case for a second screen in a desktop tool,
+  need no window management, and behave the same in WPF (`ShowDialog` with an owner) and
+  WinForms (`ShowDialog(this)`).
+- **Screens are linked by ID,** so renaming a screen keeps its buttons working and the
+  generated code follows the new class name. Deleting a screen clears the links to it in
+  the same undo step; a file that links to a missing screen is rejected on load.
+- **The hook runs first,** then the action, from the regenerated handler, so developer code
+  can prepare the next screen (or save) before it opens or the current one closes.
+- **Preview follows actions.** Clicking a button switches the preview to the screen it opens,
+  and a closing button goes back to the screen that opened it. Switching waits until the
+  click has finished, since it rebuilds the Preview, including the button.
+- **Format version 8.**

@@ -17,15 +17,16 @@ A complete example is in [`samples/customer-form.uibproj`](samples/customer-form
 | 5 | Adds `rowSizes` and `columnSizes` to Grid properties. | None: older files have equal rows and columns. |
 | 6 | Replaces the single `screen` with a list of `screens`. | The file's `screen` becomes the only entry in `screens`. Its name becomes `Main` if it is not an identifier (only possible in a hand-edited file). |
 | 7 | Adds the types `RadioButton`, `ListBox`, `Slider`, `ProgressBar`, `DatePicker`, `PasswordBox` and the container `GroupBox`, and the properties `isMultiline`, `minimum`, `maximum` and `value`. | None: older files use none of them. |
+| 8 | Adds `opensScreen` and `closesScreen` to Buttons. | None: older buttons do nothing but call their hook. |
 
-The builder reads versions 1 to 7 and always saves version 7. An older builder rejects a
+The builder reads versions 1 to 8 and always saves version 8. An older builder rejects a
 newer file with a clear message instead of silently dropping what it does not know.
 
-## Schema version 7
+## Schema version 8
 
 ```json
 {
-  "schemaVersion": 7,
+  "schemaVersion": 8,
   "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971",
   "name": "Customer form",
   "screens": [{
@@ -55,7 +56,7 @@ newer file with a clear message instead of silently dropping what it does not kn
 
 | Field | Type | Notes |
 |---|---|---|
-| `schemaVersion` | integer | Required. `7` when saved by this builder; `1` to `6` are still read. |
+| `schemaVersion` | integer | Required. `8` when saved by this builder; `1` to `7` are still read. |
 | `projectId` | GUID string | Required. Stable for the life of the project. |
 | `name` | string | Written as the file name (without extension) on save. |
 | `screens` | array | Required, at least one. In order: the first is the main screen, which a generated application opens with. Versions 1 to 5 had a single `screen` object instead. |
@@ -134,6 +135,10 @@ Anchors describe what happens when a generated window is made larger than the de
 PasswordBox and DatePicker have no type-specific properties: a password is never stored, and
 a DatePicker starts with no date chosen. RadioButtons in the same container (or directly on
 the screen) are one group: choosing one in the editor clears the others.
+
+A Button may have an action: `opensScreen`, the `id` of a screen it opens as a dialog over
+its own, or `closesScreen: true` to close its own screen. Not both; the screen must exist.
+Deleting a screen in the editor removes the buttons' links to it.
 
 A TextBox may have `isMultiline: true` for several lines of text that wrap; it is omitted for
 a single line.

@@ -541,7 +541,29 @@ public static class WinFormsGenerator
             }
 
             first = false;
-            code.AppendLine($"    private void {HandlerName(control)}(object? sender, System.EventArgs e) => {HookName(control)}(e);");
+            if (control.Properties.OpensScreen is { } id && document.FindScreen(id) is { } target)
+            {
+                // The hook runs first, then the button's action from the design.
+                code.AppendLine($"    private void {HandlerName(control)}(object? sender, System.EventArgs e)");
+                code.AppendLine("    {");
+                code.AppendLine($"        {HookName(control)}(e);");
+                code.AppendLine($"        using var form = new {ClassName(document, target)}();");
+                code.AppendLine("        form.ShowDialog(this);");
+                code.AppendLine("    }");
+            }
+            else if (control.Properties.ClosesScreen == true)
+            {
+                code.AppendLine($"    private void {HandlerName(control)}(object? sender, System.EventArgs e)");
+                code.AppendLine("    {");
+                code.AppendLine($"        {HookName(control)}(e);");
+                code.AppendLine("        Close();");
+                code.AppendLine("    }");
+            }
+            else
+            {
+                code.AppendLine($"    private void {HandlerName(control)}(object? sender, System.EventArgs e) => {HookName(control)}(e);");
+            }
+
             code.AppendLine();
             code.AppendLine($"    /// <summary>{control.Type} \"{control.Name}\": {e}.</summary>");
             code.AppendLine($"    partial void {HookName(control)}(System.EventArgs e);");

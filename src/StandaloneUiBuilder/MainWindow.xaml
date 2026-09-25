@@ -326,6 +326,12 @@
                             <Label Content="_Text" Target="{Binding ElementName=TextValueBox}" Style="{StaticResource FieldLabel}" />
                             <TextBox x:Name="TextValueBox" Style="{StaticResource FieldBox}" />
                         </DockPanel>
+                        <DockPanel x:Name="ActionRow" Style="{StaticResource FieldRow}"
+                                   ToolTip="What clicking the button does in Preview and in exported code, after its hook.">
+                            <Label Content="On click" Target="{Binding ElementName=ActionBox}" Style="{StaticResource FieldLabel}" />
+                            <ComboBox x:Name="ActionBox" AutomationProperties.Name="On click"
+                                      DisplayMemberPath="Label" SelectionChanged="ActionBox_SelectionChanged" />
+                        </DockPanel>
                         <DockPanel x:Name="MultilineRow" Style="{StaticResource FieldRow}"
                                    ToolTip="Several lines of text that wrap, with a scroll bar when needed.">
                             <Label Content="Lines" Style="{StaticResource FieldLabel}" />

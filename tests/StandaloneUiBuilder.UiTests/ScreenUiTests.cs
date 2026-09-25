@@ -58,4 +58,26 @@ public sealed class ScreenUiTests : IDisposable
         EditorSession.Press(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Z);
         EditorSession.WaitUntil(() => tabs.FindAllChildren().Length == 1, () => $"{tabs.FindAllChildren().Length} tabs after undoing Add Screen.");
     }
+
+    /// <summary>In Preview, the layout demo's OK button opens Settings and its Close button goes back.</summary>
+    [UiWalkthroughFact]
+    public void ButtonsOpenAndCloseScreensInPreview()
+    {
+        var sample = Path.Combine(AppContext.BaseDirectory, "samples", "layout-demo.uibproj");
+        using var session = EditorSession.Launch(recoveryDirectory, sample);
+        EditorSession.WaitUntil(() => session.Window.Title.StartsWith("layout-demo", StringComparison.Ordinal), () => "The sample did not open.");
+
+        session.ById("PreviewModeButton").Click();
+        EditorSession.WaitUntil(() => session.Status.StartsWith("Preview", StringComparison.Ordinal), () => $"Status: {session.Status}");
+
+        // OK is the first button in the footer stack at (20, 530).
+        session.ClickCanvas(70, 550);
+        EditorSession.WaitUntil(() => session.Status == "OkButton clicked: opened Settings", () => $"Status: {session.Status}");
+        session.Screenshot("14-preview-opened-settings");
+
+        // Close sits at (530, 400) on the Settings screen.
+        session.ClickCanvas(575, 415);
+        EditorSession.WaitUntil(() => session.Status == "CloseSettingsButton clicked: closed Settings", () => $"Status: {session.Status}");
+        Assert.True(session.Window.FindFirstDescendant(session.Find.ByName("OK")) is not null, "The Main screen is not showing again.");
+    }
 }

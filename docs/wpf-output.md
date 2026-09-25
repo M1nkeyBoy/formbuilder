@@ -28,11 +28,8 @@ Exporting a project named "Customer form" into a folder `C:\Exports` produces
 
 Each screen becomes its own window. The first screen is always `MainWindow`, which the app
 opens with; every other screen is named after itself, so a screen called Settings becomes
-`SettingsWindow` (titled "Settings"). Your code opens it, for example from a button hook:
-
-```csharp
-partial void OnSettingsButtonClick(RoutedEventArgs e) => new SettingsWindow { Owner = this }.ShowDialog();
-```
+`SettingsWindow` (titled "Settings"). A button set to open it shows it as a dialog (see
+below); your own code can open it too, with `new SettingsWindow { Owner = this }.ShowDialog()`.
 
 Only the `.xaml` and `.Events.g.cs` files are rewritten on later exports. The other files are created once and
 then belong to you, so code you add to `MainWindow.xaml.cs` survives design changes. If a
@@ -117,6 +114,19 @@ containers have none.
 | Slider | `ValueChanged` | `partial void On<Name>ValueChanged(RoutedPropertyChangedEventArgs<double> e)` |
 | DatePicker | `SelectedDateChanged` | `partial void On<Name>SelectedDateChanged(SelectionChangedEventArgs e)` |
 | PasswordBox | `PasswordChanged` | `partial void On<Name>PasswordChanged(RoutedEventArgs e)` |
+
+A Button set in the builder to open a screen or close its own does that after its hook
+returns, from the generated handler:
+
+```csharp
+private void SettingsButton_Click(object sender, RoutedEventArgs e)
+{
+    OnSettingsButtonClick(e);
+    new SettingsWindow { Owner = this }.ShowDialog();
+}
+```
+
+A button that closes its screen calls `Close()` instead.
 
 For example, in `MainWindow.xaml.cs`:
 

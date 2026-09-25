@@ -148,6 +148,19 @@ public static partial class DocumentValidator
                 ValidateControl(screen, control, parent: null, ids, screenErrors);
             }
 
+            foreach (var button in ControlTree.All(screen.Controls).Where(c => c.Properties.OpensScreen is not null || c.Properties.ClosesScreen == true))
+            {
+                if (button.Properties.OpensScreen is { } target && document.FindScreen(target) is null)
+                {
+                    screenErrors.Add($"Control \"{button.Name}\" opens a screen that does not exist (\"{target}\").");
+                }
+
+                if (button.Properties.OpensScreen is not null && button.Properties.ClosesScreen == true)
+                {
+                    screenErrors.Add($"Control \"{button.Name}\" both opens a screen and closes its own.");
+                }
+            }
+
             errors.AddRange(screenErrors.Select(e => prefix + e));
         }
 

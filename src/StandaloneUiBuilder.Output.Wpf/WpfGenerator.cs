@@ -444,7 +444,20 @@ public static class WpfGenerator
             }
 
             first = false;
-            code.AppendLine($"    private void {HandlerName(control)}(object sender, {e.Args} e) => {HookName(control)}(e);");
+            if (ActionStatement(document, control) is { } action)
+            {
+                // The hook runs first, then the button's action from the design.
+                code.AppendLine($"    private void {HandlerName(control)}(object sender, {e.Args} e)");
+                code.AppendLine("    {");
+                code.AppendLine($"        {HookName(control)}(e);");
+                code.AppendLine($"        {action}");
+                code.AppendLine("    }");
+            }
+            else
+            {
+                code.AppendLine($"    private void {HandlerName(control)}(object sender, {e.Args} e) => {HookName(control)}(e);");
+            }
+
             code.AppendLine();
             code.AppendLine($"    /// <summary>{control.Type} \"{control.Name}\": {e.Event}.</summary>");
             code.AppendLine($"    partial void {HookName(control)}({e.Args} e);");
@@ -460,6 +473,13 @@ public static class WpfGenerator
     /// </summary>
     private static string WindowTitle(ProjectDocument document, ScreenDocument screen) =>
         screen.Id == document.MainScreen.Id ? document.Name : screen.Name;
+
+    /// <summary>What a button's action does: show another screen's window as a dialog, or close this one.</summary>
+    private static string? ActionStatement(ProjectDocument document, ControlDocument control) =>
+        control.Properties.OpensScreen is { } id && document.FindScreen(id) is { } target
+            ? $"new {ClassName(document, target)} {{ Owner = this }}.ShowDialog();"
+            : control.Properties.ClosesScreen == true ? "Close();"
+            : null;
 
     private static string WindowCode(string rootNamespace, string className) => $$"""
         using System.Windows;

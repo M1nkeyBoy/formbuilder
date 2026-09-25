@@ -201,7 +201,8 @@ public static partial class ProjectFile
         // is how version 1 designs behaved. Versions 3 to 5 added containers, grid spans and
         // sized grid rows and columns; older files have none of them, so need nothing else.
         // Version 6 allows several screens; older files are read as having one. Version 7 adds
-        // control types and properties that older files do not use.
+        // control types and properties that older files do not use, and version 8 button
+        // actions.
         return version;
     }
 

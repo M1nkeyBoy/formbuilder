@@ -39,8 +39,9 @@ choices are recorded in `docs/decisions.md`.
 - **Screens.** A project can have several screens, shown as tabs above the canvas. The
   Screen menu adds (Ctrl+Shift+N, or the + beside the tabs), duplicates, deletes and reorders
   them; Ctrl+PageUp and Ctrl+PageDown switch between them. The first screen is the one an
-  exported app opens with; each other screen becomes its own window or form for your code
-  to open. With nothing selected, the Properties panel sets the screen's name, width and
+  exported app opens with; each other screen becomes its own window or form. A Button's "On
+  click" setting can open another screen as a dialog or close its own, in Preview and in
+  exported apps. With nothing selected, the Properties panel sets the screen's name, width and
   height.
 - **Undo and redo.** Ctrl+Z and Ctrl+Y cover adding, deleting, moving, resizing and property
   changes, and screen changes. A whole drag is one step. Undo shows the screen the change
@@ -136,8 +137,8 @@ tests use this so they never touch your own drafts.
 
 ## Known limitations
 
-- Screens do not open each other by themselves: exported code opens a screen from a hook you
-  write.
+- Buttons can open and close screens, but there are no other actions (such as passing
+  values between screens); those go in the hooks.
 - Eleven built-in controls and three containers; no tabs, images, menus or data grids yet.
   RadioButtons group by the container they are in. Grid rows and columns can be fixed or shared,
   but not sized to their content. Copy and paste stay within the editor rather than using the system clipboard.

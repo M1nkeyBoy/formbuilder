@@ -462,6 +462,27 @@ public sealed class DesignEditor
         return null;
     }
 
+    /// <summary>
+    /// Sets what a Button does when clicked, besides calling its hook: open another screen
+    /// (by ID), close its own screen, or neither (both null or false).
+    /// </summary>
+    public string? SetButtonAction(Guid id, string? opensScreen, bool closesScreen)
+    {
+        if (opensScreen is not null && closesScreen)
+        {
+            return "A button can open a screen or close its own, not both.";
+        }
+
+        if (opensScreen is not null && Document.FindScreen(opensScreen) is null)
+        {
+            return "That screen no longer exists.";
+        }
+
+        return EditProperties(id, d => d.HasAction, "an action", p =>
+            p.OpensScreen == opensScreen && (p.ClosesScreen == true) == closesScreen ? p
+            : p with { OpensScreen = opensScreen, ClosesScreen = closesScreen ? true : null });
+    }
+
     /// <summary>Makes a TextBox hold several wrapping lines of text, or one line.</summary>
     public string? SetIsMultiline(Guid id, bool isMultiline) =>
         EditProperties(id, d => d.HasMultiline, "a multi-line setting", p =>
@@ -609,8 +630,17 @@ public sealed class DesignEditor
             return "A project needs at least one screen.";
         }
 
-        var index = Document.Screens.FindIndex(s => s.Id == Screen.Id);
-        var screens = Document.Screens.RemoveAt(index);
+        // Buttons that opened the deleted screen no longer open anything.
+        var deleted = Screen.Id;
+        static ControlDocument Unlink(ControlDocument control, string screenId) => control with
+        {
+            Properties = control.Properties.OpensScreen == screenId ? control.Properties with { OpensScreen = null } : control.Properties,
+            Children = control.Children?.ConvertAll(child => Unlink(child, screenId)),
+        };
+
+        var index = Document.Screens.FindIndex(s => s.Id == deleted);
+        var screens = Document.Screens.RemoveAt(index)
+            .ConvertAll(s => s with { Controls = s.Controls.ConvertAll(c => Unlink(c, deleted)) });
         Commit(Document with { Screens = screens }, screens[Math.Max(0, index - 1)].Id);
         return null;
     }
