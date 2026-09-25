@@ -83,8 +83,10 @@ public sealed class WinFormsOutputTests
             if (secondScreen is not null)
             {
                 EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("OkButton")), "OK button").AsButton().Invoke();
+                // UI Automation lists a form opened with Show(this) under its owner, not at the top level.
                 var second = EditorSession.WaitFor(
-                    () => app.GetAllTopLevelWindows(automation).FirstOrDefault(w => w.Title == secondScreen.Name),
+                    () => app.GetAllTopLevelWindows(automation).FirstOrDefault(w => w.Title == secondScreen.Name)
+                        ?? window.FindFirstChild(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Window).And(cf.ByName(secondScreen.Name)))?.AsWindow(),
                     $"the {secondScreen.Name} form");
                 AssertLayout(second, secondScreen, secondScreen.Width, secondScreen.Height);
             }
