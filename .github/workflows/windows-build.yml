@@ -56,6 +56,7 @@ jobs:
         if: always()
         shell: pwsh
         run: |
+          Get-Content artifacts/screenshots/timings.txt -ErrorAction SilentlyContinue
           Get-ChildItem artifacts/screenshots -Filter *.png -ErrorAction SilentlyContinue | ForEach-Object {
             $base64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($_.FullName))
             Write-Output "SCREENSHOT-BASE64-BEGIN $($_.Name)"

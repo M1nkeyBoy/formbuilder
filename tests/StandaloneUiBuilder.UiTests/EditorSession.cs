@@ -84,6 +84,14 @@ internal sealed class EditorSession : IDisposable
 
     public string Status => ById("StatusText").Name;
 
+    /// <summary>The automation ID of the element with keyboard focus, or its class name if it has none.</summary>
+    public string FocusedAutomationId()
+    {
+        var focused = automation.FocusedElement();
+        var id = focused.Properties.AutomationId.ValueOrDefault;
+        return string.IsNullOrEmpty(id) ? focused.Properties.ClassName.ValueOrDefault ?? "" : id;
+    }
+
     /// <summary>Screen point of a design coordinate, assuming 100% display scaling.</summary>
     public Point Canvas(int x, int y)
     {

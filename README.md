@@ -29,6 +29,13 @@ generate application code. Design choices are recorded in `docs/decisions.md`.
 
 Try it with the sample: File > Open > `docs\samples\customer-form.uibproj`.
 
+| Design | Preview |
+|---|---|
+| ![Design mode with a selected button and the Properties panel](docs/screenshots/design-mode.png) | ![Preview mode with typed text, a ticked check box and a chosen ComboBox item](docs/screenshots/preview-mode.png) |
+
+More in [`docs/screenshots`](docs/screenshots): the sample project, and a draft recovered
+after a forced close. All were captured on Windows by the CI walkthrough.
+
 ## Open in Visual Studio
 
 1. Install Visual Studio 2026 (or 2022 17.14 or later) with the **.NET desktop development**
@@ -73,7 +80,8 @@ dotnet test StandaloneUiBuilder.sln
 - `tests/StandaloneUiBuilder.Core.Tests` covers the document model, editing rules, undo,
   saving and loading, and recovery. It also runs on Linux and macOS.
 - `tests/StandaloneUiBuilder.UiTests` is an end-to-end walkthrough of the prototype
-  acceptance steps. It drives the real editor with the mouse and keyboard, so it is skipped
+  acceptance steps, plus checks that editing stays responsive with 60 controls and that
+  Tab reaches the toolbox and Properties panel. It drives the real editor with the mouse and keyboard, so it is skipped
   unless you opt in:
 
   ```powershell
@@ -98,8 +106,7 @@ or close normally. Recovery copies never overwrite your project file.
 - Positions are absolute. This suits the prototype but not the responsive layouts that later
   WinUI, MAUI or Blazor output will need (see the spec's "decisions to revisit").
 - No code generation or import of existing projects.
-- The walkthrough test assumes 100% display scaling. Scaling at 150% has not been checked
-  by hand.
+- The automated UI tests assume 100% display scaling. 150% scaling has been checked by hand.
 - Only the most recent recovery draft is offered at each start; older ones wait for later
   starts.
 
