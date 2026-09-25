@@ -135,6 +135,16 @@ internal sealed class EditorSession : IDisposable
         Thread.Sleep(200);
     }
 
+    /// <summary>
+    /// Closes the main window with Alt+F4. (The automation Close call can wait on the editor's
+    /// modal unsaved-changes prompt.)
+    /// </summary>
+    public void CloseWindow()
+    {
+        Window.Focus();
+        Press(VirtualKeyShort.ALT, VirtualKeyShort.F4);
+    }
+
     /// <summary>Finds a button in any dialog the editor is showing.</summary>
     public Button DialogButton(string name) => WaitFor(() =>
     {

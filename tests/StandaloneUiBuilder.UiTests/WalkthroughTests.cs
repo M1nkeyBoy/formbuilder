@@ -164,7 +164,7 @@ public sealed class WalkthroughTests : IDisposable
         EditorSession.WaitUntil(() => editor.Window.Title.Contains('●'), () => "Delete did not mark the project changed.");
 
         // Cancel keeps the work open.
-        editor.Window.Close();
+        editor.CloseWindow();
         editor.DialogButton("Cancel").Invoke();
         EditorSession.WaitUntil(() => !editor.App.HasExited && editor.Window.ModalWindows.Length == 0, () => "Cancel did not keep the editor open.");
 
@@ -173,7 +173,7 @@ public sealed class WalkthroughTests : IDisposable
         EditorSession.Press(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Z);
         EditorSession.WaitUntil(() => !editor.Window.Title.Contains('●'), () => "Undo back to the saved state still shows unsaved changes.");
 
-        editor.Window.Close();
+        editor.CloseWindow();
         editor.WaitForExit();
     }
 
@@ -190,7 +190,7 @@ public sealed class WalkthroughTests : IDisposable
         EditorSession.Press(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_S);
         EditorSession.WaitUntil(() => !editor.Window.Title.Contains('●'), () => "Ctrl+S did not save.");
 
-        editor.Window.Close();
+        editor.CloseWindow();
         editor.WaitForExit();
     }
 
@@ -217,7 +217,7 @@ public sealed class WalkthroughTests : IDisposable
             editor.Screenshot("04-recovered");
 
             // Declining to save keeps the explicit save on disk untouched.
-            editor.Window.Close();
+            editor.CloseWindow();
             editor.DialogButton("Discard").Invoke();
             editor.WaitForExit();
         }
