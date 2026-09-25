@@ -56,6 +56,7 @@ other screen is named after itself, with its name in lower case as its address.
 | Slider | `<input type="range">` with the minimum, maximum and a step of 1 |
 | ProgressBar | `<progress>` |
 | DatePicker | `<input type="date">` |
+| Image | `<img>` with `object-fit: contain` (or `fill`), its picture in `wwwroot/Assets/<screen>/` |
 
 ## Control values and hooks
 

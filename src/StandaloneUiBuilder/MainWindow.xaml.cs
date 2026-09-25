@@ -364,6 +364,13 @@ public partial class MainWindow : Window
         SetField(MaximumBox, (properties.Maximum ?? 0).ToString(CultureInfo.CurrentCulture));
         SetField(ValueBox, (properties.Value ?? 0).ToString(CultureInfo.CurrentCulture));
 
+        ImageRow.Visibility = Show(definition.HasImage);
+        RemoveImageButton.IsEnabled = properties.ImageData is not null;
+        refreshingInspector = true;
+        StretchBox.SelectedIndex = properties.Stretch == ImageStretch.Fill ? 1 : 0;
+        refreshingInspector = false;
+        ColorRow.Visibility = Show(definition.HasBackground);
+
         FontRow.Visibility = Show(definition.HasFont);
         SetField(FontSizeBox, properties.FontSize?.ToString(CultureInfo.CurrentCulture) ?? "");
         BoldBox.IsChecked = properties.IsBold == true;
@@ -650,6 +657,51 @@ public partial class MainWindow : Window
         }
 
         return editor.SetFont(id, size, BoldBox.IsChecked == true);
+    }
+
+    private void ChooseImageButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (inspectedId is not { } id)
+        {
+            return;
+        }
+
+        var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Choose a picture", Filter = ImageFile.OpenFilter };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            anchorError = editor.SetImage(id, File.ReadAllBytes(dialog.FileName));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            anchorError = $"Could not read \"{dialog.FileName}\": {ex.Message}";
+        }
+
+        UpdateInspectorErrors();
+        if (anchorError is null)
+        {
+            StatusText.Text = $"Picture set from {Path.GetFileName(dialog.FileName)}";
+        }
+    }
+
+    private void RemoveImageButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (inspectedId is { } id)
+        {
+            editor.SetImage(id, null);
+        }
+    }
+
+    private void StretchBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!refreshingInspector && inspectedId is { } id && StretchBox.SelectedIndex >= 0)
+        {
+            editor.SetImageStretch(id, StretchBox.SelectedIndex == 1 ? ImageStretch.Fill : ImageStretch.Uniform);
+        }
     }
 
     private void BoldBox_Click(object sender, RoutedEventArgs e)

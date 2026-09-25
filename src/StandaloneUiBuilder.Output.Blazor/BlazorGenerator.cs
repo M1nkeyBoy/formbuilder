@@ -147,6 +147,7 @@ public static class BlazorGenerator
             files.Add(new(PagePath(className, ".Events.g.cs"), EventsCode(document, screen, rootNamespace), Regenerate: true));
         }
 
+        files.AddRange(CodeNames.ImageFiles(document, folder: "wwwroot/"));
         return files;
     }
 
@@ -173,7 +174,7 @@ public static class BlazorGenerator
         markup.AppendLine($"<div class=\"uib-screen\" style=\"{size}\">");
         foreach (var control in screen.Controls)
         {
-            AppendElement(markup, control, RootStyle(screen, control), group: "screen", depth: 1);
+            AppendElement(markup, screen, control, RootStyle(screen, control), group: "screen", depth: 1);
         }
 
         markup.AppendLine("</div>");
@@ -225,7 +226,7 @@ public static class BlazorGenerator
     /// children with theirs. <paramref name="group"/> names the radio button group: the
     /// container a RadioButton is in, or the screen.
     /// </summary>
-    private static void AppendElement(StringBuilder markup, ControlDocument control, List<string> style, string group, int depth)
+    private static void AppendElement(StringBuilder markup, ScreenDocument screen, ControlDocument control, List<string> style, string group, int depth)
     {
         var indent = new string(' ', depth * 4);
         var properties = control.Properties;
@@ -306,12 +307,19 @@ public static class BlazorGenerator
                 var span = (properties.Maximum ?? 100) - minimum;
                 markup.AppendLine($"{indent}<progress {common} class=\"uib-progress\" max=\"{Number(span)}\" value=\"@({name} - ({Number(minimum)}))\"></progress>");
                 break;
+            case ControlType.Image when properties.ImageData is not null:
+                var fit = properties.Stretch == ImageStretch.Fill ? "fill" : "contain";
+                markup.AppendLine($"{indent}<img id=\"{name}\" style=\"{string.Join(";", style)};object-fit:{fit}\" src=\"{ImageFile.ExportPath(screen, control)}\" alt=\"\" class=\"uib-image\" />");
+                break;
+            case ControlType.Image:
+                markup.AppendLine($"{indent}<span {common} class=\"uib-image\"></span>");
+                break;
             case ControlType.DatePicker:
                 markup.AppendLine($"{indent}<input {common} type=\"date\" class=\"uib-input\" @bind=\"{name}\" @bind:after=\"{HandlerName(control)}\" />");
                 break;
             case ControlType.StackPanel:
                 markup.AppendLine($"{indent}<div {common} class=\"uib-stack\">");
-                AppendStackChildren(markup, control, depth + 1);
+                AppendStackChildren(markup, screen, control, depth + 1);
                 markup.AppendLine($"{indent}</div>");
                 break;
             case ControlType.GroupBox:
@@ -323,7 +331,7 @@ public static class BlazorGenerator
                 var titleStyle = titleRules.Count > 0 ? $" style=\"{string.Join(";", titleRules)}\"" : "";
                 markup.AppendLine($"{indent}    <span class=\"uib-title\"{titleStyle}>{Text(properties.Text)}</span>");
                 markup.AppendLine($"{indent}    <div class=\"uib-content\" style=\"left:{Px(left)};top:{Px(top)};right:{Px(right)};bottom:{Px(bottom)};{StackStyle(properties)}\">");
-                AppendStackChildren(markup, control, depth + 2);
+                AppendStackChildren(markup, screen, control, depth + 2);
                 markup.AppendLine($"{indent}    </div>");
                 markup.AppendLine($"{indent}</div>");
                 break;
@@ -336,7 +344,7 @@ public static class BlazorGenerator
                         $"grid-row:{Number((child.Row ?? 0) + 1)} / span {Number(child.RowSpan ?? 1)}",
                         $"grid-column:{Number((child.Column ?? 0) + 1)} / span {Number(child.ColumnSpan ?? 1)}",
                     };
-                    AppendElement(markup, child, cell, control.Name, depth + 1);
+                    AppendElement(markup, screen, child, cell, control.Name, depth + 1);
                 }
 
                 markup.AppendLine($"{indent}</div>");
@@ -376,7 +384,7 @@ public static class BlazorGenerator
     /// A StackPanel's or GroupBox's children: each keeps its size along the stack, stretches
     /// across it, and has the spacing as a leading margin.
     /// </summary>
-    private static void AppendStackChildren(StringBuilder markup, ControlDocument stack, int depth)
+    private static void AppendStackChildren(StringBuilder markup, ScreenDocument screen, ControlDocument stack, int depth)
     {
         var properties = stack.Properties;
         var children = stack.Children ?? [];
@@ -393,7 +401,7 @@ public static class BlazorGenerator
                 style.Add(vertical ? $"margin-top:{Px(gap)}" : $"margin-left:{Px(gap)}");
             }
 
-            AppendElement(markup, child, style, stack.Name, depth);
+            AppendElement(markup, screen, child, style, stack.Name, depth);
         }
     }
 
@@ -604,7 +612,7 @@ public static class BlazorGenerator
         .uib-label { display: flex; align-items: center; padding: 0 2px; white-space: nowrap; overflow: hidden; }
         .uib-check { display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; }
         .uib-check > input { margin: 0; }
-        .uib-input, .uib-button, .uib-range, .uib-progress { display: block; }
+        .uib-input, .uib-button, .uib-range, .uib-progress, .uib-image { display: block; }
         textarea.uib-input { resize: none; }
         .uib-stack, .uib-content { display: flex; overflow: hidden; }
         .uib-stack > *, .uib-content > * { flex: none; }

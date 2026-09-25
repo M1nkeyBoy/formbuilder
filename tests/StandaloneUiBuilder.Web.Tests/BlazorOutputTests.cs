@@ -33,6 +33,10 @@ public sealed class BlazorOutputTests
 
         Assert.Equal(["16px", "700", "rgb(30, 78, 140)"], header);
         Assert.Equal("rgb(30, 111, 217)", ok);
+
+        // The logo's picture is served and decoded: it has its natural size.
+        var logo = await page.EvaluateAsync<double[]>("async () => { const i = document.getElementById('LogoImage'); await i.decode(); return [i.naturalWidth, i.naturalHeight]; }");
+        Assert.Equal([96.0, 64.0], logo);
     }
 
     [WebFact]

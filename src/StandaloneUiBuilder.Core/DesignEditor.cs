@@ -483,6 +483,24 @@ public sealed class DesignEditor
             : p with { OpensScreen = opensScreen, ClosesScreen = closesScreen ? true : null });
     }
 
+    /// <summary>
+    /// Puts a picture in an Image, from a PNG, JPEG, GIF or BMP file's bytes, or removes it
+    /// (null). The picture is stored in the project.
+    /// </summary>
+    public string? SetImage(Guid id, byte[]? data)
+    {
+        if (data is not null && ImageFile.Validate(data) is { } error)
+        {
+            return error;
+        }
+
+        var encoded = data is null ? null : Convert.ToBase64String(data);
+        return EditProperties(id, d => d.HasImage, "a picture", p => p.ImageData == encoded ? p : p with { ImageData = encoded });
+    }
+
+    public string? SetImageStretch(Guid id, ImageStretch stretch) =>
+        EditProperties(id, d => d.HasImage, "a picture", p => p.Stretch == stretch ? p : p with { Stretch = stretch });
+
     /// <summary>Sets a control's text size (null for the default) and weight.</summary>
     public string? SetFont(Guid id, int? size, bool isBold)
     {
@@ -514,6 +532,11 @@ public sealed class DesignEditor
         if (text is not null && !ControlCatalog.Get(control.Type).HasFont)
         {
             return $"A {control.Type} does not have a text colour.";
+        }
+
+        if (fill is not null && !ControlCatalog.Get(control.Type).HasBackground)
+        {
+            return $"A {control.Type} does not have a background colour.";
         }
 
         var properties = control.Properties;

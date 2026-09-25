@@ -363,6 +363,20 @@
                                      MinLines="4" MaxLines="12" VerticalScrollBarVisibility="Auto"
                                      VerticalContentAlignment="Top" />
                         </StackPanel>
+                        <DockPanel x:Name="ImageRow" Style="{StaticResource FieldRow}">
+                            <Label Content="Picture" Style="{StaticResource FieldLabel}" VerticalContentAlignment="Top" />
+                            <StackPanel>
+                                <UniformGrid Columns="2" Margin="0,0,0,4">
+                                    <Button x:Name="ChooseImageButton" Content="Choose…" Margin="0,0,3,0" Click="ChooseImageButton_Click"
+                                            ToolTip="A PNG, JPEG, GIF or BMP file of up to 2 MB, stored in the project." />
+                                    <Button x:Name="RemoveImageButton" Content="Remove" Margin="3,0,0,0" Click="RemoveImageButton_Click" />
+                                </UniformGrid>
+                                <ComboBox x:Name="StretchBox" AutomationProperties.Name="Picture fit" SelectionChanged="StretchBox_SelectionChanged">
+                                    <ComboBoxItem Content="Fit, keeping its shape" />
+                                    <ComboBoxItem Content="Stretch to fill" />
+                                </ComboBox>
+                            </StackPanel>
+                        </DockPanel>
                         <DockPanel x:Name="FontRow" Style="{StaticResource FieldRow}"
                                    ToolTip="Text size in DIPs; leave blank for the standard size (12).">
                             <Label Content="Font" Target="{Binding ElementName=FontSizeBox}" Style="{StaticResource FieldLabel}" />

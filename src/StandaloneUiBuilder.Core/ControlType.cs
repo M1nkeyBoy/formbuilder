@@ -27,6 +27,9 @@ public enum ControlType
     /// <summary>A single-line text box that hides what is typed.</summary>
     PasswordBox,
 
+    /// <summary>A picture, stored in the project, scaled to fit or stretched to fill.</summary>
+    Image,
+
     /// <summary>A container that lines its children up vertically or horizontally.</summary>
     StackPanel,
 
@@ -38,6 +41,16 @@ public enum ControlType
     /// (<see cref="ContainerLayout.GroupBoxInset"/>) that leaves room for the frame and title.
     /// </summary>
     GroupBox,
+}
+
+/// <summary>How an Image fills its box.</summary>
+public enum ImageStretch
+{
+    /// <summary>As large as fits while keeping its proportions, centred.</summary>
+    Uniform,
+
+    /// <summary>Stretched to fill the box exactly.</summary>
+    Fill,
 }
 
 /// <summary>The direction a StackPanel lines up its children.</summary>

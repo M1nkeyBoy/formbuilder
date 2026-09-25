@@ -8,8 +8,8 @@ choices are recorded in `docs/decisions.md`.
 ## What it does
 
 - **Place controls.** Drag Label, Button, TextBox, PasswordBox, CheckBox, RadioButton,
-  ComboBox, ListBox, Slider, ProgressBar or DatePicker from the toolbox onto the 800 × 600
-  canvas. Or select a toolbox item and then click the canvas, or press Enter.
+  ComboBox, ListBox, Slider, ProgressBar, DatePicker or Image from the toolbox onto the
+  800 × 600 canvas. An Image's picture (PNG, JPEG, GIF or BMP) is stored in the project. Or select a toolbox item and then click the canvas, or press Enter.
   Placement snaps to the 10-DIP grid.
 - **Edit.** Click a control to select it. Drag it to move it, or drag its handles to resize
   it. Moves and resizes snap to the grid and stay inside the canvas. Delete removes the
@@ -147,7 +147,7 @@ tests use this so they never touch your own drafts.
 
 - Buttons can open and close screens, but there are no other actions (such as passing
   values between screens); those go in the hooks.
-- Eleven built-in controls and three containers; no tabs, images, menus or data grids yet.
+- Twelve built-in controls and three containers; no tabs, menus or data grids yet.
   RadioButtons group by the container they are in. Grid rows and columns can be fixed or shared,
   but not sized to their content. Copy and paste stay within the editor rather than using the system clipboard.
 - Layout is absolute positions plus anchors, with StackPanel and Grid containers.

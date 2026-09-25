@@ -2,12 +2,17 @@ using System.Text.RegularExpressions;
 
 namespace StandaloneUiBuilder.Output;
 
-/// <summary>A generated source file, relative to the output project folder.</summary>
+/// <summary>A generated file, relative to the output project folder.</summary>
 /// <param name="Regenerate">
 /// True if the file is rewritten on every export. False for files that are created once and
 /// then belong to the developer, such as code-behind.
 /// </param>
-public sealed record GeneratedFile(string RelativePath, string Content, bool Regenerate);
+/// <param name="Bytes">The file's content when it is not text, such as a picture; Content is then empty.</param>
+public sealed record GeneratedFile(string RelativePath, string Content, bool Regenerate, byte[]? Bytes = null)
+{
+    /// <summary>A picture or other binary file, rewritten on every export.</summary>
+    public static GeneratedFile Binary(string relativePath, byte[] bytes) => new(relativePath, "", Regenerate: true, bytes);
+}
 
 /// <summary>An export could not be completed. The message is suitable for the user.</summary>
 public sealed class ExportException(string message, Exception? innerException = null)
@@ -81,13 +86,13 @@ public static partial class ProjectExporter
                 var path = Path.Combine(folder, file.RelativePath);
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 var exists = File.Exists(path);
-                if (exists && (!file.Regenerate || File.ReadAllText(path) == file.Content))
+                if (exists && (!file.Regenerate || Unchanged(path, file)))
                 {
                     kept.Add(file.RelativePath);
                     continue;
                 }
 
-                WriteAtomically(path, file.Content);
+                WriteAtomically(path, file);
                 (exists ? updated : created).Add(file.RelativePath);
             }
         }
@@ -110,10 +115,21 @@ public static partial class ProjectExporter
         return match.Success ? match.Groups[1].Value : null;
     }
 
-    private static void WriteAtomically(string path, string content)
+    private static bool Unchanged(string path, GeneratedFile file) =>
+        file.Bytes is { } bytes ? File.ReadAllBytes(path).AsSpan().SequenceEqual(bytes) : File.ReadAllText(path) == file.Content;
+
+    private static void WriteAtomically(string path, GeneratedFile file)
     {
         var temp = path + ".tmp";
-        File.WriteAllText(temp, content);
+        if (file.Bytes is { } bytes)
+        {
+            File.WriteAllBytes(temp, bytes);
+        }
+        else
+        {
+            File.WriteAllText(temp, file.Content);
+        }
+
         File.Move(temp, path, overwrite: true);
     }
 }

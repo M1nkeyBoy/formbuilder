@@ -11,10 +11,10 @@ public sealed record ProjectDocument
     /// <summary>
     /// The format version this builder writes. Older versions (1: no anchors, 2: no containers,
     /// 3: no grid spans, 4: no sized grid rows and columns, 5: one screen, 6: the first seven
-    /// control types only, 7: no button actions, 8: no fonts or colours) are still read. See
-    /// docs/project-format.md for the history.
+    /// control types only, 7: no button actions, 8: no fonts or colours, 9: no images) are still
+    /// read. See docs/project-format.md for the history.
     /// </summary>
-    public const int CurrentSchemaVersion = 9;
+    public const int CurrentSchemaVersion = 10;
 
     public const int OldestSupportedSchemaVersion = 1;
     public const string DefaultName = "Untitled";
@@ -139,6 +139,12 @@ public sealed record ControlProperties
     public bool? IsChecked { get; init; }
 
     public ImmutableList<string>? Items { get; init; }
+
+    /// <summary>Image: the picture file's bytes, as base64; null for no picture yet.</summary>
+    public string? ImageData { get; init; }
+
+    /// <summary>Image: how the picture fills the box.</summary>
+    public ImageStretch? Stretch { get; init; }
 
     /// <summary>Controls that show text: the text size in DIPs; null for the default (12).</summary>
     public int? FontSize { get; init; }

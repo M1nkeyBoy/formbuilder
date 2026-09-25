@@ -236,6 +236,15 @@ public static partial class DocumentValidator
             }
         }
 
+        if (control.Properties.ImageData is { } image)
+        {
+            var imageError = ImageFile.TryDecode(image, out var bytes) ? ImageFile.Validate(bytes) : "The picture data is not valid base64.";
+            if (imageError is not null)
+            {
+                errors.Add($"{label}: {imageError}");
+            }
+        }
+
         var style = control.Properties;
         if (style.FontSize is < ControlDefinition.MinFontSize or > ControlDefinition.MaxFontSize)
         {

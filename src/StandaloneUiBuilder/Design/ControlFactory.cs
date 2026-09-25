@@ -61,6 +61,7 @@ internal static class ControlFactory
                 Value = properties.Value ?? 0,
             },
             ControlType.DatePicker => new DatePicker { VerticalContentAlignment = VerticalAlignment.Center },
+            ControlType.Image => CreateImage(control),
             ControlType.CheckBox => new CheckBox
             {
                 Content = new TextBlock { Text = properties.Text ?? "" },
@@ -145,6 +146,45 @@ internal static class ControlFactory
         }
 
         return grid;
+    }
+
+    /// <summary>
+    /// An Image shows its picture; without one it is a dashed box saying so, so it can be seen
+    /// and selected on the canvas.
+    /// </summary>
+    private static FrameworkElement CreateImage(ControlDocument control)
+    {
+        var properties = control.Properties;
+        if (properties.ImageData is { } data && ImageFile.TryDecode(data, out var bytes))
+        {
+            try
+            {
+                var bitmap = new System.Windows.Media.Imaging.BitmapImage();
+                bitmap.BeginInit();
+                bitmap.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                bitmap.StreamSource = new System.IO.MemoryStream(bytes);
+                bitmap.EndInit();
+                bitmap.Freeze();
+                return new Image { Source = bitmap, Stretch = properties.Stretch == ImageStretch.Fill ? Stretch.Fill : Stretch.Uniform };
+            }
+            catch (Exception ex) when (ex is NotSupportedException or System.IO.IOException or ArgumentException or InvalidOperationException)
+            {
+                // A picture WPF cannot decode is shown as missing rather than failing the design.
+            }
+        }
+
+        return new Border
+        {
+            BorderBrush = Brushes.Gray,
+            BorderThickness = new Thickness(1),
+            Child = new TextBlock
+            {
+                Text = "No picture",
+                Foreground = Brushes.Gray,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            },
+        };
     }
 
     /// <summary>A control's own text size, weight and colours, where it has them.</summary>

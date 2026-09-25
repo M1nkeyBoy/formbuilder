@@ -447,3 +447,22 @@ Choices made during the prototype slices that affect later work.
   WinForms layout panel resets them and the Blazor output styles the title element instead.
 - **Format version 9.** The WPF parity test now also compares font and colours between the
   designer and the generated window, and the browser test reads computed styles.
+
+## Slice 24 — Images
+
+- **Pictures live in the project file,** as base64. A project stays one file that can be
+  moved, mailed or recovered as a draft without losing its pictures, at the cost of size, so
+  pictures are limited to 2 MB each. Linking to files beside the project was the
+  alternative, but a new project has no folder until it is saved, and links break when the
+  project moves.
+- **PNG, JPEG, GIF and BMP,** recognised by their content, since every target displays them.
+  SVG is left out: WPF and WinForms cannot show it without extra libraries.
+- **Two ways to fill the box:** Uniform (fit, keeping the shape) and Fill. They map to WPF
+  `Stretch`, WinForms `PictureBoxSizeMode` (`Zoom`, `StretchImage`) and CSS `object-fit`.
+- **Export writes real files,** `Assets/<screen>/<control>.<ext>` (under `wwwroot` for
+  Blazor), rewritten like other generated files. WPF builds them in as resources and WinForms
+  copies them next to the program, through a line in the created-once project file.
+  Generated files can now be binary as well as text.
+- **No background on an Image:** WPF's Image has none, so the builder does not offer one.
+- **Format version 10.** The layout demo now has a small logo, so every layout check covers
+  an Image, and the browser test checks the picture really loads.

@@ -19,15 +19,16 @@ A complete example is in [`samples/customer-form.uibproj`](samples/customer-form
 | 7 | Adds the types `RadioButton`, `ListBox`, `Slider`, `ProgressBar`, `DatePicker`, `PasswordBox` and the container `GroupBox`, and the properties `isMultiline`, `minimum`, `maximum` and `value`. | None: older files use none of them. |
 | 8 | Adds `opensScreen` and `closesScreen` to Buttons. | None: older buttons do nothing but call their hook. |
 | 9 | Adds `fontSize`, `isBold`, `foreground` and `background`. | None: older controls use the standard font and colours. |
+| 10 | Adds the `Image` type, with `imageData` and `stretch`. | None: older files have no images. |
 
-The builder reads versions 1 to 9 and always saves version 9. An older builder rejects a
+The builder reads versions 1 to 10 and always saves version 10. An older builder rejects a
 newer file with a clear message instead of silently dropping what it does not know.
 
-## Schema version 9
+## Schema version 10
 
 ```json
 {
-  "schemaVersion": 9,
+  "schemaVersion": 10,
   "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971",
   "name": "Customer form",
   "screens": [{
@@ -57,7 +58,7 @@ newer file with a clear message instead of silently dropping what it does not kn
 
 | Field | Type | Notes |
 |---|---|---|
-| `schemaVersion` | integer | Required. `9` when saved by this builder; `1` to `8` are still read. |
+| `schemaVersion` | integer | Required. `10` when saved by this builder; `1` to `9` are still read. |
 | `projectId` | GUID string | Required. Stable for the life of the project. |
 | `name` | string | Written as the file name (without extension) on save. |
 | `screens` | array | Required, at least one. In order: the first is the main screen, which a generated application opens with. Versions 1 to 5 had a single `screen` object instead. |
@@ -77,7 +78,7 @@ newer file with a clear message instead of silently dropping what it does not kn
 | Field | Type | Notes |
 |---|---|---|
 | `id` | GUID string | Required, unique within the project, never empty. |
-| `type` | string | Required. One of `Label`, `Button`, `TextBox`, `PasswordBox`, `CheckBox`, `RadioButton`, `ComboBox`, `ListBox`, `Slider`, `ProgressBar`, `DatePicker`, or the containers `StackPanel`, `Grid` and `GroupBox`. |
+| `type` | string | Required. One of `Label`, `Button`, `TextBox`, `PasswordBox`, `CheckBox`, `RadioButton`, `ComboBox`, `ListBox`, `Slider`, `ProgressBar`, `DatePicker`, `Image`, or the containers `StackPanel`, `Grid` and `GroupBox`. |
 | `name` | string | Required. Letter or underscore first, then letters, digits or underscores. Unique within its screen, ignoring case; other screens may reuse it. |
 | `x`, `y` | integer | DIPs from the screen's top-left corner; not negative. |
 | `width`, `height` | integer | DIPs; at least the type's minimum size. The control must fit inside the screen. |
@@ -89,7 +90,7 @@ newer file with a clear message instead of silently dropping what it does not kn
 
 Minimum sizes: Label 20 × 16, Button 30 × 20, TextBox and PasswordBox 30 × 20, CheckBox and
 RadioButton 20 × 16, ComboBox 40 × 20, ListBox 40 × 30, Slider 40 × 20, ProgressBar 20 × 8,
-DatePicker 80 × 20, StackPanel and Grid 20 × 20, GroupBox 40 × 40.
+DatePicker 80 × 20, Image 8 × 8, StackPanel and Grid 20 × 20, GroupBox 40 × 40.
 
 ### Containers
 
@@ -137,9 +138,14 @@ PasswordBox and DatePicker have no type-specific properties: a password is never
 a DatePicker starts with no date chosen. RadioButtons in the same container (or directly on
 the screen) are one group: choosing one in the editor clears the others.
 
+An Image has `imageData`, the picture file itself as base64 (a PNG, JPEG, GIF or BMP of up to
+2 MB, recognised by its content), omitted until a picture is chosen, and `stretch`: `Uniform`
+(as large as fits, keeping its shape) or `Fill`. The picture is part of the project, so the
+file stays self-contained.
+
 Controls that show text (Label, Button, TextBox, PasswordBox, CheckBox, RadioButton, ComboBox,
 ListBox, DatePicker and GroupBox) may have `fontSize` (6 to 72 DIPs; 12 when omitted),
-`isBold: true` and `foreground`, the text colour. Any control may have `background`. Colours
+`isBold: true` and `foreground`, the text colour. Any control but an Image may have `background`. Colours
 are written `#RRGGBB` in upper case. All four are omitted when not set. A GroupBox's font and
 text colour apply to its title only.
 

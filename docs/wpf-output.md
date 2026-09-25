@@ -77,6 +77,10 @@ existing code-behind.
   `Value`; a Slider snaps to whole numbers. PasswordBox and DatePicker start empty.
 - RadioButtons group by their parent, as the design does: those on the screen are one group,
   and those in each container another.
+- An **Image** becomes a WPF `Image` with `Stretch="Uniform"` or `"Fill"`. Its picture is
+  written to `Assets/<screen>/<control>.png` (or `.jpg` and so on) and built into the
+  application as a resource; the project file includes `Assets\**` for that. A project
+  exported before the builder had images needs that line added to its `.csproj`.
 - A control's text size, bold and colours become `FontSize`, `FontWeight="Bold"`,
   `Foreground` and `Background`.
 - The same padding and alignment the designer uses are written out (Label `Padding="2,0"`,

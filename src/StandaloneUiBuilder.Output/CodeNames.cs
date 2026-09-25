@@ -34,6 +34,21 @@ public static partial class CodeNames
         return char.IsDigit(name[0]) ? "App" + name : name;
     }
 
+    /// <summary>Each Image's picture, as a file for an exported project (see <see cref="ImageFile.ExportPath"/>).</summary>
+    public static IEnumerable<GeneratedFile> ImageFiles(ProjectDocument document, string folder = "")
+    {
+        foreach (var screen in document.Screens)
+        {
+            foreach (var image in ControlTree.All(screen.Controls))
+            {
+                if (image.Properties.ImageData is { } data && ImageFile.TryDecode(data, out var bytes))
+                {
+                    yield return GeneratedFile.Binary(folder + ImageFile.ExportPath(screen, image), bytes);
+                }
+            }
+        }
+    }
+
     /// <summary>
     /// The class a screen becomes. The first screen is the application's main window, named
     /// "Main" plus the suffix (MainWindow, MainForm) so the startup code never has to change;

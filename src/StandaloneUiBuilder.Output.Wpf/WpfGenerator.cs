@@ -127,6 +127,7 @@ public static class WpfGenerator
             files.Add(new($"{className}.Events.g.cs", EventsCode(document, screen, rootNamespace), Regenerate: true));
         }
 
+        files.AddRange(CodeNames.ImageFiles(document));
         return files;
     }
 
@@ -195,7 +196,7 @@ public static class WpfGenerator
             layout.Add($"Height=\"{Number(height)}\"");
         }
 
-        AppendElement(xaml, control, layout, depth: 2);
+        AppendElement(xaml, screen, control, layout, depth: 2);
     }
 
     /// <summary>
@@ -203,11 +204,11 @@ public static class WpfGenerator
     /// its children with theirs: a StackPanel child keeps its size along the stack, stretches
     /// across it and has the spacing as a leading margin; a Grid child fills its cell.
     /// </summary>
-    private static void AppendElement(StringBuilder xaml, ControlDocument control, List<string> layout, int depth)
+    private static void AppendElement(StringBuilder xaml, ScreenDocument screen, ControlDocument control, List<string> layout, int depth)
     {
         if (control.Type == ControlType.GroupBox)
         {
-            AppendGroupBox(xaml, control, layout, depth);
+            AppendGroupBox(xaml, screen, control, layout, depth);
             return;
         }
 
@@ -248,6 +249,14 @@ public static class WpfGenerator
                 attributes.Add($"Content=\"{Attribute(LiteralAccessText(properties.Text))}\"");
                 break;
             case ControlType.ListBox:
+                break;
+            case ControlType.Image:
+                if (properties.ImageData is not null)
+                {
+                    attributes.Add($"Source=\"{ImageFile.ExportPath(screen, control)}\"");
+                }
+
+                attributes.Add($"Stretch=\"{properties.Stretch ?? ImageStretch.Uniform}\"");
                 break;
             case ControlType.Slider:
             case ControlType.ProgressBar:
@@ -305,7 +314,7 @@ public static class WpfGenerator
 
         if (control.Type == ControlType.StackPanel)
         {
-            AppendStackChildren(xaml, control, depth + 1);
+            AppendStackChildren(xaml, screen, control, depth + 1);
         }
         else if (control.Type == ControlType.Grid)
         {
@@ -343,7 +352,7 @@ public static class WpfGenerator
 
                 cell.Add("HorizontalAlignment=\"Stretch\"");
                 cell.Add("VerticalAlignment=\"Stretch\"");
-                AppendElement(xaml, child, cell, depth + 1);
+                AppendElement(xaml, screen, child, cell, depth + 1);
             }
         }
 
@@ -378,7 +387,7 @@ public static class WpfGenerator
     /// A StackPanel's children: each keeps its size along the stack, stretches across it and
     /// has the spacing as a leading margin.
     /// </summary>
-    private static void AppendStackChildren(StringBuilder xaml, ControlDocument stack, int depth)
+    private static void AppendStackChildren(StringBuilder xaml, ScreenDocument screen, ControlDocument stack, int depth)
     {
         var properties = stack.Properties;
         var children = stack.Children ?? [];
@@ -395,7 +404,7 @@ public static class WpfGenerator
                 childLayout.Add($"Margin=\"{(vertical ? $"0,{Number(gap)},0,0" : $"{Number(gap)},0,0,0")}\"");
             }
 
-            AppendElement(xaml, child, childLayout, depth);
+            AppendElement(xaml, screen, child, childLayout, depth);
         }
     }
 
@@ -405,7 +414,7 @@ public static class WpfGenerator
     /// for the children. The fixed inset puts children exactly where the design has them,
     /// whatever the theme's frame looks like.
     /// </summary>
-    private static void AppendGroupBox(StringBuilder xaml, ControlDocument group, List<string> layout, int depth)
+    private static void AppendGroupBox(StringBuilder xaml, ScreenDocument screen, ControlDocument group, List<string> layout, int depth)
     {
         var indent = new string(' ', depth * 4);
         var properties = group.Properties;
@@ -423,7 +432,7 @@ public static class WpfGenerator
         else
         {
             xaml.AppendLine(opening + ">");
-            AppendStackChildren(xaml, group, depth + 2);
+            AppendStackChildren(xaml, screen, group, depth + 2);
             xaml.AppendLine($"{indent}    </StackPanel>");
         }
 
@@ -558,6 +567,11 @@ public static class WpfGenerator
             <UseWPF>true</UseWPF>
             <RootNamespace>{{rootNamespace}}</RootNamespace>
           </PropertyGroup>
+
+          <ItemGroup>
+            <!-- Pictures from the design, built into the application. -->
+            <Resource Include="Assets\**" />
+          </ItemGroup>
 
         </Project>
 

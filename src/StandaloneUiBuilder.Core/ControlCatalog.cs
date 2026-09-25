@@ -41,6 +41,12 @@ public sealed record ControlDefinition(
 
     public const int MaxFontSize = 72;
 
+    /// <summary>True for types that can have a background colour: all but Image.</summary>
+    public bool HasBackground => Type != ControlType.Image;
+
+    /// <summary>True for types that show a picture.</summary>
+    public bool HasImage => Type == ControlType.Image;
+
     /// <summary>True for types that can open or close a screen when clicked.</summary>
     public bool HasAction => Type == ControlType.Button;
 
@@ -51,6 +57,7 @@ public sealed record ControlDefinition(
         ControlType.ComboBox or ControlType.ListBox => new ControlProperties { Items = ["Item 1", "Item 2", "Item 3"] },
         ControlType.Slider or ControlType.ProgressBar => new ControlProperties { Minimum = 0, Maximum = 100, Value = 50 },
         ControlType.DatePicker or ControlType.PasswordBox => new ControlProperties(),
+        ControlType.Image => new ControlProperties { Stretch = ImageStretch.Uniform },
         ControlType.StackPanel => new ControlProperties { Orientation = StackOrientation.Vertical, Spacing = 6 },
         ControlType.GroupBox => new ControlProperties { Text = name, Orientation = StackOrientation.Vertical, Spacing = 6 },
         ControlType.Grid => new ControlProperties { Rows = 2, Columns = 2 },
@@ -73,10 +80,12 @@ public sealed record ControlDefinition(
         RowSizes = IsGrid ? properties.RowSizes : null,
         ColumnSizes = IsGrid ? properties.ColumnSizes : null,
 
+        ImageData = HasImage ? properties.ImageData : null,
+        Stretch = HasImage ? properties.Stretch ?? ImageStretch.Uniform : null,
         FontSize = HasFont ? properties.FontSize : null,
         IsBold = HasFont && properties.IsBold == true ? true : null,
         Foreground = HasFont ? properties.Foreground : null,
-        Background = properties.Background,
+        Background = HasBackground ? properties.Background : null,
         OpensScreen = HasAction ? properties.OpensScreen : null,
         ClosesScreen = HasAction && properties.ClosesScreen == true ? true : null,
 
@@ -104,6 +113,7 @@ public static class ControlCatalog
         new(ControlType.Slider, 150, 30, 40, 20, HasText: false, HasIsChecked: false, HasItems: false, HasRange: true),
         new(ControlType.ProgressBar, 150, 20, 20, 8, HasText: false, HasIsChecked: false, HasItems: false, HasRange: true),
         new(ControlType.DatePicker, 140, 30, 80, 20, HasText: false, HasIsChecked: false, HasItems: false),
+        new(ControlType.Image, 120, 90, 8, 8, HasText: false, HasIsChecked: false, HasItems: false),
         new(ControlType.StackPanel, 200, 150, 20, 20, HasText: false, HasIsChecked: false, HasItems: false, IsStack: true),
         new(ControlType.Grid, 240, 160, 20, 20, HasText: false, HasIsChecked: false, HasItems: false, IsGrid: true),
         new(ControlType.GroupBox, 220, 160, 40, 40, HasText: true, HasIsChecked: false, HasItems: false, IsStack: true),

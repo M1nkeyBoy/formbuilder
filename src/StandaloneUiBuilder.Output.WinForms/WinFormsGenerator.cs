@@ -136,6 +136,7 @@ public static class WinFormsGenerator
             files.Add(new($"{className}.Events.g.cs", EventsCode(document, screen, rootNamespace), Regenerate: true));
         }
 
+        files.AddRange(CodeNames.ImageFiles(document));
         return files;
     }
 
@@ -201,7 +202,7 @@ public static class WinFormsGenerator
 
         for (var i = 0; i < controls.Count; i++)
         {
-            AppendControl(code, controls[i], parent: null, index: i);
+            AppendControl(code, screen, controls[i], parent: null, index: i);
         }
 
         code.AppendLine("        // ");
@@ -278,6 +279,7 @@ public static class WinFormsGenerator
         ControlType.Slider => "TrackBar",
         ControlType.DatePicker => "DateTimePicker",
         ControlType.PasswordBox => "TextBox",
+        ControlType.Image => "PictureBox",
         _ => type.ToString(),
     };
 
@@ -295,7 +297,7 @@ public static class WinFormsGenerator
     /// size and anchor; one in a container fills its table cell (Dock = Fill), and a stack's
     /// spacing becomes the child's leading margin inside a cell sized to hold both.
     /// </summary>
-    private static void AppendControl(StringBuilder code, ControlDocument control, ControlDocument? parent, int index)
+    private static void AppendControl(StringBuilder code, ScreenDocument screen, ControlDocument control, ControlDocument? parent, int index)
     {
         var name = control.Name;
         var properties = control.Properties;
@@ -353,6 +355,19 @@ public static class WinFormsGenerator
                 break;
             case ControlType.ProgressBar:
                 SetRange();
+                break;
+            case ControlType.Image:
+                // Zoom keeps the proportions, like WPF's Uniform; the picture is loaded from the
+                // Assets folder next to the application.
+                Set("SizeMode", properties.Stretch == ImageStretch.Fill
+                    ? "System.Windows.Forms.PictureBoxSizeMode.StretchImage"
+                    : "System.Windows.Forms.PictureBoxSizeMode.Zoom");
+                if (properties.ImageData is not null)
+                {
+                    var parts = ImageFile.ExportPath(screen, control).Split('/').Select(Literal);
+                    Set("Image", $"System.Drawing.Image.FromFile(System.IO.Path.Combine(System.AppContext.BaseDirectory, {string.Join(", ", parts)}))");
+                }
+
                 break;
             case ControlType.DatePicker:
                 // Unticked: no date chosen yet, as in WPF's DatePicker.
@@ -468,7 +483,7 @@ public static class WinFormsGenerator
 
         for (var i = 0; i < (control.Children?.Count ?? 0); i++)
         {
-            AppendControl(code, control.Children![i], control, i);
+            AppendControl(code, screen, control.Children![i], control, i);
         }
     }
 
@@ -655,6 +670,11 @@ public static class WinFormsGenerator
             <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
             <RootNamespace>{{rootNamespace}}</RootNamespace>
           </PropertyGroup>
+
+          <ItemGroup>
+            <!-- Pictures from the design, copied next to the application. -->
+            <None Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
+          </ItemGroup>
 
         </Project>
 
