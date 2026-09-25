@@ -13,15 +13,16 @@ A complete example is in [`samples/customer-form.uibproj`](samples/customer-form
 | 1 | First prototype format. | — |
 | 2 | Adds `anchor` to each control. | Every control gets `["left", "top"]`, which is how version 1 designs behaved. |
 | 3 | Adds the `StackPanel` and `Grid` container types, with `children`, `row`, `column` and the container properties. | None: older files have no containers. |
+| 4 | Adds `rowSpan` and `columnSpan` for controls inside a Grid. | None: older files have no spans (every control covers one cell). |
 
-The builder reads versions 1 to 3 and always saves version 3. An older builder rejects a
+The builder reads versions 1 to 4 and always saves version 4. An older builder rejects a
 newer file with a clear message instead of silently dropping what it does not know.
 
-## Schema version 3
+## Schema version 4
 
 ```json
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971",
   "name": "Customer form",
   "screen": {
@@ -78,6 +79,7 @@ newer file with a clear message instead of silently dropping what it does not kn
 | `properties` | object | Type-specific values, below. |
 | `children` | array of controls | Containers only: the controls inside, in order. |
 | `row`, `column` | integer | Only for a control inside a Grid: the cell it fills, counted from 0. |
+| `rowSpan`, `columnSpan` | integer | Only for a control inside a Grid: how many rows and columns it covers, starting at its cell. Optional; omitted when 1. It must fit inside the grid. |
 | `anchor` | array of strings | Screen edges the control follows when the window is resized: any of `left`, `top`, `right`, `bottom`, with at least one of left/right and one of top/bottom. Optional; defaults to `["left", "top"]`. |
 
 Minimum sizes: Label 20 × 16, Button 30 × 20, TextBox 30 × 20, CheckBox 20 × 16,
@@ -92,7 +94,7 @@ A control inside a container has no position of its own; the container places it
   child keeps its `height` (vertical) or `width` (horizontal) and stretches across the
   stack. Children that do not fit are clipped.
 - **Grid** divides itself into `rows` × `columns` equal cells. Each child fills the cell at
-  its `row` and `column`.
+  its `row` and `column`, extended over `rowSpan` rows and `columnSpan` columns.
 
 A child's `x`, `y` and `anchor` are ignored and saved as `0` and the default. Its `width` and
 `height` are kept, so it keeps its size if moved back onto the screen. Containers can be

@@ -11,7 +11,8 @@ public sealed record PlacedControl(ControlDocument Control, ControlBounds Bounds
 /// A vertical StackPanel places its children top to bottom, each keeping its height and
 /// stretching to the stack's width, with Spacing between them; a horizontal one does the same
 /// left to right. Children that do not fit are clipped. A Grid divides itself into equal rows
-/// and columns; each child fills the cell at its Row and Column.
+/// and columns; each child fills the cell at its Row and Column, extended over RowSpan rows
+/// and ColumnSpan columns.
 /// </remarks>
 public static class ContainerLayout
 {
@@ -49,9 +50,11 @@ public static class ContainerLayout
             {
                 var row = Math.Clamp(child.Row ?? 0, 0, rows - 1);
                 var column = Math.Clamp(child.Column ?? 0, 0, columns - 1);
+                var lastRow = Math.Clamp(row + (child.RowSpan ?? 1), row + 1, rows);
+                var lastColumn = Math.Clamp(column + (child.ColumnSpan ?? 1), column + 1, columns);
                 var x = CellEdge(width, columns, column);
                 var y = CellEdge(height, rows, row);
-                arranged.Add((child, new ControlBounds(x, y, CellEdge(width, columns, column + 1) - x, CellEdge(height, rows, row + 1) - y)));
+                arranged.Add((child, new ControlBounds(x, y, CellEdge(width, columns, lastColumn) - x, CellEdge(height, rows, lastRow) - y)));
             }
         }
 

@@ -226,6 +226,16 @@
                                 <TextBox x:Name="ColumnBox" Style="{StaticResource FieldBox}" />
                             </UniformGrid>
                         </DockPanel>
+                        <DockPanel x:Name="SpanRow" Style="{StaticResource FieldRow}"
+                                   ToolTip="How many rows and columns of the Grid this control covers.">
+                            <Label Content="Span" Style="{StaticResource FieldLabel}" />
+                            <UniformGrid Columns="4">
+                                <Label Content="Rows" Target="{Binding ElementName=RowSpanBox}" Padding="0,0,4,0" VerticalContentAlignment="Center" />
+                                <TextBox x:Name="RowSpanBox" Style="{StaticResource FieldBox}" AutomationProperties.Name="Row span" />
+                                <Label Content="Cols" Target="{Binding ElementName=ColumnSpanBox}" Padding="6,0,4,0" VerticalContentAlignment="Center" />
+                                <TextBox x:Name="ColumnSpanBox" Style="{StaticResource FieldBox}" AutomationProperties.Name="Column span" />
+                            </UniformGrid>
+                        </DockPanel>
                         <DockPanel x:Name="OrderRow" Style="{StaticResource FieldRow}"
                                    ToolTip="The control's place among the others in its StackPanel.">
                             <Label Content="Order" Style="{StaticResource FieldLabel}" />

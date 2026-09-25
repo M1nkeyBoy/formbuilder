@@ -295,3 +295,19 @@ Choices made during the prototype slices that affect later work.
   rounds uneven grid cells.
 - **Design-mode clipping.** Children that overflow a container are clipped to it in Design
   mode, as they are at run time, except while a child is being dragged out.
+
+## Slice 17 — Grid row and column spans
+
+- **Spans** let a control inside a Grid cover several rows and columns from its cell. They are
+  stored as optional `rowSpan` and `columnSpan` and omitted when 1.
+- **Format version 4.** An older builder reading a file with spans would ignore them and drop
+  them on save, so the version was bumped: older builders now refuse the file instead.
+- **Spans always fit.** A span that would reach past the grid is refused, as are moving a
+  spanned control to a cell where it would not fit and shrinking a grid below what its
+  children span. Dragging a control to another cell of the same grid keeps its span when it
+  still fits; moving it into a different container or onto the screen drops the span.
+- **Overlap is allowed,** as for controls on the screen: a spanning control can cover cells
+  that hold other controls. Later controls are drawn on top.
+- **Output.** WPF writes `Grid.RowSpan`/`Grid.ColumnSpan`; WinForms calls `SetRowSpan` and
+  `SetColumnSpan` on the `TableLayoutPanel`. The layout-demo sample now has a button spanning
+  the grid's top row, so the Windows layout tests cover spans in both targets.

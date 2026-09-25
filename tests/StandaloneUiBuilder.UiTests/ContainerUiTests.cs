@@ -68,6 +68,13 @@ public sealed class ContainerUiTests : IDisposable
         session.TypeInto("ColumnBox", "0");
         session.ClickCanvas(160, 470);
         EditorSession.WaitUntil(() => session.Field("NameBox").Text == "TextBox1", () => "The text box did not move to the bottom-left cell.");
+
+        // Span both columns: now it also covers the bottom-right cell.
+        session.TypeInto("ColumnSpanBox", "2");
+        session.ClickCanvas(20, 540);
+        session.ClickCanvas(300, 470);
+        EditorSession.WaitUntil(() => session.Field("NameBox").Text == "TextBox1" && session.Field("ColumnSpanBox").Text == "2",
+            () => $"Clicking the bottom-right cell selected {session.Field("NameBox").Text}.");
         session.Screenshot("11-grid");
 
         // Preview shows real controls inside the containers.

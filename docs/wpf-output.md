@@ -52,7 +52,8 @@ existing code-behind.
   `Height` (vertical) or `Width` (horizontal), stretches across the stack, and has the
   spacing as a leading `Margin`. Overflow is clipped (`ClipToBounds`).
 - A **Grid** becomes a WPF `Grid` with equal `*` rows and columns; each child has `Grid.Row`
-  and `Grid.Column` and stretches to fill its cell.
+  and `Grid.Column` (plus `Grid.RowSpan`/`Grid.ColumnSpan` when it spans cells) and stretches
+  to fill them.
 - Containers nest in the XAML exactly as in the design.
 - If any control is anchored to the right or bottom edge, the window can be resized
   (`ResizeMode="CanResize"`) and the Grid has the design size as its minimum. Otherwise the
@@ -122,5 +123,5 @@ before later controls exist.
 
 ## Not generated yet
 
-Data binding, styles, grid row or column spans, and differently sized grid rows or columns. Absolute positions suit fixed-size tools and dialogs; responsive layouts need the
+Data binding, styles, and differently sized grid rows or columns. Absolute positions suit fixed-size tools and dialogs; responsive layouts need the
 layout-model work listed in the spec's "decisions to revisit".

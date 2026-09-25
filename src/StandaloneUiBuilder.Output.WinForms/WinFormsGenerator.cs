@@ -349,6 +349,15 @@ public static class WinFormsGenerator
         foreach (var child in children)
         {
             Line($"Controls.Add(this.{child.Name}, {Number(child.Column ?? 0)}, {Number(child.Row ?? 0)});");
+            if (child.RowSpan is > 1)
+            {
+                Line($"SetRowSpan(this.{child.Name}, {Number(child.RowSpan.Value)});");
+            }
+
+            if (child.ColumnSpan is > 1)
+            {
+                Line($"SetColumnSpan(this.{child.Name}, {Number(child.ColumnSpan.Value)});");
+            }
         }
     }
 

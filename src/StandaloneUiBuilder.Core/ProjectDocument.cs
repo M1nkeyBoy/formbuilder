@@ -9,10 +9,10 @@ namespace StandaloneUiBuilder.Core;
 public sealed record ProjectDocument
 {
     /// <summary>
-    /// The format version this builder writes. Versions 1 (no anchors) and 2 (no containers)
-    /// are still read. See docs/project-format.md for the history.
+    /// The format version this builder writes. Older versions (1: no anchors, 2: no containers,
+    /// 3: no grid spans) are still read. See docs/project-format.md for the history.
     /// </summary>
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
 
     public const int OldestSupportedSchemaVersion = 1;
     public const string DefaultName = "Untitled";
@@ -84,6 +84,12 @@ public sealed record ControlDocument
 
     /// <summary>The column of the cell this control fills, when it is inside a Grid.</summary>
     public int? Column { get; init; }
+
+    /// <summary>Inside a Grid: how many rows the control covers; null means 1.</summary>
+    public int? RowSpan { get; init; }
+
+    /// <summary>Inside a Grid: how many columns the control covers; null means 1.</summary>
+    public int? ColumnSpan { get; init; }
 
     [JsonIgnore]
     public ControlBounds Bounds => new(X, Y, Width, Height);

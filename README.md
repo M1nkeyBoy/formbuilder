@@ -26,7 +26,8 @@ choices are recorded in `docs/decisions.md`.
   outlined in green. Inside a stack a control keeps its height (or width) and stretches
   across; in a grid it fills its cell. Containers can be nested and anchored like any
   control, so whole groups resize with the window. The Properties panel sets a stack's
-  direction and spacing, a grid's rows and columns, and a control's order or cell.
+  direction and spacing, a grid's rows and columns, and a control's order, or its cell and
+  how many rows and columns it spans.
 - **Work with several controls.** Ctrl+click, or drag a box across empty canvas, to select
   several controls; drag, nudge (arrow keys, Shift for a grid step), copy, cut, paste,
   duplicate (Ctrl+D) or delete them together. Ctrl+A selects all. Edit > Bring to Front
@@ -126,8 +127,7 @@ tests use this so they never touch your own drafts.
 ## Known limitations
 
 - One screen per project.
-- Five built-in controls and two containers. Grid rows and columns are equal sizes, with no
-  spans. Copy and paste stay within the editor rather than using the system clipboard.
+- Five built-in controls and two containers. Grid rows and columns are equal sizes. Copy and paste stay within the editor rather than using the system clipboard.
 - Layout is absolute positions plus anchors, with StackPanel and Grid containers.
 - Output is WPF and WinForms. It covers layout and one event hook per control; there is no
   data binding, styling, or import of existing projects.

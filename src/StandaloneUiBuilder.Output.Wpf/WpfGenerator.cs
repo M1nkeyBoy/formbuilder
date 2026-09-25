@@ -259,12 +259,24 @@ public static class WpfGenerator
             xaml.AppendLine($"{indent}    </Grid.ColumnDefinitions>");
             foreach (var child in children)
             {
-                AppendElement(xaml, child, [
+                var cell = new List<string>
+                {
                     $"Grid.Row=\"{Number(child.Row ?? 0)}\"",
                     $"Grid.Column=\"{Number(child.Column ?? 0)}\"",
-                    "HorizontalAlignment=\"Stretch\"",
-                    "VerticalAlignment=\"Stretch\"",
-                ], depth + 1);
+                };
+                if (child.RowSpan is > 1)
+                {
+                    cell.Add($"Grid.RowSpan=\"{Number(child.RowSpan.Value)}\"");
+                }
+
+                if (child.ColumnSpan is > 1)
+                {
+                    cell.Add($"Grid.ColumnSpan=\"{Number(child.ColumnSpan.Value)}\"");
+                }
+
+                cell.Add("HorizontalAlignment=\"Stretch\"");
+                cell.Add("VerticalAlignment=\"Stretch\"");
+                AppendElement(xaml, child, cell, depth + 1);
             }
         }
 

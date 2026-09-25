@@ -108,6 +108,8 @@ internal static class ControlFactory
             element.VerticalAlignment = VerticalAlignment.Stretch;
             Grid.SetRow(element, child.Row ?? 0);
             Grid.SetColumn(element, child.Column ?? 0);
+            Grid.SetRowSpan(element, child.RowSpan ?? 1);
+            Grid.SetColumnSpan(element, child.ColumnSpan ?? 1);
             grid.Children.Add(element);
         }
 

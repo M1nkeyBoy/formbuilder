@@ -109,7 +109,20 @@ public sealed class DesignEditor
         }
 
         var (index, row, column) = DropPosition(container, x, y, ignore: id);
-        var moved = control with { X = 0, Y = 0, Anchor = AnchorEdges.Default, Row = row, Column = column };
+        // Moving to another cell of the same grid keeps the span when it still fits there.
+        var keepSpan = ParentOf(id)?.Id == containerId && row is { } r && column is { } c
+            && r + (control.RowSpan ?? 1) <= (container.Control.Properties.Rows ?? 1)
+            && c + (control.ColumnSpan ?? 1) <= (container.Control.Properties.Columns ?? 1);
+        var moved = control with
+        {
+            X = 0,
+            Y = 0,
+            Anchor = AnchorEdges.Default,
+            Row = row,
+            Column = column,
+            RowSpan = keepSpan ? control.RowSpan : null,
+            ColumnSpan = keepSpan ? control.ColumnSpan : null,
+        };
         var controls = ControlTree.Insert(ControlTree.Remove(screen.Controls, [id]), containerId, index, moved);
         if (!ControlTree.All(controls).SequenceEqual(ControlTree.All(screen.Controls)))
         {
@@ -137,7 +150,7 @@ public sealed class DesignEditor
         }
 
         var size = new ControlDefinition(control.Type, Math.Min(control.Width, screen.Width), Math.Min(control.Height, screen.Height), 0, 0, false, false, false);
-        var moved = control.WithBounds(DesignGeometry.Place(screen, size, x, y)) with { Row = null, Column = null };
+        var moved = control.WithBounds(DesignGeometry.Place(screen, size, x, y)) with { Row = null, Column = null, RowSpan = null, ColumnSpan = null };
         var controls = ControlTree.Remove(screen.Controls, [id]).Add(moved);
         Commit(Document with { Screen = screen with { Controls = controls } });
         return null;
@@ -191,7 +204,34 @@ public sealed class DesignEditor
         return null;
     }
 
-    /// <summary>Puts a control inside a Grid into another cell.</summary>
+    /// <summary>Sets how many rows and columns a control inside a Grid covers. It must still fit.</summary>
+    public string? SetGridSpan(Guid id, int rowSpan, int columnSpan)
+    {
+        if (FindControl(id) is not { } control || ParentOf(id) is not { Type: ControlType.Grid } grid)
+        {
+            return "The control is not in a Grid.";
+        }
+
+        var rows = grid.Properties.Rows ?? 1;
+        var columns = grid.Properties.Columns ?? 1;
+        var row = control.Row ?? 0;
+        var column = control.Column ?? 0;
+        if (rowSpan < 1 || columnSpan < 1 || row + rowSpan > rows || column + columnSpan > columns)
+        {
+            return $"From row {row}, column {column} it can span up to {rows - row} rows and {columns - column} columns.";
+        }
+
+        // A span of 1 is the default and is not stored.
+        var spanned = control with { RowSpan = rowSpan == 1 ? null : rowSpan, ColumnSpan = columnSpan == 1 ? null : columnSpan };
+        if (spanned != control)
+        {
+            Replace(control, spanned);
+        }
+
+        return null;
+    }
+
+    /// <summary>Puts a control inside a Grid into another cell. With its span, it must still fit.</summary>
     public string? SetGridCell(Guid id, int row, int column)
     {
         if (FindControl(id) is not { } control || ParentOf(id) is not { Type: ControlType.Grid } grid)
@@ -204,6 +244,11 @@ public sealed class DesignEditor
         if (row < 0 || row >= rows || column < 0 || column >= columns)
         {
             return $"Row must be 0 to {rows - 1} and column 0 to {columns - 1}.";
+        }
+
+        if (row + (control.RowSpan ?? 1) > rows || column + (control.ColumnSpan ?? 1) > columns)
+        {
+            return $"With its span of {control.RowSpan ?? 1} × {control.ColumnSpan ?? 1} cells it would not fit there. Reduce the span first.";
         }
 
         if (control.Row != row || control.Column != column)
@@ -235,9 +280,9 @@ public sealed class DesignEditor
             return $"Rows and columns must be between 1 and {ControlDefinition.MaxRowsOrColumns}.";
         }
 
-        if (grid.Children?.FirstOrDefault(c => (c.Row ?? 0) >= rows || (c.Column ?? 0) >= columns) is { } outside)
+        if (grid.Children?.FirstOrDefault(c => (c.Row ?? 0) + (c.RowSpan ?? 1) > rows || (c.Column ?? 0) + (c.ColumnSpan ?? 1) > columns) is { } outside)
         {
-            return $"\"{outside.Name}\" is in row {outside.Row}, column {outside.Column}, which would no longer exist. Move it first.";
+            return $"\"{outside.Name}\" uses row {outside.Row}, column {outside.Column} and its span, which would no longer all exist. Move it or reduce its span first.";
         }
 
         return EditProperties(id, d => d.IsGrid, "rows and columns", p =>
@@ -417,6 +462,8 @@ public sealed class DesignEditor
                 Y = Math.Clamp(copy.Y + dy, 0, screen.Height - copy.Height),
                 Row = null,
                 Column = null,
+                RowSpan = null,
+                ColumnSpan = null,
             });
         }
 

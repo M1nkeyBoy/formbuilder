@@ -161,4 +161,17 @@ public class ContainerOutputTests
 
         Assert.NotEmpty(WpfGenerator.Check(editor.Document));
     }
+
+    [Fact]
+    public void SpansAreWrittenForBothTargets()
+    {
+        var xaml = WpfElements(Demo());
+        var winforms = WinFormsGenerator.DesignerCode(Demo(), "Demo");
+
+        Assert.Equal("2", (string?)xaml["OneButton"].Attribute("Grid.ColumnSpan"));
+        Assert.Null(xaml["OneButton"].Attribute("Grid.RowSpan"));
+        Assert.Null(xaml["FourButton"].Attribute("Grid.ColumnSpan"));
+        Assert.Contains("this.ButtonGrid.SetColumnSpan(this.OneButton, 2);", winforms);
+        Assert.DoesNotContain("SetRowSpan", winforms);
+    }
 }

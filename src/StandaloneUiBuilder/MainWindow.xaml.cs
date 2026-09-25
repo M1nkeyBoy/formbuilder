@@ -59,7 +59,7 @@ public partial class MainWindow : Window
         Surface.BoundsCommitted += Surface_BoundsCommitted;
 
         foreach (var box in new[] { NameBox, XBox, YBox, WidthBox, HeightBox, TextValueBox, ItemsBox, ScreenWidthBox, ScreenHeightBox,
-                                    RowBox, ColumnBox, SpacingBox, RowsBox, ColumnsBox })
+                                    RowBox, ColumnBox, RowSpanBox, ColumnSpanBox, SpacingBox, RowsBox, ColumnsBox })
         {
             box.LostKeyboardFocus += (_, _) => CommitField(box);
             box.KeyDown += InspectorField_KeyDown;
@@ -281,7 +281,7 @@ public partial class MainWindow : Window
         XRow.Visibility = YRow.Visibility = AnchorRow.Visibility = Show(parent is null);
         WidthRow.Visibility = Show(parent is null || (inStack && !verticalStack));
         HeightRow.Visibility = Show(parent is null || verticalStack);
-        CellRow.Visibility = Show(parent?.Type == ControlType.Grid);
+        CellRow.Visibility = SpanRow.Visibility = Show(parent?.Type == ControlType.Grid);
         OrderRow.Visibility = Show(inStack);
         if (inStack)
         {
@@ -292,6 +292,8 @@ public partial class MainWindow : Window
 
         SetField(RowBox, (control.Row ?? 0).ToString(CultureInfo.CurrentCulture));
         SetField(ColumnBox, (control.Column ?? 0).ToString(CultureInfo.CurrentCulture));
+        SetField(RowSpanBox, (control.RowSpan ?? 1).ToString(CultureInfo.CurrentCulture));
+        SetField(ColumnSpanBox, (control.ColumnSpan ?? 1).ToString(CultureInfo.CurrentCulture));
 
         OrientationRow.Visibility = SpacingRow.Visibility = Show(definition.IsStack);
         GridSizeRow.Visibility = Show(definition.IsGrid);
@@ -373,6 +375,7 @@ public partial class MainWindow : Window
             : box == TextValueBox ? editor.SetText(id, box.Text)
             : box == ItemsBox ? editor.SetItems(id, box.Text.Split('\n').Select(line => line.TrimEnd('\r')))
             : box == RowBox || box == ColumnBox ? CommitWholeNumbers(values => editor.SetGridCell(id, values[0], values[1]), RowBox, ColumnBox)
+            : box == RowSpanBox || box == ColumnSpanBox ? CommitWholeNumbers(values => editor.SetGridSpan(id, values[0], values[1]), RowSpanBox, ColumnSpanBox)
             : box == SpacingBox ? CommitWholeNumbers(values => editor.SetSpacing(id, values[0]), SpacingBox)
             : box == RowsBox || box == ColumnsBox ? CommitWholeNumbers(values => editor.SetGridSize(id, values[0], values[1]), RowsBox, ColumnsBox)
             : CommitBoundsField(control, box);

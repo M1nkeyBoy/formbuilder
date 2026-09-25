@@ -143,9 +143,9 @@ public static partial class DocumentValidator
                 errors.Add($"{label}: {anchorError}");
             }
 
-            if (control.Row is not null || control.Column is not null)
+            if (control.Row is not null || control.Column is not null || control.RowSpan is not null || control.ColumnSpan is not null)
             {
-                errors.Add($"{label}: only controls inside a Grid have a row and column.");
+                errors.Add($"{label}: only controls inside a Grid have a row, column and span.");
             }
         }
         else
@@ -163,9 +163,15 @@ public static partial class DocumentValidator
             {
                 errors.Add($"{label}: it needs a row and column inside Grid \"{parent.Name}\".");
             }
-            else if (!inGrid && (control.Row is not null || control.Column is not null))
+            else if (inGrid && (control.RowSpan is < 1 || control.ColumnSpan is < 1
+                || (control.Row ?? 0) + (control.RowSpan ?? 1) > (parent.Properties.Rows ?? 1)
+                || (control.Column ?? 0) + (control.ColumnSpan ?? 1) > (parent.Properties.Columns ?? 1)))
             {
-                errors.Add($"{label}: only controls inside a Grid have a row and column.");
+                errors.Add($"{label}: its span goes beyond Grid \"{parent.Name}\".");
+            }
+            else if (!inGrid && (control.Row is not null || control.Column is not null || control.RowSpan is not null || control.ColumnSpan is not null))
+            {
+                errors.Add($"{label}: only controls inside a Grid have a row, column and span.");
             }
         }
 
