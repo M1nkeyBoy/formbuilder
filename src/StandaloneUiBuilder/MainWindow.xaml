@@ -43,6 +43,7 @@
         <CommandBinding Command="ApplicationCommands.Open" Executed="Open_Executed" />
         <CommandBinding Command="ApplicationCommands.Save" Executed="Save_Executed" />
         <CommandBinding Command="ApplicationCommands.SaveAs" Executed="SaveAs_Executed" />
+        <CommandBinding Command="{x:Static local:EditorCommands.ImportWpf}" Executed="ImportWpf_Executed" />
         <CommandBinding Command="{x:Static local:EditorCommands.ExportWpf}" Executed="ExportWpf_Executed" />
         <CommandBinding Command="{x:Static local:EditorCommands.ExportWinForms}" Executed="ExportWinForms_Executed" />
         <CommandBinding Command="{x:Static local:EditorCommands.ExportWinUI}" Executed="ExportWinUI_Executed" />
@@ -73,6 +74,8 @@
                 <MenuItem Header="_Open…" Command="ApplicationCommands.Open" />
                 <MenuItem Header="_Save" Command="ApplicationCommands.Save" />
                 <MenuItem Header="Save _As…" Command="ApplicationCommands.SaveAs" InputGestureText="Ctrl+Shift+S" />
+                <Separator />
+                <MenuItem Command="{x:Static local:EditorCommands.ImportWpf}" />
                 <Separator />
                 <MenuItem Command="{x:Static local:EditorCommands.ExportWpf}" />
                 <MenuItem Command="{x:Static local:EditorCommands.ExportWinForms}" InputGestureText="Ctrl+Shift+E" />

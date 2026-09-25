@@ -486,3 +486,23 @@ Choices made during the prototype slices that affect later work.
 - **Checked on Windows only.** The WinUI XAML compiler runs only on Windows, so unit tests
   check the text everywhere and the Windows CI job builds, runs and measures the app through
   UI Automation, on both screens of the layout demo.
+
+## Slice 26 — Import from WPF
+
+- **WPF first,** because the spec's longer-term aim is opening existing Microsoft UI projects
+  and WPF XAML is the richest, most common source; it is plain XML, so the importer needs no
+  WPF and is tested everywhere. WinForms Designer files are C# and would need a C# parser.
+- **Windows, not solutions.** The user picks window XAML files; each becomes a screen. Opening
+  a whole solution would mean understanding project files, resources and code, for little
+  gain in a layout tool.
+- **Keep what the builder can represent, report the rest.** Positions come from the two
+  layouts that mean fixed places: a plain root Grid (alignment and margins, which become
+  anchors, the reverse of the WPF output) and a Canvas. Other controls, panels, brushes and
+  sizes are left out or approximated, and every such change is listed in plain language.
+- **The builder's own output round-trips exactly.** A test exports both samples to WPF and
+  imports them back, then compares every control on every screen: type, name, position,
+  anchors, properties, pictures and button actions (read from the generated event code).
+  This also answers the spec's question about the source of truth: the project stays the
+  source, and exported XAML can be brought back when it has drifted.
+- **An import starts a new, unsaved project,** so nothing is overwritten, and it goes through
+  the same validation as opening a file.

@@ -55,6 +55,9 @@ choices are recorded in `docs/decisions.md`.
 - **Save and open.** File > New, Open, Save (Ctrl+S) and Save As (Ctrl+Shift+S) work with
   `.uibproj` files. The title shows ● when there are unsaved changes, and you are asked to
   Save, Discard or Cancel before they could be lost.
+- **Import from WPF.** File > Import from WPF… reads WPF window XAML files into a new
+  project, one screen each, and lists anything it could not keep. Windows the builder
+  exported come back exactly. See [`docs/wpf-import.md`](docs/wpf-import.md).
 - **Recovery.** If the editor closes unexpectedly, it offers to recover your unsaved work
   the next time it starts.
 - **Export to WPF, WinForms, WinUI 3 or Blazor.** File > Export to WPF… (Ctrl+E), Export to
@@ -152,8 +155,9 @@ tests use this so they never touch your own drafts.
   RadioButtons group by the container they are in. Grid rows and columns can be fixed or shared,
   but not sized to their content. Copy and paste stay within the editor rather than using the system clipboard.
 - Layout is absolute positions plus anchors, with StackPanel and Grid containers.
-- Output is WPF, WinForms, WinUI 3 and Blazor; .NET MAUI is not generated yet. It covers layout and one event hook per control; there is no
-  data binding, styling, or import of existing projects.
+- Output is WPF, WinForms, WinUI 3 and Blazor; .NET MAUI is not generated yet. It covers
+  layout, per-control fonts and colours, and one event hook per control; there is no data
+  binding and no shared styles or themes. Import reads WPF windows only.
 - The automated UI tests assume 100% display scaling. 150% scaling has been checked by hand.
 - Only the most recent recovery draft is offered at each start; older ones wait for later
   starts.
@@ -169,6 +173,7 @@ src/StandaloneUiBuilder.Output.Wpf/   Generates a WPF project from a design (no 
 src/StandaloneUiBuilder.Output.WinForms/ Generates a WinForms project (no WinForms dependency)
 src/StandaloneUiBuilder.Output.WinUI/ Generates a WinUI 3 app (no Windows App SDK dependency)
 src/StandaloneUiBuilder.Output.Blazor/ Generates a Blazor web app (no ASP.NET Core dependency)
+src/StandaloneUiBuilder.Import.Wpf/   Reads WPF window XAML into a project (no WPF dependency)
 tests/StandaloneUiBuilder.Core.Tests/ Unit tests for Core and both generators
 tests/StandaloneUiBuilder.UiTests/    Windows tests: UI walkthrough (opt-in), output layout checks
 tests/StandaloneUiBuilder.Web.Tests/  Browser checks of the Blazor output (opt-in)

@@ -8,6 +8,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using StandaloneUiBuilder.Core;
 using StandaloneUiBuilder.Design;
+using StandaloneUiBuilder.Import.Wpf;
 using StandaloneUiBuilder.Output;
 using StandaloneUiBuilder.Output.Blazor;
 using StandaloneUiBuilder.Output.WinUI;
@@ -901,6 +902,55 @@ public partial class MainWindow : Window
         selection.Clear();
         editor.New();
         StatusText.Text = "New design";
+    }
+
+    /// <summary>
+    /// Starts a new, unsaved project from WPF windows: one screen per XAML file. What the
+    /// builder cannot represent is left out and listed.
+    /// </summary>
+    private void ImportWpf_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        if (!ConfirmCloseDocument())
+        {
+            return;
+        }
+
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Choose the WPF windows to import (one screen each)",
+            Filter = "WPF window XAML (*.xaml)|*.xaml",
+            Multiselect = true,
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        ImportResult result;
+        try
+        {
+            var folderName = Path.GetFileName(Path.GetDirectoryName(dialog.FileNames[0])) ?? ProjectDocument.DefaultName;
+            result = WpfImporter.Import(dialog.FileNames, folderName);
+        }
+        catch (ImportException ex)
+        {
+            ShowError("Could not import the WPF windows.", ex.Message);
+            return;
+        }
+
+        projectPath = null;
+        selection.Clear();
+        editor.Reset(result.Document, isDirty: true);
+        var screens = result.Document.Screens.Count;
+        StatusText.Text = $"Imported {screens} screen{(screens == 1 ? "" : "s")} from WPF. Save to keep them.";
+        if (result.Warnings.Count > 0)
+        {
+            MessageBox.Show(this,
+                "The windows were imported. Some parts could not be kept as they were:" + Environment.NewLine + Environment.NewLine
+                    + string.Join(Environment.NewLine, result.Warnings.Take(20).Select(w => "• " + w))
+                    + (result.Warnings.Count > 20 ? $"{Environment.NewLine}…and {result.Warnings.Count - 20} more." : ""),
+                AppTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+        }
     }
 
     private void Open_Executed(object sender, ExecutedRoutedEventArgs e)

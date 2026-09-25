@@ -17,6 +17,11 @@ public static class EditorCommands
         typeof(EditorCommands),
         [new KeyGesture(Key.E, ModifierKeys.Control | ModifierKeys.Shift)]);
 
+    public static RoutedUICommand ImportWpf { get; } = new(
+        "_Import from WPF…",
+        nameof(ImportWpf),
+        typeof(EditorCommands));
+
     public static RoutedUICommand ExportWinUI { get; } = new(
         "Export to Win_UI 3…",
         nameof(ExportWinUI),
