@@ -10,6 +10,7 @@ using StandaloneUiBuilder.Core;
 using StandaloneUiBuilder.Design;
 using StandaloneUiBuilder.Output;
 using StandaloneUiBuilder.Output.Blazor;
+using StandaloneUiBuilder.Output.WinUI;
 using StandaloneUiBuilder.Output.WinForms;
 using StandaloneUiBuilder.Output.Wpf;
 
@@ -921,6 +922,9 @@ public partial class MainWindow : Window
 
     private void ExportWinForms_Executed(object sender, ExecutedRoutedEventArgs e) =>
         Export("WinForms", WinFormsGenerator.Check, WinFormsExporter.Export);
+
+    private void ExportWinUI_Executed(object sender, ExecutedRoutedEventArgs e) =>
+        Export("WinUI 3", WinUIGenerator.Check, WinUIExporter.Export);
 
     private void ExportBlazor_Executed(object sender, ExecutedRoutedEventArgs e) =>
         Export("Blazor", BlazorGenerator.Check, BlazorExporter.Export);

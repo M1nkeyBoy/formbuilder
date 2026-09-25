@@ -17,6 +17,11 @@ public static class EditorCommands
         typeof(EditorCommands),
         [new KeyGesture(Key.E, ModifierKeys.Control | ModifierKeys.Shift)]);
 
+    public static RoutedUICommand ExportWinUI { get; } = new(
+        "Export to Win_UI 3…",
+        nameof(ExportWinUI),
+        typeof(EditorCommands));
+
     public static RoutedUICommand ExportBlazor { get; } = new(
         "Export to _Blazor…",
         nameof(ExportBlazor),

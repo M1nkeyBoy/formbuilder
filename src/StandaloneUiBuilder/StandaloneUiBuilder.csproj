@@ -20,6 +20,7 @@
     <ProjectReference Include="..\StandaloneUiBuilder.Output.Wpf\StandaloneUiBuilder.Output.Wpf.csproj" />
     <ProjectReference Include="..\StandaloneUiBuilder.Output.WinForms\StandaloneUiBuilder.Output.WinForms.csproj" />
     <ProjectReference Include="..\StandaloneUiBuilder.Output.Blazor\StandaloneUiBuilder.Output.Blazor.csproj" />
+    <ProjectReference Include="..\StandaloneUiBuilder.Output.WinUI\StandaloneUiBuilder.Output.WinUI.csproj" />
   </ItemGroup>
 
 </Project>

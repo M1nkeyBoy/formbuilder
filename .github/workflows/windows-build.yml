@@ -62,20 +62,21 @@ jobs:
 
           Stop-Process -Id $app.Id
 
-      # Every exported sample must build and run as an ordinary WPF or WinForms application.
+      # Every exported sample must build and run as an ordinary WPF, WinForms or WinUI 3 application.
       - name: Build and run the generated apps
         if: always()
         shell: pwsh
         run: |
           Add-Type -AssemblyName System.Windows.Forms, System.Drawing
           New-Item -ItemType Directory -Force -Path artifacts/screenshots | Out-Null
-          foreach ($target in "wpf", "winforms") {
+          foreach ($target in "wpf", "winforms", "winui") {
             Get-ChildItem "artifacts/generated/$target" -Directory | ForEach-Object {
               $name = $_.Name
               dotnet build "$($_.FullName)/$name.csproj" --configuration Release
               if ($LASTEXITCODE -ne 0) { throw "The generated $target project $name did not build." }
 
-              $app = Start-Process -FilePath "$($_.FullName)/bin/Release/net10.0-windows/$name.exe" -PassThru
+              $exe = Get-ChildItem "$($_.FullName)/bin/Release" -Recurse -Filter "$name.exe" | Select-Object -First 1
+              $app = Start-Process -FilePath $exe.FullName -PassThru
               Start-Sleep -Seconds 8
               if ($app.HasExited) { throw "The generated $target app $name exited during startup (exit code $($app.ExitCode))." }
 

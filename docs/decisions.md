@@ -466,3 +466,23 @@ Choices made during the prototype slices that affect later work.
 - **No background on an Image:** WPF's Image has none, so the builder does not offer one.
 - **Format version 10.** The layout demo now has a small logo, so every layout check covers
   an Image, and the browser test checks the picture really loads.
+
+## Slice 25 — WinUI 3 output
+
+- **Unpackaged and self-contained,** so the generated app builds with `dotnet build` and runs
+  like the WPF and WinForms output, without MSIX packaging, certificates or a separately
+  installed runtime. Windows App SDK 1.8, the current release line the builder was checked
+  against; 2.x is newer but was not needed for anything the output uses.
+- **The WPF layout, re-expressed.** WinUI XAML has the same panels, alignment and margins, so
+  the generator mirrors the WPF one. Where WinUI lacks a control, the closest equivalent
+  stands in: ContentControl for Label, CalendarDatePicker for DatePicker, and a drawn frame
+  for GroupBox (the same fixed inset keeps children exact).
+- **Minimum sizes reset.** WinUI's default styles set minimum widths and heights (CheckBox
+  120, TextBox 64 × 32), which would override designed sizes; every control sets them to 0.
+- **Window size in code.** A WinUI window has no size in XAML, so the regenerated code-behind
+  sizes the client area from the design, scaled for the display's DPI, and turns off
+  resizing when no control follows the right or bottom edge. The created-once constructor
+  calls it, so the size follows the design on every export.
+- **Checked on Windows only.** The WinUI XAML compiler runs only on Windows, so unit tests
+  check the text everywhere and the Windows CI job builds, runs and measures the app through
+  UI Automation, on both screens of the layout demo.

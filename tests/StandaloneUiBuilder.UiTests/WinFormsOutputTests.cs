@@ -175,7 +175,8 @@ public sealed class WinFormsOutputTests
         return Path.Combine(folder, "bin", "Release", "net10.0-windows", projectName + ".exe");
     }
 
-    private static System.Drawing.Rectangle ClientRect(Window window)
+    /// <summary>A window's client area on the screen, in pixels.</summary>
+    internal static System.Drawing.Rectangle ClientRect(Window window)
     {
         var handle = window.Properties.NativeWindowHandle.Value;
         GetClientRect(handle, out var rect);
