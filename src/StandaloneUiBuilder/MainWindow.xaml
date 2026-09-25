@@ -13,6 +13,19 @@
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Margin" Value="10,8,10,6" />
         </Style>
+        <Style x:Key="FieldLabel" TargetType="Label">
+            <Setter Property="Width" Value="72" />
+            <Setter Property="Padding" Value="0,0,6,0" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="DockPanel.Dock" Value="Left" />
+        </Style>
+        <Style x:Key="FieldRow" TargetType="DockPanel">
+            <Setter Property="Margin" Value="10,0,10,6" />
+        </Style>
+        <Style x:Key="FieldBox" TargetType="TextBox">
+            <Setter Property="Padding" Value="2,1" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
         <Style x:Key="PlaceholderText" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" />
             <Setter Property="TextWrapping" Value="Wrap" />
@@ -23,6 +36,8 @@
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.New" Executed="New_Executed" />
         <CommandBinding Command="ApplicationCommands.Delete" Executed="Delete_Executed" CanExecute="Delete_CanExecute" />
+        <CommandBinding Command="ApplicationCommands.Undo" Executed="Undo_Executed" CanExecute="Undo_CanExecute" />
+        <CommandBinding Command="ApplicationCommands.Redo" Executed="Redo_Executed" CanExecute="Redo_CanExecute" />
     </Window.CommandBindings>
 
     <DockPanel>
@@ -36,8 +51,8 @@
                 <MenuItem Header="E_xit" Click="Exit_Click" />
             </MenuItem>
             <MenuItem Header="_Edit">
-                <MenuItem Header="_Undo" InputGestureText="Ctrl+Z" IsEnabled="False" />
-                <MenuItem Header="_Redo" InputGestureText="Ctrl+Y" IsEnabled="False" />
+                <MenuItem Header="_Undo" Command="ApplicationCommands.Undo" />
+                <MenuItem Header="_Redo" Command="ApplicationCommands.Redo" />
                 <Separator />
                 <MenuItem Header="_Delete" Command="ApplicationCommands.Delete" />
             </MenuItem>
@@ -113,7 +128,55 @@
 
             <DockPanel Grid.Column="4" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
                 <TextBlock DockPanel.Dock="Top" Text="Properties" Style="{StaticResource PanelHeader}" />
-                <TextBlock Text="Select a control to edit its properties." Style="{StaticResource PlaceholderText}" />
+                <TextBlock x:Name="NoSelectionText" DockPanel.Dock="Top" Style="{StaticResource PlaceholderText}"
+                           Text="Select a control to edit its properties." />
+                <ScrollViewer x:Name="InspectorPanel" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <StackPanel>
+                        <DockPanel Style="{StaticResource FieldRow}">
+                            <Label Content="Type" Style="{StaticResource FieldLabel}" />
+                            <TextBlock x:Name="TypeText" VerticalAlignment="Center" Padding="3,4" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource FieldRow}">
+                            <Label Content="_Name" Target="{Binding ElementName=NameBox}" Style="{StaticResource FieldLabel}" />
+                            <TextBox x:Name="NameBox" Style="{StaticResource FieldBox}" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource FieldRow}">
+                            <Label Content="_X" Target="{Binding ElementName=XBox}" Style="{StaticResource FieldLabel}" />
+                            <TextBox x:Name="XBox" Style="{StaticResource FieldBox}" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource FieldRow}">
+                            <Label Content="_Y" Target="{Binding ElementName=YBox}" Style="{StaticResource FieldLabel}" />
+                            <TextBox x:Name="YBox" Style="{StaticResource FieldBox}" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource FieldRow}">
+                            <Label Content="_Width" Target="{Binding ElementName=WidthBox}" Style="{StaticResource FieldLabel}" />
+                            <TextBox x:Name="WidthBox" Style="{StaticResource FieldBox}" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource FieldRow}">
+                            <Label Content="_Height" Target="{Binding ElementName=HeightBox}" Style="{StaticResource FieldLabel}" />
+                            <TextBox x:Name="HeightBox" Style="{StaticResource FieldBox}" />
+                        </DockPanel>
+                        <DockPanel x:Name="TextRow" Style="{StaticResource FieldRow}">
+                            <Label Content="_Text" Target="{Binding ElementName=TextValueBox}" Style="{StaticResource FieldLabel}" />
+                            <TextBox x:Name="TextValueBox" Style="{StaticResource FieldBox}" />
+                        </DockPanel>
+                        <DockPanel x:Name="IsCheckedRow" Style="{StaticResource FieldRow}">
+                            <Label Content="Checked" Style="{StaticResource FieldLabel}" />
+                            <CheckBox x:Name="IsCheckedBox" VerticalAlignment="Center"
+                                      AutomationProperties.Name="Checked" Click="IsCheckedBox_Click" />
+                        </DockPanel>
+                        <StackPanel x:Name="ItemsRow" Margin="10,0,10,6">
+                            <Label Content="_Items (one per line)" Target="{Binding ElementName=ItemsBox}" Padding="0,0,0,3" />
+                            <TextBox x:Name="ItemsBox" Style="{StaticResource FieldBox}" AcceptsReturn="True"
+                                     MinLines="4" MaxLines="12" VerticalScrollBarVisibility="Auto"
+                                     VerticalContentAlignment="Top" />
+                        </StackPanel>
+                        <TextBlock x:Name="InspectorErrorText" Margin="10,4,10,6" TextWrapping="Wrap"
+                                   Foreground="#FFC42B1C" Visibility="Collapsed" />
+                        <TextBlock Style="{StaticResource PlaceholderText}" Margin="10,4,10,10"
+                                   Text="Press Enter or leave a field to apply. Esc restores the current value." />
+                    </StackPanel>
+                </ScrollViewer>
             </DockPanel>
         </Grid>
     </DockPanel>

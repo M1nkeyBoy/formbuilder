@@ -42,3 +42,18 @@ Choices made during the prototype slices that affect later work.
   document after every change, so the document stays the only source of truth.
 - **Keyboard placement.** Selecting a toolbox item and pressing Enter adds the control near
   the top-left, stepping 20 DIPs for each control so new ones do not stack exactly.
+
+## Slice 3
+
+- **One undo step per gesture.** While a control is dragged or resized only its visuals
+  move; the document changes once, when the mouse button is released. Esc or losing the
+  mouse capture cancels the gesture.
+- **Undo history.** The editor keeps snapshots of the immutable document. Edits that change
+  nothing, and rejected edits, record nothing. Opening or starting a document clears history.
+- **Resize handles.** Handles draw at 8 DIPs but respond within 12 DIPs. Middle-of-edge
+  handles are hidden when that side is shorter than 40 DIPs, so small controls can still be
+  grabbed to move them.
+- **Inspector commits.** A field applies on Enter or when it loses focus; Esc restores the
+  stored value. Rejected input stays in the field with a red border and a message and is
+  never written to the document. Position and size typed here are exact, not snapped.
+- **ComboBox items.** Edited one per line; blank lines are dropped and order is kept.

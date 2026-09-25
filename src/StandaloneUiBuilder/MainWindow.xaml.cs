@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -11,7 +12,9 @@ public partial class MainWindow : Window
     private const string AppTitle = "Standalone UI Builder";
 
     private readonly DesignEditor editor = new();
+    private readonly Dictionary<TextBox, string> fieldErrors = [];
     private Guid? selectedId;
+    private Guid? inspectedId;
     private Point? toolboxDragStart;
 
     public MainWindow()
@@ -22,6 +25,14 @@ public partial class MainWindow : Window
         Surface.ControlClicked += (_, id) => Select(id);
         Surface.BlankClicked += Surface_BlankClicked;
         Surface.ControlDropped += (_, e) => AddControl(e.Type, e.X, e.Y);
+        Surface.BoundsChanging += (_, e) => ShowBounds(e.Id, e.Bounds);
+        Surface.BoundsCommitted += Surface_BoundsCommitted;
+
+        foreach (var box in new[] { NameBox, XBox, YBox, WidthBox, HeightBox, TextValueBox, ItemsBox })
+        {
+            box.LostKeyboardFocus += (_, _) => CommitField(box);
+            box.KeyDown += InspectorField_KeyDown;
+        }
 
         editor.Changed += (_, _) => RefreshAll();
         RefreshAll();
@@ -42,6 +53,7 @@ public partial class MainWindow : Window
         }
 
         Surface.Render(editor.Document.Screen, selectedId);
+        RefreshInspector();
         Title = $"{editor.Document.Name}{(editor.IsDirty ? " ●" : "")} — {AppTitle}";
         CommandManager.InvalidateRequerySuggested();
     }
@@ -50,6 +62,7 @@ public partial class MainWindow : Window
     {
         selectedId = id;
         Surface.SetSelection(id);
+        RefreshInspector();
         CommandManager.InvalidateRequerySuggested();
 
         StatusText.Text = id is { } value && editor.FindControl(value) is { } control
@@ -63,6 +76,155 @@ public partial class MainWindow : Window
         ToolboxList.SelectedItem = null;
         Select(control.Id);
         StatusText.Text = $"Added {control.Name}";
+    }
+
+    private void ShowBounds(Guid id, ControlBounds bounds)
+    {
+        if (editor.FindControl(id) is { } control)
+        {
+            StatusText.Text = $"{control.Name}: {bounds.X}, {bounds.Y} · {bounds.Width} × {bounds.Height}";
+        }
+    }
+
+    private void Surface_BoundsCommitted(object? sender, BoundsChangedEventArgs e)
+    {
+        if (editor.SetBounds(e.Id, e.Bounds) is { } error)
+        {
+            StatusText.Text = error;
+            RefreshAll();
+        }
+        else
+        {
+            ShowBounds(e.Id, e.Bounds);
+        }
+    }
+
+    private void RefreshInspector()
+    {
+        var control = selectedId is { } id ? editor.FindControl(id) : null;
+        if (control?.Id != inspectedId)
+        {
+            foreach (var box in fieldErrors.Keys.ToList())
+            {
+                SetFieldError(box, null);
+            }
+        }
+
+        inspectedId = control?.Id;
+        NoSelectionText.Visibility = control is null ? Visibility.Visible : Visibility.Collapsed;
+        InspectorPanel.Visibility = control is null ? Visibility.Collapsed : Visibility.Visible;
+        if (control is null)
+        {
+            return;
+        }
+
+        var definition = ControlCatalog.Get(control.Type);
+        var properties = control.Properties;
+        TypeText.Text = control.Type.ToString();
+        SetField(NameBox, control.Name);
+        SetField(XBox, control.X.ToString(CultureInfo.CurrentCulture));
+        SetField(YBox, control.Y.ToString(CultureInfo.CurrentCulture));
+        SetField(WidthBox, control.Width.ToString(CultureInfo.CurrentCulture));
+        SetField(HeightBox, control.Height.ToString(CultureInfo.CurrentCulture));
+
+        TextRow.Visibility = definition.HasText ? Visibility.Visible : Visibility.Collapsed;
+        SetField(TextValueBox, properties.Text ?? "");
+        IsCheckedRow.Visibility = definition.HasIsChecked ? Visibility.Visible : Visibility.Collapsed;
+        IsCheckedBox.IsChecked = properties.IsChecked == true;
+        ItemsRow.Visibility = definition.HasItems ? Visibility.Visible : Visibility.Collapsed;
+        SetField(ItemsBox, string.Join(Environment.NewLine, properties.Items ?? []));
+    }
+
+    /// <summary>Shows a document value, unless the field holds rejected input the user has not fixed.</summary>
+    private void SetField(TextBox box, string value)
+    {
+        if (!fieldErrors.ContainsKey(box))
+        {
+            box.Text = value;
+        }
+    }
+
+    private void CommitField(TextBox box)
+    {
+        if (inspectedId is not { } id || editor.FindControl(id) is not { } control)
+        {
+            return;
+        }
+
+        var error =
+            box == NameBox ? editor.Rename(id, box.Text)
+            : box == TextValueBox ? editor.SetText(id, box.Text)
+            : box == ItemsBox ? editor.SetItems(id, box.Text.Split('\n').Select(line => line.TrimEnd('\r')))
+            : CommitBoundsField(control, box);
+
+        SetFieldError(box, error);
+        if (error is null)
+        {
+            // Show the value as stored, for example trimmed or with blank items removed.
+            RefreshInspector();
+        }
+    }
+
+    private string? CommitBoundsField(ControlDocument control, TextBox box)
+    {
+        if (!int.TryParse(box.Text.Trim(), NumberStyles.Integer, CultureInfo.CurrentCulture, out var value))
+        {
+            return "Enter a whole number of DIPs.";
+        }
+
+        var bounds = control.Bounds;
+        bounds = box == XBox ? bounds with { X = value }
+            : box == YBox ? bounds with { Y = value }
+            : box == WidthBox ? bounds with { Width = value }
+            : bounds with { Height = value };
+
+        // Exact values are allowed here, without snapping, so alignment can be corrected precisely.
+        return editor.SetBounds(control.Id, bounds);
+    }
+
+    private void SetFieldError(TextBox box, string? error)
+    {
+        if (error is null)
+        {
+            fieldErrors.Remove(box);
+            box.ClearValue(Control.BorderBrushProperty);
+            box.ClearValue(ToolTipProperty);
+        }
+        else
+        {
+            fieldErrors[box] = error;
+            box.BorderBrush = InspectorErrorText.Foreground;
+            box.ToolTip = error;
+        }
+
+        InspectorErrorText.Text = string.Join(Environment.NewLine, fieldErrors.Values);
+        InspectorErrorText.Visibility = fieldErrors.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void InspectorField_KeyDown(object sender, KeyEventArgs e)
+    {
+        var box = (TextBox)sender;
+        if (e.Key == Key.Enter && !box.AcceptsReturn)
+        {
+            CommitField(box);
+            box.SelectAll();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            SetFieldError(box, null);
+            RefreshInspector();
+            box.SelectAll();
+            e.Handled = true;
+        }
+    }
+
+    private void IsCheckedBox_Click(object sender, RoutedEventArgs e)
+    {
+        if (inspectedId is { } id)
+        {
+            editor.SetIsChecked(id, IsCheckedBox.IsChecked == true);
+        }
     }
 
     private void Surface_BlankClicked(object? sender, Point position)
@@ -140,6 +302,22 @@ public partial class MainWindow : Window
             Select(null);
             StatusText.Text = $"Deleted {control.Name}";
         }
+    }
+
+    private void Undo_CanExecute(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = editor.CanUndo;
+
+    private void Undo_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        editor.Undo();
+        StatusText.Text = "Undo";
+    }
+
+    private void Redo_CanExecute(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = editor.CanRedo;
+
+    private void Redo_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        editor.Redo();
+        StatusText.Text = "Redo";
     }
 
     private void Exit_Click(object sender, RoutedEventArgs e) => Close();

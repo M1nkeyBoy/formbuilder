@@ -3,10 +3,11 @@
 A Windows desktop designer for placing and editing controls on a gridded canvas.
 It is being built in review-gated slices; see `docs/decisions.md` for choices made so far.
 
-**Current state (Slice 2):** drag Label, Button, TextBox, CheckBox or ComboBox from the
+**Current state (Slice 3):** drag Label, Button, TextBox, CheckBox or ComboBox from the
 toolbox onto the 800 × 600 gridded canvas (or select a toolbox item and click the canvas or
-press Enter). Click a control to select it, click blank canvas to deselect, press Delete to
-remove it. Moving, resizing, properties, undo and saving come in later slices.
+press Enter). Select a control to move it by dragging, resize it with its handles, or edit
+its name, position, size and type-specific values in the Properties panel. Delete removes
+it; Ctrl+Z and Ctrl+Y undo and redo. Saving comes in the next slice.
 
 ## Requirements
 
