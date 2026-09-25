@@ -49,10 +49,12 @@ public sealed class QualityTests : IDisposable
         EditorSession.WaitUntil(() => session.Field("XBox").Text == (target.X + 20).ToString(), () => "Move did not apply.");
         move.Stop();
 
-        // Drag the right-edge handle, halfway down the control.
+        // Drag the bottom-right corner handle. (Middle-of-edge handles are hidden on controls
+        // shorter than 40 DIPs.)
         var resize = Stopwatch.StartNew();
         var right = target.X + 20 + target.Width;
-        session.DragOnCanvas(right, target.Y + target.Height / 2, right + 20, target.Y + target.Height / 2);
+        var bottom = target.Y + target.Height;
+        session.DragOnCanvas(right, bottom, right + 20, bottom);
         EditorSession.WaitUntil(() => session.Field("WidthBox").Text == (target.Width + 20).ToString(), () => "Resize did not apply.");
         resize.Stop();
 
