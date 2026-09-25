@@ -1,4 +1,6 @@
+using System.ComponentModel;
 using System.Globalization;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -10,12 +12,14 @@ namespace StandaloneUiBuilder;
 public partial class MainWindow : Window
 {
     private const string AppTitle = "Standalone UI Builder";
+    private const string FileFilter = "UI Builder project (*.uibproj)|*.uibproj";
 
     private readonly DesignEditor editor = new();
     private readonly Dictionary<TextBox, string> fieldErrors = [];
     private Guid? selectedId;
     private Guid? inspectedId;
     private Point? toolboxDragStart;
+    private string? projectPath;
 
     public MainWindow()
     {
@@ -41,7 +45,17 @@ public partial class MainWindow : Window
         var workArea = SystemParameters.WorkArea;
         Width = Math.Max(MinWidth, Math.Min(Width, workArea.Width));
         Height = Math.Max(MinHeight, Math.Min(Height, workArea.Height));
+
+        // A project path on the command line (for example from Explorer) is opened at startup.
+        var startupPath = Environment.GetCommandLineArgs().Skip(1).FirstOrDefault();
+        if (startupPath is not null)
+        {
+            Loaded += (_, _) => OpenPath(startupPath);
+        }
     }
+
+    private string ProjectDisplayName =>
+        projectPath is not null ? Path.GetFileNameWithoutExtension(projectPath) : editor.Document.Name;
 
     private ControlDefinition? ArmedToolboxItem => ToolboxList.SelectedItem as ControlDefinition;
 
@@ -54,7 +68,7 @@ public partial class MainWindow : Window
 
         Surface.Render(editor.Document.Screen, selectedId);
         RefreshInspector();
-        Title = $"{editor.Document.Name}{(editor.IsDirty ? " ●" : "")} — {AppTitle}";
+        Title = $"{ProjectDisplayName}{(editor.IsDirty ? " ●" : "")} — {AppTitle}";
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -285,11 +299,135 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>Applies a value still being typed in the inspector before a file command runs.</summary>
+    private void CommitFocusedField()
+    {
+        if (Keyboard.FocusedElement is TextBox box && InspectorPanel.IsAncestorOf(box))
+        {
+            CommitField(box);
+        }
+    }
+
+    /// <summary>
+    /// Offers to save unsaved changes. Returns false if the user cancelled or the save failed,
+    /// in which case the current work must stay open.
+    /// </summary>
+    private bool ConfirmCloseDocument()
+    {
+        CommitFocusedField();
+        if (!editor.IsDirty)
+        {
+            return true;
+        }
+
+        return UnsavedChangesDialog.Ask(this, ProjectDisplayName) switch
+        {
+            UnsavedChangesChoice.Save => Save(saveAs: false),
+            UnsavedChangesChoice.Discard => true,
+            _ => false,
+        };
+    }
+
+    private bool Save(bool saveAs)
+    {
+        CommitFocusedField();
+
+        var path = projectPath;
+        if (saveAs || path is null)
+        {
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = FileFilter,
+                DefaultExt = ProjectFile.Extension,
+                AddExtension = true,
+                FileName = ProjectDisplayName,
+            };
+            if (dialog.ShowDialog(this) != true)
+            {
+                return false;
+            }
+
+            path = dialog.FileName;
+        }
+
+        try
+        {
+            ProjectFile.Save(editor.Document with { Name = Path.GetFileNameWithoutExtension(path) }, path);
+        }
+        catch (ProjectFileException ex)
+        {
+            ShowError($"Could not save the project to \"{path}\".", ex.Message);
+            return false;
+        }
+
+        projectPath = path;
+        editor.MarkSaved();
+        StatusText.Text = $"Saved {path}";
+        return true;
+    }
+
+    private void OpenPath(string path)
+    {
+        ProjectDocument document;
+        try
+        {
+            document = ProjectFile.Load(path);
+        }
+        catch (ProjectFileException ex)
+        {
+            // The current project stays open and unchanged.
+            ShowError($"Could not open \"{path}\".", ex.Message);
+            return;
+        }
+
+        projectPath = Path.GetFullPath(path);
+        selectedId = null;
+        editor.Reset(document);
+        StatusText.Text = $"Opened {projectPath}";
+    }
+
+    private void ShowError(string summary, string detail) =>
+        MessageBox.Show(this, $"{summary}{Environment.NewLine}{Environment.NewLine}{detail}", AppTitle,
+            MessageBoxButton.OK, MessageBoxImage.Error);
+
     private void New_Executed(object sender, ExecutedRoutedEventArgs e)
     {
+        if (!ConfirmCloseDocument())
+        {
+            return;
+        }
+
+        projectPath = null;
         selectedId = null;
         editor.New();
         StatusText.Text = "New design";
+    }
+
+    private void Open_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        if (!ConfirmCloseDocument())
+        {
+            return;
+        }
+
+        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = FileFilter };
+        if (dialog.ShowDialog(this) == true)
+        {
+            OpenPath(dialog.FileName);
+        }
+    }
+
+    private void Save_Executed(object sender, ExecutedRoutedEventArgs e) => Save(saveAs: false);
+
+    private void SaveAs_Executed(object sender, ExecutedRoutedEventArgs e) => Save(saveAs: true);
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        base.OnClosing(e);
+        if (!e.Cancel && !ConfirmCloseDocument())
+        {
+            e.Cancel = true;
+        }
     }
 
     private void Delete_CanExecute(object sender, CanExecuteRoutedEventArgs e) =>

@@ -18,6 +18,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\..\docs\samples\*.uibproj" Link="samples\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\StandaloneUiBuilder.Core\StandaloneUiBuilder.Core.csproj" />
   </ItemGroup>
 

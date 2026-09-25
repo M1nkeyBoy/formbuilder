@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971",
+  "name": "Customer form",
+  "screen": {
+    "id": "main",
+    "name": "Main",
+    "width": 800,
+    "height": 600,
+    "gridSize": 10,
+    "controls": [
+      {
+        "id": "3f0c7a52-5a3e-4c8e-9a61-0d4f1b2c9e01",
+        "type": "Label",
+        "name": "TitleLabel",
+        "x": 40,
+        "y": 30,
+        "width": 300,
+        "height": 30,
+        "properties": {
+          "text": "Customer details"
+        }
+      },
+      {
+        "id": "3f0c7a52-5a3e-4c8e-9a61-0d4f1b2c9e02",
+        "type": "Label",
+        "name": "NameLabel",
+        "x": 40,
+        "y": 80,
+        "width": 100,
+        "height": 30,
+        "properties": {
+          "text": "Full name"
+        }
+      },
+      {
+        "id": "3f0c7a52-5a3e-4c8e-9a61-0d4f1b2c9e03",
+        "type": "TextBox",
+        "name": "NameTextBox",
+        "x": 150,
+        "y": 80,
+        "width": 260,
+        "height": 30,
+        "properties": {
+          "text": ""
+        }
+      },
+      {
+        "id": "3f0c7a52-5a3e-4c8e-9a61-0d4f1b2c9e04",
+        "type": "Label",
+        "name": "EmailLabel",
+        "x": 40,
+        "y": 120,
+        "width": 100,
+        "height": 30,
+        "properties": {
+          "text": "Email"
+        }
+      },
+      {
+        "id": "3f0c7a52-5a3e-4c8e-9a61-0d4f1b2c9e05",
+        "type": "TextBox",
+        "name": "EmailTextBox",
+        "x": 150,
+        "y": 120,
+        "width": 260,
+        "height": 30,
+        "properties": {
+          "text": ""
+        }
+      },
+      {
+        "id": "3f0c7a52-5a3e-4c8e-9a61-0d4f1b2c9e06",
+        "type": "Label",
+        "name": "PlanLabel",
+        "x": 40,
+        "y": 160,
+        "width": 100,
+        "height": 30,
+        "properties": {
+          "text": "Plan"
+        }
+      },
+      {
+        "id": "3f0c7a52-5a3e-4c8e-9a61-0d4f1b2c9e07",
+        "type": "ComboBox",
+        "name": "PlanComboBox",
+        "x": 150,
+        "y": 160,
+        "width": 160,
+        "height": 30,
+        "properties": {
+          "items": [
+            "Basic",
+            "Standard",
+            "Premium"
+          ]
+        }
+      },
+      {
+        "id": "3f0c7a52-5a3e-4c8e-9a61-0d4f1b2c9e08",
+        "type": "CheckBox",
+        "name": "NewsletterCheckBox",
+        "x": 150,
+        "y": 210,
+        "width": 260,
+        "height": 20,
+        "properties": {
+          "text": "Send me the newsletter",
+          "isChecked": true
+        }
+      },
+      {
+        "id": "3f0c7a52-5a3e-4c8e-9a61-0d4f1b2c9e09",
+        "type": "Button",
+        "name": "SubmitButton",
+        "x": 150,
+        "y": 250,
+        "width": 120,
+        "height": 32,
+        "properties": {
+          "text": "Submit"
+        }
+      },
+      {
+        "id": "3f0c7a52-5a3e-4c8e-9a61-0d4f1b2c9e0a",
+        "type": "Button",
+        "name": "CancelButton",
+        "x": 290,
+        "y": 250,
+        "width": 120,
+        "height": 32,
+        "properties": {
+          "text": "Cancel"
+        }
+      }
+    ]
+  }
+}

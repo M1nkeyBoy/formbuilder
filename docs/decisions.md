@@ -57,3 +57,17 @@ Choices made during the prototype slices that affect later work.
   stored value. Rejected input stays in the field with a red border and a message and is
   never written to the document. Position and size typed here are exact, not snapped.
 - **ComboBox items.** Edited one per line; blank lines are dropped and order is kept.
+
+## Slice 4
+
+- **File format.** Recorded in `project-format.md`, with a sample in `samples/`. Field names
+  match the spec's example. Unsupported properties are dropped on load and missing ones get
+  neutral defaults, so hand-edited files stay usable.
+- **Project name.** The title shows the file name. On save, the file name (without
+  extension) is also written as the project's `name`.
+- **Atomic save.** Write a temporary file in the destination folder, flush it to disk, then
+  move it over the destination.
+- **Pending input.** A value still being typed in the inspector is applied before Save,
+  Open, New or close.
+- **Command-line open.** The first command-line argument is opened as a project at startup.
+  CI uses this to screenshot the sample project.

@@ -25,7 +25,9 @@ jobs:
         shell: pwsh
         run: |
           $exe = "src/StandaloneUiBuilder/bin/Release/net10.0-windows/StandaloneUiBuilder.exe"
-          $app = Start-Process -FilePath $exe -PassThru
+          # Open the sample project so the screenshot shows every control type.
+          $sample = (Resolve-Path "docs/samples/customer-form.uibproj").Path
+          $app = Start-Process -FilePath $exe -ArgumentList "`"$sample`"" -PassThru
           Start-Sleep -Seconds 10
           if ($app.HasExited) { throw "The editor exited during startup (exit code $($app.ExitCode))." }
 

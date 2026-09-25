@@ -3,11 +3,12 @@
 A Windows desktop designer for placing and editing controls on a gridded canvas.
 It is being built in review-gated slices; see `docs/decisions.md` for choices made so far.
 
-**Current state (Slice 3):** drag Label, Button, TextBox, CheckBox or ComboBox from the
+**Current state (Slice 4):** drag Label, Button, TextBox, CheckBox or ComboBox from the
 toolbox onto the 800 × 600 gridded canvas (or select a toolbox item and click the canvas or
 press Enter). Select a control to move it by dragging, resize it with its handles, or edit
 its name, position, size and type-specific values in the Properties panel. Delete removes
-it; Ctrl+Z and Ctrl+Y undo and redo. Saving comes in the next slice.
+it; Ctrl+Z and Ctrl+Y undo and redo. File > New, Open, Save and Save As work with
+`.uibproj` project files, and you are asked before unsaved changes are lost.
 
 ## Requirements
 
@@ -31,6 +32,12 @@ You can also launch the built executable directly:
 src\StandaloneUiBuilder\bin\Debug\net10.0-windows\StandaloneUiBuilder.exe
 ```
 
+To open a project at startup, pass its path:
+
+```powershell
+dotnet run --project src/StandaloneUiBuilder -- docs\samples\customer-form.uibproj
+```
+
 ## Tests
 
 ```powershell
@@ -46,7 +53,7 @@ StandaloneUiBuilder.sln
 src/StandaloneUiBuilder/              WPF shell, canvas and rendering
 src/StandaloneUiBuilder.Core/         Document model, commands, validation, serialization
 tests/StandaloneUiBuilder.Core.Tests/ Tests for the Core library
-docs/                                 Decisions and format notes
+docs/                                 Decisions, project file format and samples
 ```
 
 ## Continuous integration
