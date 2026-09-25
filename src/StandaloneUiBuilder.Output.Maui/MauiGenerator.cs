@@ -202,12 +202,22 @@ public static class MauiGenerator
             case ControlType.GroupBox:
                 AppendGroupBox(xaml, screen, control, layout, depth);
                 return;
+            case ControlType.Image:
+                // Given only a size request, MAUI shows a picture at its natural size in a corner
+                // of the box; in a Grid with the designed box, it fills it and fits the picture.
+                var source = properties.ImageData is not null ? $" Source=\"{ImageName(screen, control)}.png\"" : "";
+                var aspect = properties.Stretch == ImageStretch.Fill ? "Fill" : "AspectFit";
+                xaml.AppendLine($"{indent}<Grid {string.Join(" ", layout)}>");
+                xaml.AppendLine($"{indent}    <Image x:Name=\"{control.Name}\" AutomationId=\"{control.Name}\"{source} Aspect=\"{aspect}\" HorizontalOptions=\"Fill\" VerticalOptions=\"Fill\" />");
+                xaml.AppendLine($"{indent}</Grid>");
+                return;
             case ControlType.CheckBox:
                 // A CheckBox has no text in MAUI: a Grid in its place holds it and a Label. The
-                // box keeps its natural size, centred; squeezed smaller, MAUI does not draw it.
+                // box keeps its natural height, centred (squeezed smaller, MAUI does not draw it),
+                // and is 32 wide rather than the 120 Windows gives it, so the text follows it.
                 xaml.AppendLine($"{indent}<Grid {string.Join(" ", layout)} ColumnDefinitions=\"Auto,*\" ColumnSpacing=\"4\">");
-                xaml.AppendLine($"{indent}    <CheckBox x:Name=\"{control.Name}\" AutomationId=\"{control.Name}\" IsChecked=\"{Bool(properties.IsChecked)}\" VerticalOptions=\"Center\" CheckedChanged=\"{HandlerName(control)}\" />");
-                xaml.AppendLine($"{indent}    <Label Grid.Column=\"1\" Text=\"{Attribute(properties.Text ?? "")}\" VerticalTextAlignment=\"Center\"{string.Concat(StyleAttributes(control).Select(a => " " + a))} />");
+                xaml.AppendLine($"{indent}    <CheckBox x:Name=\"{control.Name}\" AutomationId=\"{control.Name}\" IsChecked=\"{Bool(properties.IsChecked)}\" WidthRequest=\"32\" MinimumWidthRequest=\"0\" VerticalOptions=\"Center\" CheckedChanged=\"{HandlerName(control)}\" />");
+                xaml.AppendLine($"{indent}    <Label Grid.Column=\"1\" Text=\"{Attribute(properties.Text ?? "")}\" VerticalTextAlignment=\"Center\" LineBreakMode=\"NoWrap\"{string.Concat(StyleAttributes(control).Select(a => " " + a))} />");
                 xaml.AppendLine($"{indent}</Grid>");
                 return;
         }
@@ -267,14 +277,6 @@ public static class MauiGenerator
                 var span = Math.Max(1, (properties.Maximum ?? 100) - (properties.Minimum ?? 0));
                 var progress = ((properties.Value ?? 0) - (properties.Minimum ?? 0)) / (double)span;
                 attributes.Add($"Progress=\"{progress.ToString("0.####", CultureInfo.InvariantCulture)}\"");
-                break;
-            case ControlType.Image:
-                if (properties.ImageData is not null)
-                {
-                    attributes.Add($"Source=\"{ImageName(screen, control)}.png\"");
-                }
-
-                attributes.Add($"Aspect=\"{(properties.Stretch == ImageStretch.Fill ? "Fill" : "AspectFit")}\"");
                 break;
             case ControlType.StackPanel:
                 attributes.Add($"Spacing=\"{Number(properties.Spacing ?? 0)}\"");
