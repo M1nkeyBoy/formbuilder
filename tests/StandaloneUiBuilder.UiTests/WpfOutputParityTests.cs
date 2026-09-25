@@ -121,6 +121,14 @@ public sealed partial class WpfOutputParityTests
         var grid = (Grid)window.Content;
         Assert.Equal(screen.Controls.Count, grid.Children.Count);
 
+        // A picture's Source is a resource of the compiled application, so it was taken out;
+        // give each Image the design's picture instead, as the application would show it.
+        foreach (var image in ControlTree.All(screen.Controls).Where(c => c.Properties.ImageData is not null))
+        {
+            ((System.Windows.Controls.Image)window.FindName(image.Name)).Source =
+                ((System.Windows.Controls.Image)ControlFactory.Create(image, buttonClicked: null)).Source;
+        }
+
         var preview = new DesignSurface();
         preview.Render(screen, [], isPreview: true);
         _ = new Window { Content = preview };
