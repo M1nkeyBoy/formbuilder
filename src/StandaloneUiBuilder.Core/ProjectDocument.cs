@@ -8,7 +8,13 @@ namespace StandaloneUiBuilder.Core;
 
 public sealed record ProjectDocument
 {
-    public const int CurrentSchemaVersion = 1;
+    /// <summary>
+    /// The format version this builder writes. Version 1 files (no anchors) are still read.
+    /// See docs/project-format.md for the history.
+    /// </summary>
+    public const int CurrentSchemaVersion = 2;
+
+    public const int OldestSupportedSchemaVersion = 1;
     public const string DefaultName = "Untitled";
 
     public int SchemaVersion { get; init; } = CurrentSchemaVersion;
@@ -63,6 +69,9 @@ public sealed record ControlDocument
     public int Height { get; init; }
 
     public ControlProperties Properties { get; init; } = new();
+
+    /// <summary>Screen edges the control follows when the window is resized.</summary>
+    public AnchorEdges Anchor { get; init; } = AnchorEdges.Default;
 
     [JsonIgnore]
     public ControlBounds Bounds => new(X, Y, Width, Height);

@@ -6,11 +6,21 @@ recorded here, with a migration, before the code changes.
 
 A complete example is in [`samples/customer-form.uibproj`](samples/customer-form.uibproj).
 
-## Schema version 1
+## Version history
+
+| Version | Change | Migration when opening an older file |
+|---|---|---|
+| 1 | First prototype format. | — |
+| 2 | Adds `anchor` to each control. | Every control gets `["left", "top"]`, which is how version 1 designs behaved. |
+
+The builder reads versions 1 and 2 and always saves version 2. A version 1 builder rejects
+version 2 files with a clear message instead of silently dropping anchors.
+
+## Schema version 2
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971",
   "name": "Customer form",
   "screen": {
@@ -28,7 +38,8 @@ A complete example is in [`samples/customer-form.uibproj`](samples/customer-form
         "y": 100,
         "width": 120,
         "height": 32,
-        "properties": { "text": "Submit" }
+        "properties": { "text": "Submit" },
+        "anchor": ["top", "right"]
       }
     ]
   }
@@ -39,7 +50,7 @@ A complete example is in [`samples/customer-form.uibproj`](samples/customer-form
 
 | Field | Type | Notes |
 |---|---|---|
-| `schemaVersion` | integer | Required. Currently `1`. |
+| `schemaVersion` | integer | Required. `2` when saved by this builder; `1` is still read. |
 | `projectId` | GUID string | Required. Stable for the life of the project. |
 | `name` | string | Written as the file name (without extension) on save. |
 | `screen` | object | Required. The single screen in a prototype project. |
@@ -64,9 +75,19 @@ A complete example is in [`samples/customer-form.uibproj`](samples/customer-form
 | `x`, `y` | integer | DIPs from the screen's top-left corner; not negative. |
 | `width`, `height` | integer | DIPs; at least the type's minimum size. The control must fit inside the screen. |
 | `properties` | object | Type-specific values, below. |
+| `anchor` | array of strings | Screen edges the control follows when the window is resized: any of `left`, `top`, `right`, `bottom`, with at least one of left/right and one of top/bottom. Optional; defaults to `["left", "top"]`. |
 
 Minimum sizes: Label 20 × 16, Button 30 × 20, TextBox 30 × 20, CheckBox 20 × 16,
 ComboBox 40 × 20.
+
+### Anchors
+
+Anchors describe what happens when a generated window is made larger than the design size:
+
+- Anchored to **left** (or **top**) only: the control keeps its position.
+- Anchored to **right** (or **bottom**) only: it keeps its distance from that edge, so it moves.
+- Anchored to **both** left and right (or top and bottom): it keeps both distances, so it
+  stretches.
 
 ### Type-specific properties
 
@@ -89,11 +110,12 @@ separately and do not use this file.
 
 ## Loading rules
 
-- The file must be JSON with an integer `schemaVersion`.
+- The file must be JSON with an integer `schemaVersion` of 1 or 2.
 - A `schemaVersion` newer than the builder supports is rejected with a message; the builder
   never guesses how to read a future format.
 - An unknown control `type` is rejected with a message naming the type and control.
-- IDs, names, sizes and bounds are validated; every problem found is listed.
+- IDs, names, sizes, bounds and anchors are validated; every problem found is listed. An
+  unknown anchor edge name is named in the message.
 - A file that fails to load never replaces the project that is currently open.
 
 ## Saving rules

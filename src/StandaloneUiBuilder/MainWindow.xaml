@@ -174,6 +174,15 @@
                             <Label Content="_Height" Target="{Binding ElementName=HeightBox}" Style="{StaticResource FieldLabel}" />
                             <TextBox x:Name="HeightBox" Style="{StaticResource FieldBox}" />
                         </DockPanel>
+                        <DockPanel Style="{StaticResource FieldRow}">
+                            <Label Content="Anchor" Style="{StaticResource FieldLabel}" VerticalContentAlignment="Top" />
+                            <UniformGrid Columns="2" ToolTip="Edges the control follows when the window is resized. Left and Right together, or Top and Bottom together, make it stretch.">
+                                <CheckBox x:Name="AnchorLeftBox" Content="Left" Margin="0,2" Click="AnchorBox_Click" />
+                                <CheckBox x:Name="AnchorTopBox" Content="Top" Margin="0,2" Click="AnchorBox_Click" />
+                                <CheckBox x:Name="AnchorRightBox" Content="Right" Margin="0,2" Click="AnchorBox_Click" />
+                                <CheckBox x:Name="AnchorBottomBox" Content="Bottom" Margin="0,2" Click="AnchorBox_Click" />
+                            </UniformGrid>
+                        </DockPanel>
                         <DockPanel x:Name="TextRow" Style="{StaticResource FieldRow}">
                             <Label Content="_Text" Target="{Binding ElementName=TextValueBox}" Style="{StaticResource FieldLabel}" />
                             <TextBox x:Name="TextValueBox" Style="{StaticResource FieldBox}" />

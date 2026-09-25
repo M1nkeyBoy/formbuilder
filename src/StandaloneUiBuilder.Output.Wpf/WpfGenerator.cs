@@ -130,6 +130,7 @@ public static partial class WpfGenerator
     public static string WindowXaml(ProjectDocument document, string rootNamespace)
     {
         var screen = document.Screen;
+        var resizable = AnchorLayout.IsResizable(screen);
         var xaml = new StringBuilder();
         xaml.AppendLine($"<!-- {GeneratedMarker} from \"{Comment(document.Name)}\". This file is replaced on every export;");
         xaml.AppendLine($"     put your own code in {WindowClassName}.xaml.cs. -->");
@@ -138,32 +139,56 @@ public static partial class WpfGenerator
         xaml.AppendLine("        xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"");
         xaml.AppendLine($"        Title=\"{Attribute(document.Name)}\"");
         xaml.AppendLine("        SizeToContent=\"WidthAndHeight\"");
-        xaml.AppendLine("        ResizeMode=\"CanMinimize\"");
+        xaml.AppendLine($"        ResizeMode=\"{(resizable ? "CanResize" : "CanMinimize")}\"");
         xaml.AppendLine("        UseLayoutRounding=\"True\">");
-        xaml.AppendLine($"    <Canvas Width=\"{Number(screen.Width)}\" Height=\"{Number(screen.Height)}\">");
+
+        // The window opens at the design size. If any control follows the right or bottom edge,
+        // the window can be enlarged and controls move or stretch with their anchors.
+        var size = resizable ? "MinWidth" : "Width";
+        var height = resizable ? "MinHeight" : "Height";
+        xaml.AppendLine($"    <Grid {size}=\"{Number(screen.Width)}\" {height}=\"{Number(screen.Height)}\">");
 
         foreach (var control in screen.Controls)
         {
-            AppendControl(xaml, control);
+            AppendControl(xaml, screen, control);
         }
 
-        xaml.AppendLine("    </Canvas>");
+        xaml.AppendLine("    </Grid>");
         xaml.AppendLine("</Window>");
         return xaml.ToString();
     }
 
-    private static void AppendControl(StringBuilder xaml, ControlDocument control)
+    private static void AppendControl(StringBuilder xaml, ScreenDocument screen, ControlDocument control)
     {
         var properties = control.Properties;
         var element = control.Type.ToString();
+        var placement = AnchorLayout.Place(screen, control);
+
+        // Margins count only on the anchored sides; a fixed size is written only when the
+        // control does not stretch along that axis.
+        var margin = new[]
+        {
+            placement.Horizontal == AxisAlignment.End ? 0 : placement.MarginLeft,
+            placement.Vertical == AxisAlignment.End ? 0 : placement.MarginTop,
+            placement.Horizontal == AxisAlignment.Start ? 0 : placement.MarginRight,
+            placement.Vertical == AxisAlignment.Start ? 0 : placement.MarginBottom,
+        };
         var attributes = new List<string>
         {
             $"x:Name=\"{control.Name}\"",
-            $"Canvas.Left=\"{Number(control.X)}\"",
-            $"Canvas.Top=\"{Number(control.Y)}\"",
-            $"Width=\"{Number(control.Width)}\"",
-            $"Height=\"{Number(control.Height)}\"",
+            $"HorizontalAlignment=\"{Alignment(placement.Horizontal, "Left", "Right")}\"",
+            $"VerticalAlignment=\"{Alignment(placement.Vertical, "Top", "Bottom")}\"",
+            $"Margin=\"{string.Join(",", margin.Select(Number))}\"",
         };
+        if (placement.Width is { } width)
+        {
+            attributes.Add($"Width=\"{Number(width)}\"");
+        }
+
+        if (placement.Height is { } fixedHeight)
+        {
+            attributes.Add($"Height=\"{Number(fixedHeight)}\"");
+        }
 
         switch (control.Type)
         {
@@ -319,6 +344,13 @@ public static partial class WpfGenerator
     /// literally, so each underscore is doubled to display as itself.
     /// </summary>
     private static string LiteralAccessText(string? text) => (text ?? "").Replace("_", "__", StringComparison.Ordinal);
+
+    private static string Alignment(AxisAlignment alignment, string start, string end) => alignment switch
+    {
+        AxisAlignment.Start => start,
+        AxisAlignment.End => end,
+        _ => "Stretch",
+    };
 
     private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
 

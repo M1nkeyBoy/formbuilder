@@ -19,7 +19,7 @@ public sealed class WpfOutputTests : IDisposable
     private static XElement Canvas(ProjectDocument document)
     {
         var window = XDocument.Parse(WpfGenerator.WindowXaml(document, "Test")).Root!;
-        return window.Element(Presentation + "Canvas")!;
+        return window.Element(Presentation + "Grid")!;
     }
 
     private static ProjectDocument WithControl(ControlType type, string name, ControlProperties properties)
@@ -57,10 +57,14 @@ public sealed class WpfOutputTests : IDisposable
             var element = elements[i];
             Assert.Equal(control.Type.ToString(), element.Name.LocalName);
             Assert.Equal(control.Name, (string?)element.Attribute(Xaml + "Name"));
-            Assert.Equal(control.X.ToString(), (string?)element.Attribute("Canvas.Left"));
-            Assert.Equal(control.Y.ToString(), (string?)element.Attribute("Canvas.Top"));
-            Assert.Equal(control.Width.ToString(), (string?)element.Attribute("Width"));
             Assert.Equal(control.Height.ToString(), (string?)element.Attribute("Height"));
+            if (control.Anchor == AnchorEdges.Default)
+            {
+                Assert.Equal("Left", (string?)element.Attribute("HorizontalAlignment"));
+                Assert.Equal("Top", (string?)element.Attribute("VerticalAlignment"));
+                Assert.Equal($"{control.X},{control.Y},0,0", (string?)element.Attribute("Margin"));
+                Assert.Equal(control.Width.ToString(), (string?)element.Attribute("Width"));
+            }
         }
     }
 
@@ -68,13 +72,14 @@ public sealed class WpfOutputTests : IDisposable
     public void WindowIsSizedToTheScreenAndTitledAfterTheProject()
     {
         var root = XDocument.Parse(WpfGenerator.WindowXaml(Sample(), "CustomerForm")).Root!;
-        var canvas = root.Element(Presentation + "Canvas")!;
+        var grid = root.Element(Presentation + "Grid")!;
 
         Assert.Equal("CustomerForm.MainWindow", (string?)root.Attribute(Xaml + "Class"));
         Assert.Equal("Customer form", (string?)root.Attribute("Title"));
         Assert.Equal("WidthAndHeight", (string?)root.Attribute("SizeToContent"));
-        Assert.Equal("800", (string?)canvas.Attribute("Width"));
-        Assert.Equal("600", (string?)canvas.Attribute("Height"));
+        Assert.Equal(AnchorLayout.IsResizable(Sample().Screen) ? "CanResize" : "CanMinimize", (string?)root.Attribute("ResizeMode"));
+        Assert.Equal("800", (string?)(grid.Attribute("Width") ?? grid.Attribute("MinWidth")));
+        Assert.Equal("600", (string?)(grid.Attribute("Height") ?? grid.Attribute("MinHeight")));
     }
 
     [Fact]
@@ -177,7 +182,7 @@ public sealed class WpfOutputTests : IDisposable
         Assert.Contains("MainWindow.Events.g.cs", result.Kept);
         Assert.Empty(result.Created);
         Assert.EndsWith("// my code\n", File.ReadAllText(codeBehind));
-        Assert.Contains("Canvas.Left=\"70\"", File.ReadAllText(Path.Combine(folder, "MainWindow.xaml")));
+        Assert.Contains("Margin=\"70,", File.ReadAllText(Path.Combine(folder, "MainWindow.xaml")));
     }
 
     [Fact]
@@ -235,8 +240,8 @@ public sealed class WpfOutputTests : IDisposable
         Assert.Equal("NewsletterCheckBox_Click", (string?)elements["NewsletterCheckBox"].Attribute("Click"));
         Assert.Equal("NameTextBox_TextChanged", (string?)elements["NameTextBox"].Attribute("TextChanged"));
         Assert.Equal("PlanComboBox_SelectionChanged", (string?)elements["PlanComboBox"].Attribute("SelectionChanged"));
-        Assert.Equal(["x:Name", "Canvas.Left", "Canvas.Top", "Width", "Height", "Padding", "VerticalContentAlignment", "Content"],
-            elements["TitleLabel"].Attributes().Select(a => a.Name.Namespace == Xaml ? "x:" + a.Name.LocalName : a.Name.LocalName));
+        Assert.Equal(["x:Name", "HorizontalAlignment", "VerticalAlignment", "Margin", "Width", "Height", "Padding", "VerticalContentAlignment", "Content"],
+            elements["NameLabel"].Attributes().Select(a => a.Name.Namespace == Xaml ? "x:" + a.Name.LocalName : a.Name.LocalName));
     }
 
     [Fact]
@@ -278,5 +283,42 @@ public sealed class WpfOutputTests : IDisposable
         var problem = Assert.Single(WpfGenerator.Check(editor.Document));
 
         Assert.Contains("OnSaveClick", problem);
+    }
+
+    private static ProjectDocument Anchored(AnchorEdges anchor)
+    {
+        var editor = new DesignEditor();
+        var button = editor.AddControl(ControlType.Button, 100, 50);
+        editor.SetAnchor(button.Id, anchor);
+        return editor.Document;
+    }
+
+    [Theory]
+    [InlineData(AnchorEdges.Left | AnchorEdges.Top, "Left", "Top", "100,50,0,0", "100", "30")]
+    [InlineData(AnchorEdges.Right | AnchorEdges.Bottom, "Right", "Bottom", "0,0,600,520", "100", "30")]
+    [InlineData(AnchorEdges.Left | AnchorEdges.Right | AnchorEdges.Top, "Stretch", "Top", "100,50,600,0", null, "30")]
+    [InlineData(AnchorEdges.Left | AnchorEdges.Top | AnchorEdges.Bottom, "Left", "Stretch", "100,50,0,520", "100", null)]
+    public void AnchorsBecomeAlignmentMarginAndSize(AnchorEdges anchor, string horizontal, string vertical, string margin, string? width, string? height)
+    {
+        var element = Canvas(Anchored(anchor)).Elements().Single();
+
+        Assert.Equal(horizontal, (string?)element.Attribute("HorizontalAlignment"));
+        Assert.Equal(vertical, (string?)element.Attribute("VerticalAlignment"));
+        Assert.Equal(margin, (string?)element.Attribute("Margin"));
+        Assert.Equal(width, (string?)element.Attribute("Width"));
+        Assert.Equal(height, (string?)element.Attribute("Height"));
+    }
+
+    [Fact]
+    public void WindowResizesOnlyWhenAControlFollowsTheRightOrBottomEdge()
+    {
+        var fixedRoot = XDocument.Parse(WpfGenerator.WindowXaml(Anchored(AnchorEdges.Default), "T")).Root!;
+        var resizableRoot = XDocument.Parse(WpfGenerator.WindowXaml(Anchored(AnchorEdges.Right | AnchorEdges.Top), "T")).Root!;
+
+        Assert.Equal("CanMinimize", (string?)fixedRoot.Attribute("ResizeMode"));
+        Assert.Equal("800", (string?)fixedRoot.Element(Presentation + "Grid")!.Attribute("Width"));
+        Assert.Equal("CanResize", (string?)resizableRoot.Attribute("ResizeMode"));
+        Assert.Equal("800", (string?)resizableRoot.Element(Presentation + "Grid")!.Attribute("MinWidth"));
+        Assert.Null(resizableRoot.Element(Presentation + "Grid")!.Attribute("Width"));
     }
 }

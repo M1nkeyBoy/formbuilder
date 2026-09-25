@@ -19,6 +19,7 @@ public partial class MainWindow : Window
 
     private readonly DesignEditor editor = new();
     private readonly Dictionary<TextBox, string> fieldErrors = [];
+    private string? anchorError;
     private Guid? selectedId;
     private Guid? inspectedId;
     private Point? toolboxDragStart;
@@ -154,6 +155,12 @@ public partial class MainWindow : Window
             }
         }
 
+        if (control?.Id != inspectedId)
+        {
+            anchorError = null;
+            UpdateInspectorErrors();
+        }
+
         inspectedId = control?.Id;
         NoSelectionText.Visibility = control is null ? Visibility.Visible : Visibility.Collapsed;
         InspectorPanel.Visibility = control is null ? Visibility.Collapsed : Visibility.Visible;
@@ -173,6 +180,11 @@ public partial class MainWindow : Window
 
         TextRow.Visibility = definition.HasText ? Visibility.Visible : Visibility.Collapsed;
         SetField(TextValueBox, properties.Text ?? "");
+        AnchorLeftBox.IsChecked = control.Anchor.HasFlag(AnchorEdges.Left);
+        AnchorTopBox.IsChecked = control.Anchor.HasFlag(AnchorEdges.Top);
+        AnchorRightBox.IsChecked = control.Anchor.HasFlag(AnchorEdges.Right);
+        AnchorBottomBox.IsChecked = control.Anchor.HasFlag(AnchorEdges.Bottom);
+
         IsCheckedRow.Visibility = definition.HasIsChecked ? Visibility.Visible : Visibility.Collapsed;
         IsCheckedBox.IsChecked = properties.IsChecked == true;
         ItemsRow.Visibility = definition.HasItems ? Visibility.Visible : Visibility.Collapsed;
@@ -241,8 +253,48 @@ public partial class MainWindow : Window
             box.ToolTip = error;
         }
 
-        InspectorErrorText.Text = string.Join(Environment.NewLine, fieldErrors.Values);
-        InspectorErrorText.Visibility = fieldErrors.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        UpdateInspectorErrors();
+    }
+
+    private void UpdateInspectorErrors()
+    {
+        var messages = fieldErrors.Values.Append(anchorError).OfType<string>().ToList();
+        InspectorErrorText.Text = string.Join(Environment.NewLine, messages);
+        InspectorErrorText.Visibility = messages.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void AnchorBox_Click(object sender, RoutedEventArgs e)
+    {
+        if (inspectedId is not { } id)
+        {
+            return;
+        }
+
+        var anchor = AnchorEdges.None;
+        if (AnchorLeftBox.IsChecked == true)
+        {
+            anchor |= AnchorEdges.Left;
+        }
+
+        if (AnchorTopBox.IsChecked == true)
+        {
+            anchor |= AnchorEdges.Top;
+        }
+
+        if (AnchorRightBox.IsChecked == true)
+        {
+            anchor |= AnchorEdges.Right;
+        }
+
+        if (AnchorBottomBox.IsChecked == true)
+        {
+            anchor |= AnchorEdges.Bottom;
+        }
+
+        // A rejected combination is shown and the boxes go back to the stored anchor.
+        anchorError = editor.SetAnchor(id, anchor);
+        RefreshInspector();
+        UpdateInspectorErrors();
     }
 
     private void InspectorField_KeyDown(object sender, KeyEventArgs e)

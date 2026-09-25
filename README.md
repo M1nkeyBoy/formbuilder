@@ -16,6 +16,10 @@ choices are recorded in `docs/decisions.md`.
   plus text, checked state or ComboBox items (one per line) where they apply. Press Enter or
   leave a field to apply it; Esc restores the stored value. Invalid values are flagged in red
   and never written to the design.
+- **Anchoring.** Each control's Anchor setting (Left, Top, Right, Bottom) says which window
+  edges it follows when the window is resized: anchored to Right it moves with the right
+  edge, anchored to Left and Right it stretches. Dashed lines show the anchors of the
+  selected control. In Preview, drag the corner grip to try them.
 - **Undo and redo.** Ctrl+Z and Ctrl+Y cover adding, deleting, moving, resizing and property
   changes. A whole drag is one step.
 - **Preview.** Switch to Preview (bottom left, or View > Preview) to try the controls. Type
@@ -109,8 +113,8 @@ tests use this so they never touch your own drafts.
 - One screen per project, with a fixed 800 × 600 size; there is no UI to change it yet.
 - Only the five built-in controls. No containers, layout panels, z-order commands, multiple
   selection, copy/paste or keyboard nudging.
-- Positions are absolute. This suits the prototype but not the responsive layouts that later
-  WinUI, MAUI or Blazor output will need (see the spec's "decisions to revisit").
+- Layout is absolute positions plus anchors. There are no nested containers (stacks, grids)
+  yet, which richer responsive layouts for WinUI, MAUI or Blazor would need.
 - WPF is the only output so far, and it generates layout only: no event handlers, data
   binding or styles. No import of existing projects.
 - The automated UI tests assume 100% display scaling. 150% scaling has been checked by hand.

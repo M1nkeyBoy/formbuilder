@@ -125,6 +125,11 @@ public static partial class DocumentValidator
             {
                 errors.Add($"{label}: {boundsError}");
             }
+
+            if (AnchorLayout.Validate(control.Anchor) is { } anchorError)
+            {
+                errors.Add($"{label}: {anchorError}");
+            }
         }
 
         return errors;

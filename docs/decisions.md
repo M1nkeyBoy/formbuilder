@@ -155,3 +155,30 @@ Choices made during the prototype slices that affect later work.
   build, and a stale implementation fails loudly with a clear compiler message.
 - **One event per type.** Button and CheckBox: Click. TextBox: TextChanged. ComboBox:
   SelectionChanged. Label: none.
+
+## Slice 11 — Anchoring (first layout model)
+
+- **Anchors before containers.** The spec's first decision to revisit asks for a layout model
+  beyond absolute positions. Anchors (left, top, right, bottom per control) are the smallest
+  model that makes windows resizable. They map directly onto WPF (alignment plus margins)
+  and WinForms (`Anchor`), and they keep editing on the same absolute canvas. Nested
+  containers (stacks, grids) remain a possible later step.
+- **Format version 2.** `anchor` is a new control field, so the schema version went to 2 and
+  the change and its migration are recorded in `project-format.md`. Version 1 files load
+  with left and top anchors, which reproduces how they behaved. Bumping the version, rather
+  than adding an optional field silently, stops an older builder from opening a newer file
+  and dropping its anchors on save.
+- **Anchors are a list of edge names** (`["left", "top"]`) for readability. Each control
+  needs one horizontal and one vertical anchor; the editor refuses any other combination
+  and explains why.
+- **One set of rules everywhere.** `AnchorLayout` in Core defines where a control goes at
+  any window size. The generated WPF window and the editor's Preview both lay out from it,
+  and a Windows test checks all three agree at the design size and at a larger size.
+- **Resizable only when it matters.** A generated window can be resized only if some control
+  follows the right or bottom edge, and never below the design size. Otherwise it keeps the
+  fixed design size, as before.
+- **Preview resizing.** In Preview a grip at the bottom-right corner enlarges the surface
+  (never below the design size) to try the anchors. Design mode stays at the design size.
+- **Generated XAML changed from Canvas to Grid** for every design, so that one form handles
+  all anchors. Existing exports pick this up on the next export; control names, and
+  therefore developers' code, are unaffected.

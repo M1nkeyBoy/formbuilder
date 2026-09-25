@@ -66,36 +66,89 @@ public sealed partial class WpfOutputParityTests
         Assert.True(File.Exists(Path.Combine(result.ProjectFolder, "CustomerForm.csproj")));
     }
 
+    [WindowsFact]
+    public void AnchoredDesignLaysOutTheSameEverywhere() => RunOnStaThread(() => AssertParity(AnchorMix()));
+
+    /// <summary>One control per interesting anchor combination.</summary>
+    private static ProjectDocument AnchorMix()
+    {
+        var editor = new DesignEditor();
+        var anchors = new[]
+        {
+            AnchorEdges.Default,
+            AnchorEdges.Right | AnchorEdges.Top,
+            AnchorEdges.Left | AnchorEdges.Bottom,
+            AnchorEdges.Right | AnchorEdges.Bottom,
+            AnchorEdges.Left | AnchorEdges.Right | AnchorEdges.Top,
+            AnchorEdges.Left | AnchorEdges.Top | AnchorEdges.Bottom,
+            AnchorEdges.Left | AnchorEdges.Right | AnchorEdges.Top | AnchorEdges.Bottom,
+        };
+        var types = ControlCatalog.All.Select(d => d.Type).ToArray();
+        for (var i = 0; i < anchors.Length; i++)
+        {
+            var control = editor.AddControl(types[i % types.Length], 40 + i * 100, 40 + i * 70);
+            editor.SetAnchor(control.Id, anchors[i]);
+        }
+
+        return editor.Document;
+    }
+
+    /// <summary>
+    /// Compares, control by control: the generated XAML as WPF lays it out; the designer's
+    /// Preview as WPF lays it out; and the Core anchor rules. At the design size and, for a
+    /// resizable screen, at a larger size.
+    /// </summary>
     private static void AssertParity(ProjectDocument document)
     {
+        var screen = document.Screen;
         var xaml = CompiledOnlyAttributes().Replace(WpfGenerator.WindowXaml(document, "Parity"), "");
         var window = (Window)XamlReader.Parse(xaml);
-        var canvas = (Canvas)window.Content;
+        var grid = (Grid)window.Content;
+        Assert.Equal(screen.Controls.Count, grid.Children.Count);
 
-        Assert.Equal(document.Screen.Width, canvas.Width);
-        Assert.Equal(document.Screen.Height, canvas.Height);
-        Assert.Equal(document.Screen.Controls.Count, canvas.Children.Count);
+        var preview = new DesignSurface();
+        preview.Render(screen, selectedId: null, isPreview: true);
+        _ = new Window { Content = preview };
 
-        // Host the designer's controls in a window too, as the editor does, so both sides get
-        // the same theme styles before they are compared.
-        var designedControls = document.Screen.Controls.Select(c => ControlFactory.Create(c, buttonClicked: null)).ToList();
+        var sizes = new List<(int Width, int Height)> { (screen.Width, screen.Height) };
+        if (AnchorLayout.IsResizable(screen))
+        {
+            sizes.Add((screen.Width + 230, screen.Height + 140));
+        }
+
+        foreach (var (width, height) in sizes)
+        {
+            Arrange(grid, width, height);
+            preview.Width = width;
+            preview.Height = height;
+            Arrange(preview, width, height);
+            var previewHosts = preview.Children.OfType<Grid>().Single(g => g.Children.Count == screen.Controls.Count && g.Children.OfType<Border>().Any()).Children;
+
+            for (var i = 0; i < screen.Controls.Count; i++)
+            {
+                var control = screen.Controls[i];
+                var expected = AnchorLayout.Resolve(screen, control, width, height);
+                var what = $"{control.Name} ({control.Anchor}) at {width} × {height}";
+                Assert.True(expected == BoundsOf((FrameworkElement)grid.Children[i]), $"{what}: generated window has {BoundsOf((FrameworkElement)grid.Children[i])}, expected {expected}");
+                Assert.True(expected == BoundsOf((FrameworkElement)previewHosts[i]), $"{what}: preview has {BoundsOf((FrameworkElement)previewHosts[i])}, expected {expected}");
+            }
+        }
+
+        // Control-level appearance: the same padding, alignment, text and values as the designer.
+        var designedControls = screen.Controls.Select(c => ControlFactory.Create(c, buttonClicked: null)).ToList();
         var designCanvas = new Canvas();
         designedControls.ForEach(c => designCanvas.Children.Add(c));
         _ = new Window { Content = designCanvas };
 
-        for (var i = 0; i < document.Screen.Controls.Count; i++)
+        for (var i = 0; i < screen.Controls.Count; i++)
         {
-            var control = document.Screen.Controls[i];
-            var generated = (FrameworkElement)canvas.Children[i];
+            var control = screen.Controls[i];
+            var generated = (FrameworkElement)grid.Children[i];
             var designed = designedControls[i];
             var what = $"{control.Name} ({control.Type})";
 
             Assert.Equal(designed.GetType(), generated.GetType());
             Assert.Equal(control.Name, generated.Name);
-            Assert.Equal(control.X, Canvas.GetLeft(generated));
-            Assert.Equal(control.Y, Canvas.GetTop(generated));
-            Assert.Equal(designed.Width, generated.Width);
-            Assert.Equal(designed.Height, generated.Height);
 
             if (designed is WpfControl designedControl && generated is WpfControl generatedControl)
             {
@@ -118,6 +171,23 @@ public sealed partial class WpfOutputParityTests
                     break;
             }
         }
+    }
+
+    private static void Arrange(FrameworkElement element, int width, int height)
+    {
+        element.Measure(new Size(width, height));
+        element.Arrange(new Rect(0, 0, width, height));
+        element.UpdateLayout();
+    }
+
+    private static ControlBounds BoundsOf(FrameworkElement element)
+    {
+        var offset = System.Windows.Media.VisualTreeHelper.GetOffset(element);
+        return new ControlBounds(
+            (int)Math.Round(offset.X),
+            (int)Math.Round(offset.Y),
+            (int)Math.Round(element.RenderSize.Width),
+            (int)Math.Round(element.RenderSize.Height));
     }
 
     /// <summary>The text a user sees: TextBox text, or content with access-key underscores resolved.</summary>

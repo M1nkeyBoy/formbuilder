@@ -34,10 +34,22 @@ existing code-behind.
 
 ## How the design maps to XAML
 
-- The window is titled with the project name, sizes itself to the screen
-  (`SizeToContent="WidthAndHeight"`) and cannot be resized, because the layout is absolute.
-- Controls go in a `Canvas` the size of the screen, in draw order, using `Canvas.Left`,
-  `Canvas.Top`, `Width` and `Height`.
+- The window is titled with the project name and opens at the design size
+  (`SizeToContent="WidthAndHeight"`).
+- Controls go in a `Grid`, in draw order. Each control's anchors become
+  `HorizontalAlignment`, `VerticalAlignment`, `Margin` and, where it does not stretch, `Width`
+  and `Height`:
+
+  | Anchor (one axis) | Alignment | Margin | Size |
+  |---|---|---|---|
+  | left only | `Left` | distance from left | fixed |
+  | right only | `Right` | distance from right | fixed |
+  | left and right | `Stretch` | both distances | stretches |
+
+  Top and bottom work the same way vertically.
+- If any control is anchored to the right or bottom edge, the window can be resized
+  (`ResizeMode="CanResize"`) and the Grid has the design size as its minimum. Otherwise the
+  window keeps the design size and can only be minimised.
 - Each control's name becomes its `x:Name`, so it is a field you can use from code-behind.
 - Label, Button and CheckBox text becomes `Content`, TextBox text becomes `Text`, CheckBox
   checked state becomes `IsChecked`, and ComboBox items become `ComboBoxItem`s in order.
@@ -50,15 +62,15 @@ existing code-behind.
 Example (`docs/samples/customer-form.uibproj`):
 
 ```xml
-<Canvas Width="800" Height="600">
-    <Label x:Name="TitleLabel" Canvas.Left="40" Canvas.Top="30" Width="300" Height="30" Padding="2,0" VerticalContentAlignment="Center" Content="Customer details" />
-    <TextBox x:Name="NameTextBox" Canvas.Left="150" Canvas.Top="80" Width="260" Height="30" VerticalContentAlignment="Center" Text="" />
-    <ComboBox x:Name="PlanComboBox" Canvas.Left="150" Canvas.Top="160" Width="160" Height="30" VerticalContentAlignment="Center">
+<Grid MinWidth="800" MinHeight="600">
+    <Label x:Name="NameLabel" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="40,80,0,0" Width="100" Height="30" Padding="2,0" VerticalContentAlignment="Center" Content="Full name" />
+    <TextBox x:Name="NameTextBox" HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="150,80,390,0" Height="30" VerticalContentAlignment="Center" Text="" TextChanged="NameTextBox_TextChanged" />
+    <ComboBox x:Name="PlanComboBox" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="150,160,0,0" Width="160" Height="30" VerticalContentAlignment="Center" SelectionChanged="PlanComboBox_SelectionChanged">
         <ComboBoxItem Content="Basic" />
         ...
     </ComboBox>
-    <Button x:Name="SubmitButton" Canvas.Left="150" Canvas.Top="250" Width="120" Height="32" Content="Submit" />
-</Canvas>
+    <Button x:Name="SubmitButton" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,250,530,0" Width="120" Height="32" Content="Submit" Click="SubmitButton_Click" />
+</Grid>
 ```
 
 ## Responding to controls
@@ -103,5 +115,5 @@ before later controls exist.
 
 ## Not generated yet
 
-Data binding, styles and resizable layouts. Absolute positions suit fixed-size tools and dialogs; responsive layouts need the
+Data binding, styles, and nested layout containers such as stacks and grids. Absolute positions suit fixed-size tools and dialogs; responsive layouts need the
 layout-model work listed in the spec's "decisions to revisit".

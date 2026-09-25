@@ -130,6 +130,26 @@ public sealed class DesignEditor
         return null;
     }
 
+    public string? SetAnchor(Guid id, AnchorEdges anchor)
+    {
+        if (FindControl(id) is not { } control)
+        {
+            return "The control no longer exists.";
+        }
+
+        if (AnchorLayout.Validate(anchor) is { } error)
+        {
+            return error;
+        }
+
+        if (control.Anchor != anchor)
+        {
+            Replace(control, control with { Anchor = anchor });
+        }
+
+        return null;
+    }
+
     public string? SetText(Guid id, string text) =>
         EditProperties(id, d => d.HasText, "text", p => p.Text == text ? p : p with { Text = text });
 

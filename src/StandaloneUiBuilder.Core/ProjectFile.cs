@@ -19,7 +19,7 @@ public static class ProjectFile
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         WriteIndented = true,
-        Converters = { new JsonStringEnumConverter(allowIntegerValues: false) },
+        Converters = { new AnchorEdgesJsonConverter(), new JsonStringEnumConverter(allowIntegerValues: false) },
     };
 
     public static string Serialize(ProjectDocument document) =>
@@ -144,10 +144,13 @@ public static class ProjectFile
                 + $"This version supports format version {ProjectDocument.CurrentSchemaVersion}.");
         }
 
-        if (version < 1)
+        if (version < ProjectDocument.OldestSupportedSchemaVersion)
         {
             throw new ProjectFileException($"The project format version {version} is not valid.");
         }
+
+        // Version 1 had no anchors; every control loads with the default (left and top), which
+        // is how version 1 designs behaved. Nothing else changed between versions 1 and 2.
     }
 
     // Unknown types would otherwise fail inside the JSON reader with an unhelpful message.

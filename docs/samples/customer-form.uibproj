@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971",
   "name": "Customer form",
   "screen": {
@@ -19,7 +19,12 @@
         "height": 30,
         "properties": {
           "text": "Customer details"
-        }
+        },
+        "anchor": [
+          "left",
+          "top",
+          "right"
+        ]
       },
       {
         "id": "3f0c7a52-5a3e-4c8e-9a61-0d4f1b2c9e02",
@@ -31,7 +36,11 @@
         "height": 30,
         "properties": {
           "text": "Full name"
-        }
+        },
+        "anchor": [
+          "left",
+          "top"
+        ]
       },
       {
         "id": "3f0c7a52-5a3e-4c8e-9a61-0d4f1b2c9e03",
@@ -43,7 +52,12 @@
         "height": 30,
         "properties": {
           "text": ""
-        }
+        },
+        "anchor": [
+          "left",
+          "top",
+          "right"
+        ]
       },
       {
         "id": "3f0c7a52-5a3e-4c8e-9a61-0d4f1b2c9e04",
@@ -55,7 +69,11 @@
         "height": 30,
         "properties": {
           "text": "Email"
-        }
+        },
+        "anchor": [
+          "left",
+          "top"
+        ]
       },
       {
         "id": "3f0c7a52-5a3e-4c8e-9a61-0d4f1b2c9e05",
@@ -67,7 +85,12 @@
         "height": 30,
         "properties": {
           "text": ""
-        }
+        },
+        "anchor": [
+          "left",
+          "top",
+          "right"
+        ]
       },
       {
         "id": "3f0c7a52-5a3e-4c8e-9a61-0d4f1b2c9e06",
@@ -79,7 +102,11 @@
         "height": 30,
         "properties": {
           "text": "Plan"
-        }
+        },
+        "anchor": [
+          "left",
+          "top"
+        ]
       },
       {
         "id": "3f0c7a52-5a3e-4c8e-9a61-0d4f1b2c9e07",
@@ -95,7 +122,11 @@
             "Standard",
             "Premium"
           ]
-        }
+        },
+        "anchor": [
+          "left",
+          "top"
+        ]
       },
       {
         "id": "3f0c7a52-5a3e-4c8e-9a61-0d4f1b2c9e08",
@@ -108,7 +139,11 @@
         "properties": {
           "text": "Send me the newsletter",
           "isChecked": true
-        }
+        },
+        "anchor": [
+          "left",
+          "top"
+        ]
       },
       {
         "id": "3f0c7a52-5a3e-4c8e-9a61-0d4f1b2c9e09",
@@ -120,7 +155,11 @@
         "height": 32,
         "properties": {
           "text": "Submit"
-        }
+        },
+        "anchor": [
+          "top",
+          "right"
+        ]
       },
       {
         "id": "3f0c7a52-5a3e-4c8e-9a61-0d4f1b2c9e0a",
@@ -132,7 +171,11 @@
         "height": 32,
         "properties": {
           "text": "Cancel"
-        }
+        },
+        "anchor": [
+          "top",
+          "right"
+        ]
       }
     ]
   }

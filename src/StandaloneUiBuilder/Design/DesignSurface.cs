@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -41,8 +42,26 @@ internal sealed class DesignSurface : Grid
         (ResizeEdges.Left, Cursors.SizeWE),
     ];
 
+    private static readonly Brush AnchorBrush = CreateFrozenBrush(Color.FromRgb(0x1E, 0x6F, 0xE0));
+
     private readonly GridOverlay gridOverlay = new();
     private readonly Canvas controlsLayer = new() { ClipToBounds = true };
+
+    // Preview lays controls out the way the generated WPF window does (alignment and margins),
+    // so resizing the preview shows how anchored controls move and stretch.
+    private readonly Grid previewLayer = new() { ClipToBounds = true };
+    private readonly Thumb resizeGrip = new()
+    {
+        Width = 14,
+        Height = 14,
+        HorizontalAlignment = HorizontalAlignment.Right,
+        VerticalAlignment = VerticalAlignment.Bottom,
+        Cursor = Cursors.SizeNWSE,
+        ToolTip = "Drag to resize the preview",
+        Visibility = Visibility.Collapsed,
+    };
+
+    private readonly Dictionary<AnchorEdges, Line> anchorLines = [];
     private readonly Canvas adornerLayer = new();
     private readonly Rectangle selectionOutline = new()
     {
@@ -100,9 +119,28 @@ internal sealed class DesignSurface : Grid
             adornerLayer.Children.Add(handle);
         }
 
+        foreach (var edge in new[] { AnchorEdges.Left, AnchorEdges.Top, AnchorEdges.Right, AnchorEdges.Bottom })
+        {
+            var line = new Line
+            {
+                Stroke = AnchorBrush,
+                StrokeThickness = 1,
+                StrokeDashArray = [3, 2],
+                IsHitTestVisible = false,
+                SnapsToDevicePixels = true,
+            };
+            anchorLines[edge] = line;
+            adornerLayer.Children.Insert(0, line);
+        }
+
+        resizeGrip.DragDelta += ResizeGrip_DragDelta;
+        System.Windows.Automation.AutomationProperties.SetName(resizeGrip, "Resize preview");
+
         Children.Add(gridOverlay);
         Children.Add(controlsLayer);
+        Children.Add(previewLayer);
         Children.Add(adornerLayer);
+        Children.Add(resizeGrip);
         UpdateAdorners();
     }
 
@@ -145,14 +183,16 @@ internal sealed class DesignSurface : Grid
         gridOverlay.Visibility = isPreview ? Visibility.Collapsed : Visibility.Visible;
         adornerLayer.Visibility = isPreview ? Visibility.Collapsed : Visibility.Visible;
         AllowDrop = !isPreview;
+        resizeGrip.Visibility = isPreview && AnchorLayout.IsResizable(screen) ? Visibility.Visible : Visibility.Collapsed;
 
         controlsLayer.Children.Clear();
+        previewLayer.Children.Clear();
         hosts.Clear();
         foreach (var control in screen.Controls)
         {
-            var host = isPreview ? CreatePreviewHost(control, buttonClicked) : CreateDesignHost(control);
+            var host = isPreview ? CreatePreviewHost(screen, control, buttonClicked) : CreateDesignHost(control);
             hosts[control.Id] = host;
-            controlsLayer.Children.Add(host);
+            (isPreview ? previewLayer.Children : controlsLayer.Children).Add(host);
         }
 
         SetSelection(selectedId);
@@ -185,12 +225,43 @@ internal sealed class DesignSurface : Grid
         return host;
     }
 
-    private static Border CreatePreviewHost(ControlDocument control, Action<ControlDocument>? buttonClicked)
+    private static Border CreatePreviewHost(ScreenDocument screen, ControlDocument control, Action<ControlDocument>? buttonClicked)
     {
         var element = ControlFactory.Create(control, buttonClicked);
-        var host = new Border { Child = element, Tag = control.Id };
-        PlaceHost(host, element, control.Bounds);
-        return host;
+
+        // The host is placed like the generated WPF control; the control fills the host.
+        element.ClearValue(WidthProperty);
+        element.ClearValue(HeightProperty);
+        var placement = AnchorLayout.Place(screen, control);
+        return new Border
+        {
+            Child = element,
+            Tag = control.Id,
+            HorizontalAlignment = ToWpf(placement.Horizontal, HorizontalAlignment.Left, HorizontalAlignment.Right, HorizontalAlignment.Stretch),
+            VerticalAlignment = ToWpf(placement.Vertical, VerticalAlignment.Top, VerticalAlignment.Bottom, VerticalAlignment.Stretch),
+            Margin = new Thickness(
+                placement.Horizontal == AxisAlignment.End ? 0 : placement.MarginLeft,
+                placement.Vertical == AxisAlignment.End ? 0 : placement.MarginTop,
+                placement.Horizontal == AxisAlignment.Start ? 0 : placement.MarginRight,
+                placement.Vertical == AxisAlignment.Start ? 0 : placement.MarginBottom),
+            Width = placement.Width ?? double.NaN,
+            Height = placement.Height ?? double.NaN,
+        };
+    }
+
+    private static T ToWpf<T>(AxisAlignment alignment, T start, T end, T stretch) => alignment switch
+    {
+        AxisAlignment.Start => start,
+        AxisAlignment.End => end,
+        _ => stretch,
+    };
+
+    private void ResizeGrip_DragDelta(object sender, DragDeltaEventArgs e)
+    {
+        // The preview can grow beyond the design size but not shrink below it, like the
+        // generated window's content.
+        Width = Math.Max(screen.Width, Width + e.HorizontalChange);
+        Height = Math.Max(screen.Height, Height + e.VerticalChange);
     }
 
     private static void PlaceHost(Border host, FrameworkElement element, ControlBounds bounds)
@@ -215,10 +286,24 @@ internal sealed class DesignSurface : Grid
             handle.Visibility = visibility;
         }
 
+        foreach (var line in anchorLines.Values)
+        {
+            line.Visibility = Visibility.Collapsed;
+        }
+
         if (SelectedBounds() is not { } bounds)
         {
             return;
         }
+
+        // Dashed lines from the control to each screen edge it is anchored to.
+        var anchor = screen.Controls.Find(c => c.Id == selectedId)?.Anchor ?? AnchorEdges.Default;
+        var midX = bounds.X + bounds.Width / 2.0;
+        var midY = bounds.Y + bounds.Height / 2.0;
+        SetAnchorLine(AnchorEdges.Left, anchor, 0, midY, bounds.X, midY);
+        SetAnchorLine(AnchorEdges.Right, anchor, bounds.Right, midY, screen.Width, midY);
+        SetAnchorLine(AnchorEdges.Top, anchor, midX, 0, midX, bounds.Y);
+        SetAnchorLine(AnchorEdges.Bottom, anchor, midX, bounds.Bottom, midX, screen.Height);
 
         // The outline sits just outside the control so it does not cover its edges.
         selectionOutline.Width = bounds.Width + 2;
@@ -245,6 +330,16 @@ internal sealed class DesignSurface : Grid
             Canvas.SetLeft(handle, x - HandleHitSize / 2);
             Canvas.SetTop(handle, y - HandleHitSize / 2);
         }
+    }
+
+    private void SetAnchorLine(AnchorEdges edge, AnchorEdges anchor, double x1, double y1, double x2, double y2)
+    {
+        var line = anchorLines[edge];
+        line.X1 = x1;
+        line.Y1 = y1;
+        line.X2 = x2;
+        line.Y2 = y2;
+        line.Visibility = anchor.HasFlag(edge) ? Visibility.Visible : Visibility.Collapsed;
     }
 
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
