@@ -131,6 +131,9 @@ public sealed class WalkthroughTests : IDisposable
         var combo = EditorSession.Within(surface, editor.Find.ByControlType(UiaControlType.ComboBox), "preview ComboBox").AsComboBox();
         combo.Select(1);
 
+        // Close the drop-down first: WPF uses the first click outside an open drop-down to close it.
+        combo.Collapse();
+
         EditorSession.Within(surface, editor.Find.ByName("Send").And(editor.Find.ByControlType(UiaControlType.Button)), "preview Button").Click();
         EditorSession.WaitUntil(() => editor.Status == "SubmitButton clicked", () => $"Button click not acknowledged; status \"{editor.Status}\".");
         editor.Screenshot("03-preview");
