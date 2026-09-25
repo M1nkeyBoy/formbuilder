@@ -88,6 +88,13 @@ public sealed class WinUIOutputTests
             var element = EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId(control.Name)), $"{control.Name} in the {screen.Name} window");
             var r = element.BoundingRectangle;
             var actual = new ControlBounds(r.Left - client.Left, r.Top - client.Top, r.Width, r.Height);
+
+            // WinUI reports a ComboBox's UI Automation box 4 pixels outside the control on every
+            // side (checked against the screenshot); the control itself has its designed box.
+            if (control.Type == Core.ControlType.ComboBox)
+            {
+                actual = new ControlBounds(actual.X + 4, actual.Y + 4, actual.Width - 8, actual.Height - 8);
+            }
             var expected = placed.Bounds;
 
             // Shared grid rows and columns are rounded to whole pixels; allow one per track.
