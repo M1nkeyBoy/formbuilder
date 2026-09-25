@@ -89,15 +89,7 @@ internal static class ControlFactory
         }
 
         var grid = new Grid { ClipToBounds = true };
-        for (var r = 0; r < (properties.Rows ?? 1); r++)
-        {
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        }
-
-        for (var c = 0; c < (properties.Columns ?? 1); c++)
-        {
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        }
+        AddTracks(grid, container);
 
         foreach (var child in children)
         {
@@ -128,15 +120,7 @@ internal static class ControlFactory
         {
             var rows = container.Properties.Rows ?? 1;
             var columns = container.Properties.Columns ?? 1;
-            for (var r = 0; r < rows; r++)
-            {
-                content.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-            }
-
-            for (var c = 0; c < columns; c++)
-            {
-                content.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            }
+            AddTracks(content, container);
 
             for (var r = 0; r < rows; r++)
             {
@@ -177,6 +161,24 @@ internal static class ControlFactory
             Width = container.Width,
             Height = container.Height,
         };
+    }
+
+    /// <summary>Row and column definitions sized as the design says: fixed DIPs or shares.</summary>
+    private static void AddTracks(Grid grid, ControlDocument container)
+    {
+        static GridLength Length(GridTrackSize size) =>
+            new(size.Value, size.IsProportional ? GridUnitType.Star : GridUnitType.Pixel);
+
+        var properties = container.Properties;
+        foreach (var size in GridTrackSize.Resolve(properties.RowSizes, properties.Rows ?? 1))
+        {
+            grid.RowDefinitions.Add(new RowDefinition { Height = Length(size) });
+        }
+
+        foreach (var size in GridTrackSize.Resolve(properties.ColumnSizes, properties.Columns ?? 1))
+        {
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = Length(size) });
+        }
     }
 
     private static Button CreateButton(ControlDocument control, Action<ControlDocument>? clicked)

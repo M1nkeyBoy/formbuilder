@@ -47,6 +47,8 @@ public sealed record ControlDefinition(
         Spacing = IsStack ? properties.Spacing ?? 0 : null,
         Rows = IsGrid ? properties.Rows ?? 1 : null,
         Columns = IsGrid ? properties.Columns ?? 1 : null,
+        RowSizes = IsGrid ? properties.RowSizes : null,
+        ColumnSizes = IsGrid ? properties.ColumnSizes : null,
     };
 }
 

@@ -51,7 +51,8 @@ existing code-behind.
 - A **StackPanel** becomes a WPF `StackPanel` with its `Orientation`. Each child keeps its
   `Height` (vertical) or `Width` (horizontal), stretches across the stack, and has the
   spacing as a leading `Margin`. Overflow is clipped (`ClipToBounds`).
-- A **Grid** becomes a WPF `Grid` with equal `*` rows and columns; each child has `Grid.Row`
+- A **Grid** becomes a WPF `Grid` whose `RowDefinition` heights and `ColumnDefinition` widths
+  are the design's sizes, in the same notation (`60`, `*`, `2*`); each child has `Grid.Row`
   and `Grid.Column` (plus `Grid.RowSpan`/`Grid.ColumnSpan` when it spans cells) and stretches
   to fill them.
 - Containers nest in the XAML exactly as in the design.
@@ -123,5 +124,5 @@ before later controls exist.
 
 ## Not generated yet
 
-Data binding, styles, and differently sized grid rows or columns. Absolute positions suit fixed-size tools and dialogs; responsive layouts need the
+Data binding, styles, and rows or columns sized to their content (`Auto`). Absolute positions suit fixed-size tools and dialogs; responsive layouts need the
 layout-model work listed in the spec's "decisions to revisit".

@@ -242,18 +242,18 @@ public static class WpfGenerator
         }
         else if (control.Type == ControlType.Grid)
         {
-            // Equal rows and columns ("*" sizes share the space evenly).
+            // Row and column sizes use WPF's own notation: "100" fixed, "*" and "2*" shares.
             xaml.AppendLine($"{indent}    <Grid.RowDefinitions>");
-            for (var r = 0; r < (properties.Rows ?? 1); r++)
+            foreach (var size in GridTrackSize.Resolve(properties.RowSizes, properties.Rows ?? 1))
             {
-                xaml.AppendLine($"{indent}        <RowDefinition Height=\"*\" />");
+                xaml.AppendLine($"{indent}        <RowDefinition Height=\"{size}\" />");
             }
 
             xaml.AppendLine($"{indent}    </Grid.RowDefinitions>");
             xaml.AppendLine($"{indent}    <Grid.ColumnDefinitions>");
-            for (var c = 0; c < (properties.Columns ?? 1); c++)
+            foreach (var size in GridTrackSize.Resolve(properties.ColumnSizes, properties.Columns ?? 1))
             {
-                xaml.AppendLine($"{indent}        <ColumnDefinition Width=\"*\" />");
+                xaml.AppendLine($"{indent}        <ColumnDefinition Width=\"{size}\" />");
             }
 
             xaml.AppendLine($"{indent}    </Grid.ColumnDefinitions>");

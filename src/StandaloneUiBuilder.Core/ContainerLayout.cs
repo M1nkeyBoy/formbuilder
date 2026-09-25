@@ -10,9 +10,10 @@ public sealed record PlacedControl(ControlDocument Control, ControlBounds Bounds
 /// <remarks>
 /// A vertical StackPanel places its children top to bottom, each keeping its height and
 /// stretching to the stack's width, with Spacing between them; a horizontal one does the same
-/// left to right. Children that do not fit are clipped. A Grid divides itself into equal rows
-/// and columns; each child fills the cell at its Row and Column, extended over RowSpan rows
-/// and ColumnSpan columns.
+/// left to right. Children that do not fit are clipped. A Grid divides itself into rows and
+/// columns, each a fixed size or a share of the space left (equal shares by default); each
+/// child fills the cell at its Row and Column, extended over RowSpan rows and ColumnSpan
+/// columns.
 /// </remarks>
 public static class ContainerLayout
 {
@@ -44,17 +45,18 @@ public static class ContainerLayout
         }
         else if (container.Type == ControlType.Grid)
         {
-            var rows = Math.Max(1, properties.Rows ?? 1);
-            var columns = Math.Max(1, properties.Columns ?? 1);
+            var (rowEdges, columnEdges) = GridEdges(container, width, height);
+            var rows = rowEdges.Length - 1;
+            var columns = columnEdges.Length - 1;
             foreach (var child in children)
             {
                 var row = Math.Clamp(child.Row ?? 0, 0, rows - 1);
                 var column = Math.Clamp(child.Column ?? 0, 0, columns - 1);
                 var lastRow = Math.Clamp(row + (child.RowSpan ?? 1), row + 1, rows);
                 var lastColumn = Math.Clamp(column + (child.ColumnSpan ?? 1), column + 1, columns);
-                var x = CellEdge(width, columns, column);
-                var y = CellEdge(height, rows, row);
-                arranged.Add((child, new ControlBounds(x, y, CellEdge(width, columns, lastColumn) - x, CellEdge(height, rows, lastRow) - y)));
+                var x = columnEdges[column];
+                var y = rowEdges[row];
+                arranged.Add((child, new ControlBounds(x, y, columnEdges[lastColumn] - x, rowEdges[lastRow] - y)));
             }
         }
 
@@ -112,14 +114,40 @@ public static class ContainerLayout
         return index;
     }
 
+    /// <summary>
+    /// A Grid's row and column boundaries, relative to its top-left, from 0 to its height and
+    /// width.
+    /// </summary>
+    public static (int[] Rows, int[] Columns) GridEdges(ControlDocument grid, int width, int height)
+    {
+        var properties = grid.Properties;
+        var rows = Math.Max(1, properties.Rows ?? 1);
+        var columns = Math.Max(1, properties.Columns ?? 1);
+        return (
+            GridTrackSize.Edges(GridTrackSize.Resolve(properties.RowSizes, rows), height),
+            GridTrackSize.Edges(GridTrackSize.Resolve(properties.ColumnSizes, columns), width));
+    }
+
     /// <summary>For a Grid, the cell at a screen point.</summary>
     public static (int Row, int Column) GridCellAt(PlacedControl grid, double x, double y)
     {
-        var rows = Math.Max(1, grid.Control.Properties.Rows ?? 1);
-        var columns = Math.Max(1, grid.Control.Properties.Columns ?? 1);
-        var column = (int)Math.Floor((x - grid.Bounds.X) * columns / Math.Max(1, grid.Bounds.Width));
-        var row = (int)Math.Floor((y - grid.Bounds.Y) * rows / Math.Max(1, grid.Bounds.Height));
-        return (Math.Clamp(row, 0, rows - 1), Math.Clamp(column, 0, columns - 1));
+        var (rowEdges, columnEdges) = GridEdges(grid.Control, grid.Bounds.Width, grid.Bounds.Height);
+        return (TrackAt(rowEdges, y - grid.Bounds.Y), TrackAt(columnEdges, x - grid.Bounds.X));
+    }
+
+    // The last track whose start is at or before the offset (empty tracks are skipped over).
+    private static int TrackAt(int[] edges, double offset)
+    {
+        var index = 0;
+        for (var i = 0; i < edges.Length - 1; i++)
+        {
+            if (offset >= edges[i] && edges[i + 1] > edges[i])
+            {
+                index = i;
+            }
+        }
+
+        return index;
     }
 
     private static void Add(List<PlacedControl> placed, ControlDocument control, ControlBounds bounds, Guid? parentId, int depth)
@@ -130,10 +158,6 @@ public static class ContainerLayout
             Add(placed, child, relative with { X = bounds.X + relative.X, Y = bounds.Y + relative.Y }, control.Id, depth + 1);
         }
     }
-
-    // Cell boundaries are rounded from exact fractions so cells tile the grid with no gaps.
-    private static int CellEdge(int size, int count, int index) =>
-        (int)Math.Round(size * (double)index / count, MidpointRounding.AwayFromZero);
 
     private static bool Contains(ControlBounds bounds, double x, double y) =>
         x >= bounds.X && x < bounds.Right && y >= bounds.Y && y < bounds.Bottom;

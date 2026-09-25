@@ -331,19 +331,19 @@ public static class WinFormsGenerator
             return;
         }
 
-        // Equal rows and columns.
+        // Fixed rows and columns are Absolute; shares become percentages of the space left.
         var rows = properties.Rows ?? 1;
         var columns = properties.Columns ?? 1;
         Line($"ColumnCount = {Number(columns)};");
-        for (var c = 0; c < columns; c++)
+        foreach (var style in TrackStyles(GridTrackSize.Resolve(properties.ColumnSizes, columns)))
         {
-            Line($"ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, {Percent(columns)}F));");
+            Line($"ColumnStyles.Add(new System.Windows.Forms.ColumnStyle({style}));");
         }
 
         Line($"RowCount = {Number(rows)};");
-        for (var r = 0; r < rows; r++)
+        foreach (var style in TrackStyles(GridTrackSize.Resolve(properties.RowSizes, rows)))
         {
-            Line($"RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, {Percent(rows)}F));");
+            Line($"RowStyles.Add(new System.Windows.Forms.RowStyle({style}));");
         }
 
         foreach (var child in children)
@@ -361,7 +361,16 @@ public static class WinFormsGenerator
         }
     }
 
-    private static string Percent(int count) => (100.0 / count).ToString("0.####", CultureInfo.InvariantCulture);
+    private static IEnumerable<string> TrackStyles(IReadOnlyList<GridTrackSize> sizes)
+    {
+        var weights = sizes.Where(s => s.IsProportional).Sum(s => s.Value);
+        foreach (var size in sizes)
+        {
+            yield return size.IsProportional
+                ? $"System.Windows.Forms.SizeType.Percent, {(100 * size.Value / weights).ToString("0.####", CultureInfo.InvariantCulture)}F"
+                : $"System.Windows.Forms.SizeType.Absolute, {Number((int)size.Value)}F";
+        }
+    }
 
     public static string EventsCode(ProjectDocument document, string rootNamespace)
     {

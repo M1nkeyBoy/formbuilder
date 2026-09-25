@@ -188,6 +188,18 @@ public static partial class DocumentValidator
             {
                 errors.Add($"{label}: rows and columns must be between 1 and {ControlDefinition.MaxRowsOrColumns}.");
             }
+            else if (definition.IsGrid)
+            {
+                if (properties.RowSizes is { } rowSizes && DesignEditor.ValidateTracks(rowSizes, properties.Rows ?? 1, "row") is { } rowError)
+                {
+                    errors.Add($"{label}: {rowError}");
+                }
+
+                if (properties.ColumnSizes is { } columnSizes && DesignEditor.ValidateTracks(columnSizes, properties.Columns ?? 1, "column") is { } columnError)
+                {
+                    errors.Add($"{label}: {columnError}");
+                }
+            }
 
             foreach (var child in control.Children ?? [])
             {

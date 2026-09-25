@@ -74,7 +74,8 @@ public class ContainerOutputTests
 
         Assert.Equal(3, grid.Element(Presentation + "Grid.RowDefinitions")!.Elements().Count());
         Assert.Equal(2, grid.Element(Presentation + "Grid.ColumnDefinitions")!.Elements().Count());
-        Assert.All(grid.Descendants(Presentation + "RowDefinition"), r => Assert.Equal("*", (string?)r.Attribute("Height")));
+        Assert.Equal(["60", "*", "*"], grid.Descendants(Presentation + "RowDefinition").Select(r => (string?)r.Attribute("Height")));
+        Assert.Equal(["2*", "*"], grid.Descendants(Presentation + "ColumnDefinition").Select(c => (string?)c.Attribute("Width")));
         Assert.Equal(("1", "1"), ((string?)elements["FourButton"].Attribute("Grid.Row"), (string?)elements["FourButton"].Attribute("Grid.Column")));
         Assert.Null(elements["FourButton"].Attribute("Width"));
     }
@@ -119,8 +120,10 @@ public class ContainerOutputTests
         // Horizontal stack: columns instead of rows.
         Assert.Contains("this.FooterStack.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 110F));", code);
 
-        // Grid: equal percentage rows and columns; children added at their cells (column, row).
-        Assert.Contains("this.ButtonGrid.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.3333F));", code);
+        // Grid: fixed rows are Absolute, shares are percentages of the rest; children at (column, row).
+        Assert.Contains("this.ButtonGrid.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 60F));", code);
+        Assert.Contains("this.ButtonGrid.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));", code);
+        Assert.Contains("this.ButtonGrid.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 66.6667F));", code);
         Assert.Contains("this.ButtonGrid.Controls.Add(this.FourButton, 1, 1);", code);
         Assert.Contains("this.ButtonGrid.Controls.Add(this.OptionsStack, 1, 2);", code);
         Assert.Contains("this.ButtonGrid.SuspendLayout();", code);

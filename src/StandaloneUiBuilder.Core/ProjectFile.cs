@@ -164,8 +164,8 @@ public static class ProjectFile
         }
 
         // Version 1 had no anchors; every control loads with the default (left and top), which
-        // is how version 1 designs behaved. Version 3 added containers and version 4 grid spans;
-        // older files have neither, so they need nothing else.
+        // is how version 1 designs behaved. Versions 3 to 5 added containers, grid spans and
+        // sized grid rows and columns; older files have none of them, so need nothing else.
     }
 
     // Unknown types would otherwise fail inside the JSON reader with an unhelpful message.

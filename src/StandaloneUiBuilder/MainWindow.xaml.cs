@@ -59,7 +59,8 @@ public partial class MainWindow : Window
         Surface.BoundsCommitted += Surface_BoundsCommitted;
 
         foreach (var box in new[] { NameBox, XBox, YBox, WidthBox, HeightBox, TextValueBox, ItemsBox, ScreenWidthBox, ScreenHeightBox,
-                                    RowBox, ColumnBox, RowSpanBox, ColumnSpanBox, SpacingBox, RowsBox, ColumnsBox })
+                                    RowBox, ColumnBox, RowSpanBox, ColumnSpanBox, SpacingBox, RowsBox, ColumnsBox,
+                                    RowSizesBox, ColumnSizesBox })
         {
             box.LostKeyboardFocus += (_, _) => CommitField(box);
             box.KeyDown += InspectorField_KeyDown;
@@ -296,7 +297,9 @@ public partial class MainWindow : Window
         SetField(ColumnSpanBox, (control.ColumnSpan ?? 1).ToString(CultureInfo.CurrentCulture));
 
         OrientationRow.Visibility = SpacingRow.Visibility = Show(definition.IsStack);
-        GridSizeRow.Visibility = Show(definition.IsGrid);
+        GridSizeRow.Visibility = TrackSizesRow.Visibility = Show(definition.IsGrid);
+        SetField(RowSizesBox, string.Join(", ", GridTrackSize.Resolve(properties.RowSizes, properties.Rows ?? 1)));
+        SetField(ColumnSizesBox, string.Join(", ", GridTrackSize.Resolve(properties.ColumnSizes, properties.Columns ?? 1)));
         refreshingInspector = true;
         OrientationBox.SelectedIndex = properties.Orientation == StackOrientation.Horizontal ? 1 : 0;
         refreshingInspector = false;
@@ -376,6 +379,7 @@ public partial class MainWindow : Window
             : box == ItemsBox ? editor.SetItems(id, box.Text.Split('\n').Select(line => line.TrimEnd('\r')))
             : box == RowBox || box == ColumnBox ? CommitWholeNumbers(values => editor.SetGridCell(id, values[0], values[1]), RowBox, ColumnBox)
             : box == RowSpanBox || box == ColumnSpanBox ? CommitWholeNumbers(values => editor.SetGridSpan(id, values[0], values[1]), RowSpanBox, ColumnSpanBox)
+            : box == RowSizesBox || box == ColumnSizesBox ? editor.SetGridTrackSizes(id, SplitSizes(RowSizesBox), SplitSizes(ColumnSizesBox))
             : box == SpacingBox ? CommitWholeNumbers(values => editor.SetSpacing(id, values[0]), SpacingBox)
             : box == RowsBox || box == ColumnsBox ? CommitWholeNumbers(values => editor.SetGridSize(id, values[0], values[1]), RowsBox, ColumnsBox)
             : CommitBoundsField(control, box);
@@ -407,6 +411,8 @@ public partial class MainWindow : Window
             RefreshInspector();
         }
     }
+
+    private static string[] SplitSizes(TextBox box) => box.Text.Split(',');
 
     /// <summary>Parses whole numbers from fields and applies them together.</summary>
     private static string? CommitWholeNumbers(Func<int[], string?> apply, params TextBox[] boxes)

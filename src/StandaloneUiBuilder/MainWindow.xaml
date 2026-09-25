@@ -265,6 +265,13 @@
                                 <TextBox x:Name="ColumnsBox" Style="{StaticResource FieldBox}" />
                             </UniformGrid>
                         </DockPanel>
+                        <StackPanel x:Name="TrackSizesRow" Margin="10,0,10,6"
+                                    ToolTip="One size per row or column, separated by commas: a number of DIPs (100), or a share of the space left (* or 2*).">
+                            <Label Content="Row si_zes" Target="{Binding ElementName=RowSizesBox}" Padding="0,0,0,3" />
+                            <TextBox x:Name="RowSizesBox" Style="{StaticResource FieldBox}" Margin="0,0,0,6" />
+                            <Label Content="Col_umn sizes" Target="{Binding ElementName=ColumnSizesBox}" Padding="0,0,0,3" />
+                            <TextBox x:Name="ColumnSizesBox" Style="{StaticResource FieldBox}" />
+                        </StackPanel>
                         <DockPanel x:Name="TextRow" Style="{StaticResource FieldRow}">
                             <Label Content="_Text" Target="{Binding ElementName=TextValueBox}" Style="{StaticResource FieldLabel}" />
                             <TextBox x:Name="TextValueBox" Style="{StaticResource FieldBox}" />

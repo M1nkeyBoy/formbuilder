@@ -10,9 +10,10 @@ public sealed record ProjectDocument
 {
     /// <summary>
     /// The format version this builder writes. Older versions (1: no anchors, 2: no containers,
-    /// 3: no grid spans) are still read. See docs/project-format.md for the history.
+    /// 3: no grid spans, 4: no sized grid rows and columns) are still read. See
+    /// docs/project-format.md for the history.
     /// </summary>
-    public const int CurrentSchemaVersion = 4;
+    public const int CurrentSchemaVersion = 5;
 
     public const int OldestSupportedSchemaVersion = 1;
     public const string DefaultName = "Untitled";
@@ -120,9 +121,18 @@ public sealed record ControlProperties
     /// <summary>StackPanel: the gap between children, in DIPs.</summary>
     public int? Spacing { get; init; }
 
-    /// <summary>Grid: the number of equal rows.</summary>
+    /// <summary>Grid: the number of rows.</summary>
     public int? Rows { get; init; }
 
-    /// <summary>Grid: the number of equal columns.</summary>
+    /// <summary>Grid: the number of columns.</summary>
     public int? Columns { get; init; }
+
+    /// <summary>
+    /// Grid: each row's size ("100", "*", "2*"), one per row; null when every row is an equal
+    /// share. See <see cref="GridTrackSize"/>.
+    /// </summary>
+    public ImmutableList<string>? RowSizes { get; init; }
+
+    /// <summary>Grid: each column's size, as for <see cref="RowSizes"/>.</summary>
+    public ImmutableList<string>? ColumnSizes { get; init; }
 }

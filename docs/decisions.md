@@ -311,3 +311,21 @@ Choices made during the prototype slices that affect later work.
 - **Output.** WPF writes `Grid.RowSpan`/`Grid.ColumnSpan`; WinForms calls `SetRowSpan` and
   `SetColumnSpan` on the `TableLayoutPanel`. The layout-demo sample now has a button spanning
   the grid's top row, so the Windows layout tests cover spans in both targets.
+
+## Slice 18 — Sized grid rows and columns
+
+- **Two kinds of size,** in WPF's notation: fixed DIPs (`"100"`) and a weighted share of the
+  space left (`"*"`, `"2*"`). Fixed sizes are taken first and shares split the rest. If fixed
+  sizes overflow, shares get nothing and the overflow is clipped, as in WPF.
+- **No `Auto`.** Sizing a row to its content needs every target to measure controls the same
+  way, which the builder cannot promise, so it is left out rather than approximated.
+- **Stored only when needed,** as `rowSizes` and `columnSizes` lists, one entry per row or
+  column, written canonically (`"2*"`, not `" 2 *"`). When every size is `"*"` they are
+  omitted. Changing the row or column count keeps existing sizes and adds equal shares.
+- **Format version 5,** for the same reason as spans: an older builder would silently drop
+  the sizes.
+- **One set of rules.** `GridTrackSize.Edges` in Core computes the boundaries. The designer's
+  cell lines, drop targets, Preview, WPF output (`RowDefinition Height`) and WinForms output
+  (`Absolute` rows plus percentages of the remaining space) all follow it. The layout demo
+  now has a fixed 60-DIP top row and columns sharing 2:1, so the Windows layout checks cover
+  sized tracks in both targets.

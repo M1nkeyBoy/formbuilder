@@ -35,7 +35,8 @@ overwritten. The namespace of an earlier export is kept, as for WPF.
 - Containers become a `TableLayoutPanel` set up to follow the builder's rules. A StackPanel
   has one column (or row) and a fixed-size row (or column) per child, big enough for the
   child plus the spacing before it, then a filler that takes any remaining space. A Grid has
-  equal percentage rows and columns, and a spanning child gets `SetRowSpan`/`SetColumnSpan`.
+  a fixed-size (`Absolute`) row or column for each fixed size and a percentage of the space
+  left for each share, and a spanning child gets `SetRowSpan`/`SetColumnSpan`.
   Children fill their cell (`Dock = Fill`), with the stack spacing as their leading `Margin`.
 - Draw order is kept (WinForms puts the first control added on top, so they are added in
   reverse). Tab order follows the design's control order.

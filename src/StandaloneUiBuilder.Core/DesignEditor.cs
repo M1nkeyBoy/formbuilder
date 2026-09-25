@@ -285,9 +285,68 @@ public sealed class DesignEditor
             return $"\"{outside.Name}\" uses row {outside.Row}, column {outside.Column} and its span, which would no longer all exist. Move it or reduce its span first.";
         }
 
+        // Existing sizes are kept for the rows and columns that remain; new ones are equal shares.
         return EditProperties(id, d => d.IsGrid, "rows and columns", p =>
-            p.Rows == rows && p.Columns == columns ? p : p with { Rows = rows, Columns = columns });
+            p.Rows == rows && p.Columns == columns ? p : p with
+            {
+                Rows = rows,
+                Columns = columns,
+                RowSizes = ResizeTracks(p.RowSizes, rows),
+                ColumnSizes = ResizeTracks(p.ColumnSizes, columns),
+            });
     }
+
+    /// <summary>
+    /// Sets each row's and column's size: fixed DIPs ("100") or a share of the space left
+    /// ("*", "2*"). There must be one size per row and per column.
+    /// </summary>
+    public string? SetGridTrackSizes(Guid id, IReadOnlyList<string> rowSizes, IReadOnlyList<string> columnSizes)
+    {
+        if (FindControl(id) is not { Type: ControlType.Grid } grid)
+        {
+            return "The control is not a Grid.";
+        }
+
+        var rows = grid.Properties.Rows ?? 1;
+        var columns = grid.Properties.Columns ?? 1;
+        if ((ValidateTracks(rowSizes, rows, "row") ?? ValidateTracks(columnSizes, columns, "column")) is { } error)
+        {
+            return error;
+        }
+
+        var newRows = Canonical(rowSizes);
+        var newColumns = Canonical(columnSizes);
+        return EditProperties(id, d => d.IsGrid, "row and column sizes", p =>
+            SameTracks(p.RowSizes, newRows) && SameTracks(p.ColumnSizes, newColumns) ? p : p with { RowSizes = newRows, ColumnSizes = newColumns });
+    }
+
+    /// <summary>Returns an error message if the sizes are not one valid size per row or column.</summary>
+    public static string? ValidateTracks(IReadOnlyList<string> sizes, int count, string what)
+    {
+        if (sizes.Count != count)
+        {
+            return $"Give {count} {what} size{(count == 1 ? "" : "s")}, one per {what}, separated by commas.";
+        }
+
+        var invalid = sizes.FirstOrDefault(s => !GridTrackSize.TryParse(s, out _));
+        return invalid is null ? null
+            : $"\"{invalid.Trim()}\" is not a {what} size. Use a number of DIPs (1 to {GridTrackSize.MaxFixed}) or a share such as * or 2*.";
+    }
+
+    // Stored in WPF's form ("2*" rather than " 2 *"), and not stored at all when every size is
+    // an equal share, which is the default.
+    private static ImmutableList<string>? Canonical(IReadOnlyList<string> sizes)
+    {
+        var parsed = sizes.Select(s => GridTrackSize.TryParse(s, out var size) ? size : GridTrackSize.Share).ToList();
+        return parsed.All(s => s == GridTrackSize.Share) ? null : parsed.Select(s => s.ToString()).ToImmutableList();
+    }
+
+    private static ImmutableList<string>? ResizeTracks(ImmutableList<string>? sizes, int count) =>
+        sizes is null ? null
+        : Canonical(sizes.Take(count).Concat(Enumerable.Repeat("*", Math.Max(0, count - sizes.Count))).ToList());
+
+    private static bool SameTracks(ImmutableList<string>? a, ImmutableList<string>? b) =>
+        a is null ? b is null : b is not null && a.SequenceEqual(b);
 
     /// <summary>Removes a control (and anything inside it). Returns false if no control has that ID.</summary>
     public bool DeleteControl(Guid id) => DeleteControls([id]) > 0;

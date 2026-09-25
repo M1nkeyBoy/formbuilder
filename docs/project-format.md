@@ -14,15 +14,16 @@ A complete example is in [`samples/customer-form.uibproj`](samples/customer-form
 | 2 | Adds `anchor` to each control. | Every control gets `["left", "top"]`, which is how version 1 designs behaved. |
 | 3 | Adds the `StackPanel` and `Grid` container types, with `children`, `row`, `column` and the container properties. | None: older files have no containers. |
 | 4 | Adds `rowSpan` and `columnSpan` for controls inside a Grid. | None: older files have no spans (every control covers one cell). |
+| 5 | Adds `rowSizes` and `columnSizes` to Grid properties. | None: older files have equal rows and columns. |
 
-The builder reads versions 1 to 4 and always saves version 4. An older builder rejects a
+The builder reads versions 1 to 5 and always saves version 5. An older builder rejects a
 newer file with a clear message instead of silently dropping what it does not know.
 
-## Schema version 4
+## Schema version 5
 
 ```json
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971",
   "name": "Customer form",
   "screen": {
@@ -93,8 +94,10 @@ A control inside a container has no position of its own; the container places it
   is `Vertical`, left to right when `Horizontal`, with `spacing` DIPs between them. Each
   child keeps its `height` (vertical) or `width` (horizontal) and stretches across the
   stack. Children that do not fit are clipped.
-- **Grid** divides itself into `rows` × `columns` equal cells. Each child fills the cell at
-  its `row` and `column`, extended over `rowSpan` rows and `columnSpan` columns.
+- **Grid** divides itself into `rows` × `columns` cells. Fixed rows and columns get their size;
+  the rest share the remaining space by weight (equally by default). If the fixed sizes do
+  not fit, the shared ones get nothing and the overflow is clipped. Each child fills the cell
+  at its `row` and `column`, extended over `rowSpan` rows and `columnSpan` columns.
 
 A child's `x`, `y` and `anchor` are ignored and saved as `0` and the default. Its `width` and
 `height` are kept, so it keeps its size if moved back onto the screen. Containers can be
@@ -123,6 +126,11 @@ Anchors describe what happens when a generated window is made larger than the de
 |---|---|---|---|---|
 | StackPanel | `Vertical` or `Horizontal` | 0 to 200 DIPs | | |
 | Grid | | | 1 to 20 | 1 to 20 |
+
+A Grid may also have `rowSizes` and `columnSizes`: one string per row or column, in WPF's
+notation. `"100"` is a fixed size in DIPs (1 to 10000). `"*"` or `"2*"` is a share of the space
+left after the fixed rows or columns, by weight. Both are optional and omitted when every
+size is `"*"`.
 
 A missing supported property is read as `""`, `false` or `[]`. A property the type does not
 support is ignored on load and not written on save.
