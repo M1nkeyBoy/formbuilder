@@ -79,6 +79,9 @@ public sealed class WinFormsOutputTests
             // mouse click, since UI Automation's Invoke can wait for the dialog to close.
             if (secondScreen is not null)
             {
+                // The enlarged form reaches below the taskbar on a small display; bring it up first.
+                window.Patterns.Transform.Pattern.Move(0, 0);
+                Thread.Sleep(300);
                 EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("OkButton")), "OK button").Click();
 
                 // UI Automation lists an owned form under its owner, not at the top level.
