@@ -63,7 +63,7 @@ public class GridTrackSizeTests
         Assert.Null(editor.SetGridTrackSizes(grid.Id, ["50", "*"], ["*", "2*"]));
         var button = editor.AddControlTo(ControlType.Button, grid.Id, 150, 100)!; // right column, bottom row
 
-        var bounds = ContainerLayout.Flatten(editor.Document.Screen).Single(p => p.Control.Id == button.Id).Bounds;
+        var bounds = ContainerLayout.Flatten(editor.Screen).Single(p => p.Control.Id == button.Id).Bounds;
 
         Assert.Equal((1, 1), (button.Row, button.Column));
         Assert.Equal(new ControlBounds(100, 50, 200, 150), bounds);
@@ -134,7 +134,7 @@ public class GridTrackSizeTests
 
         var json = ProjectFile.Serialize(editor.Document);
         Assert.Contains("\"rowSizes\": [", json);
-        Assert.Equal(["40", "3*"], ControlTree.Find(ProjectFile.Deserialize(json).Screen.Controls, grid.Id)!.Properties.RowSizes!);
+        Assert.Equal(["40", "3*"], ControlTree.Find(ProjectFile.Deserialize(json).MainScreen.Controls, grid.Id)!.Properties.RowSizes!);
 
         var broken = json.Replace("\"3*\"", "\"lots\"");
         Assert.Contains("\"lots\" is not a row size", Assert.Throws<ProjectFileException>(() => ProjectFile.Deserialize(broken)).Message);

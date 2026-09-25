@@ -231,7 +231,7 @@ public sealed class WalkthroughTests : IDisposable
     private void AssertSavedProject(int expectedX)
     {
         var document = ProjectFile.Load(projectPath);
-        var controls = document.Screen.Controls;
+        var controls = document.MainScreen.Controls;
 
         Assert.Equal(
             [Core.ControlType.Button, Core.ControlType.Label, Core.ControlType.TextBox, Core.ControlType.CheckBox, Core.ControlType.ComboBox],

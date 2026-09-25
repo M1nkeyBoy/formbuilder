@@ -12,10 +12,10 @@ public class ProjectDocumentTests
         Assert.Equal(ProjectDocument.CurrentSchemaVersion, document.SchemaVersion);
         Assert.NotEqual(Guid.Empty, document.ProjectId);
         Assert.Equal("Untitled", document.Name);
-        Assert.Equal(800, document.Screen.Width);
-        Assert.Equal(600, document.Screen.Height);
-        Assert.Equal(10, document.Screen.GridSize);
-        Assert.Empty(document.Screen.Controls);
+        Assert.Equal(800, document.MainScreen.Width);
+        Assert.Equal(600, document.MainScreen.Height);
+        Assert.Equal(10, document.MainScreen.GridSize);
+        Assert.Empty(document.MainScreen.Controls);
     }
 
     [Fact]

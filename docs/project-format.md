@@ -15,18 +15,19 @@ A complete example is in [`samples/customer-form.uibproj`](samples/customer-form
 | 3 | Adds the `StackPanel` and `Grid` container types, with `children`, `row`, `column` and the container properties. | None: older files have no containers. |
 | 4 | Adds `rowSpan` and `columnSpan` for controls inside a Grid. | None: older files have no spans (every control covers one cell). |
 | 5 | Adds `rowSizes` and `columnSizes` to Grid properties. | None: older files have equal rows and columns. |
+| 6 | Replaces the single `screen` with a list of `screens`. | The file's `screen` becomes the only entry in `screens`. Its name becomes `Main` if it is not an identifier (only possible in a hand-edited file). |
 
-The builder reads versions 1 to 5 and always saves version 5. An older builder rejects a
+The builder reads versions 1 to 6 and always saves version 6. An older builder rejects a
 newer file with a clear message instead of silently dropping what it does not know.
 
-## Schema version 5
+## Schema version 6
 
 ```json
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971",
   "name": "Customer form",
-  "screen": {
+  "screens": [{
     "id": "main",
     "name": "Main",
     "width": 800,
@@ -45,7 +46,7 @@ newer file with a clear message instead of silently dropping what it does not kn
         "anchor": ["top", "right"]
       }
     ]
-  }
+  }]
 }
 ```
 
@@ -53,17 +54,17 @@ newer file with a clear message instead of silently dropping what it does not kn
 
 | Field | Type | Notes |
 |---|---|---|
-| `schemaVersion` | integer | Required. `2` when saved by this builder; `1` is still read. |
+| `schemaVersion` | integer | Required. `6` when saved by this builder; `1` to `5` are still read. |
 | `projectId` | GUID string | Required. Stable for the life of the project. |
 | `name` | string | Written as the file name (without extension) on save. |
-| `screen` | object | Required. The single screen in a prototype project. |
+| `screens` | array | Required, at least one. In order: the first is the main screen, which a generated application opens with. Versions 1 to 5 had a single `screen` object instead. |
 
 ### Screen
 
 | Field | Type | Default | Notes |
 |---|---|---|---|
-| `id` | string | `"main"` | |
-| `name` | string | `"Main"` | |
+| `id` | string | `"main"` | Required. Stable, unique within the project. New screens get a 32-character hex ID. |
+| `name` | string | `"Main"` | Letter or underscore first, then letters, digits or underscores. Unique within the project, ignoring case. It names the screen's generated window (`SettingsWindow`, `SettingsForm`). |
 | `width`, `height` | integer | 800, 600 | Design size in DIPs; must be positive. |
 | `gridSize` | integer | 10 | Grid spacing in DIPs; must be positive. |
 | `controls` | array | empty | Draw order: later controls are drawn on top. |
@@ -72,9 +73,9 @@ newer file with a clear message instead of silently dropping what it does not kn
 
 | Field | Type | Notes |
 |---|---|---|
-| `id` | GUID string | Required, unique within the screen, never empty. |
+| `id` | GUID string | Required, unique within the project, never empty. |
 | `type` | string | Required. One of `Label`, `Button`, `TextBox`, `CheckBox`, `ComboBox`, or the containers `StackPanel` and `Grid`. |
-| `name` | string | Required. Letter or underscore first, then letters, digits or underscores. Unique within the screen, ignoring case. |
+| `name` | string | Required. Letter or underscore first, then letters, digits or underscores. Unique within its screen, ignoring case; other screens may reuse it. |
 | `x`, `y` | integer | DIPs from the screen's top-left corner; not negative. |
 | `width`, `height` | integer | DIPs; at least the type's minimum size. The control must fit inside the screen. |
 | `properties` | object | Type-specific values, below. |

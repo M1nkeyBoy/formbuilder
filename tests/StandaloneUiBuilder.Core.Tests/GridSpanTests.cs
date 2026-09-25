@@ -16,7 +16,7 @@ public class GridSpanTests
     }
 
     private static ControlBounds BoundsOf(DesignEditor editor, Guid id) =>
-        ContainerLayout.Flatten(editor.Document.Screen).Single(p => p.Control.Id == id).Bounds;
+        ContainerLayout.Flatten(editor.Screen).Single(p => p.Control.Id == id).Bounds;
 
     [Fact]
     public void SpannedControlCoversSeveralCells()
@@ -114,7 +114,7 @@ public class GridSpanTests
 
         Assert.Contains("\"rowSpan\": 2", json);
         Assert.Contains("\"columnSpan\": 3", json);
-        Assert.Equal(2, ControlTree.Find(reloaded.Screen.Controls, button.Id)!.RowSpan);
+        Assert.Equal(2, ControlTree.Find(reloaded.MainScreen.Controls, button.Id)!.RowSpan);
     }
 
     [Theory]

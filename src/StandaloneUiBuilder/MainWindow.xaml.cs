@@ -31,6 +31,8 @@ public partial class MainWindow : Window
     private string? projectPath;
     private string? lastExportFolder;
     private bool isPreview;
+    private string? shownScreenId;
+    private bool refreshingScreenTabs;
 
     // UIB_RECOVERY_DIR moves recovery drafts elsewhere, so automated tests never touch a
     // user's real drafts or each other's.
@@ -60,7 +62,7 @@ public partial class MainWindow : Window
 
         foreach (var box in new[] { NameBox, XBox, YBox, WidthBox, HeightBox, TextValueBox, ItemsBox, ScreenWidthBox, ScreenHeightBox,
                                     RowBox, ColumnBox, RowSpanBox, ColumnSpanBox, SpacingBox, RowsBox, ColumnsBox,
-                                    RowSizesBox, ColumnSizesBox })
+                                    RowSizesBox, ColumnSizesBox, ScreenNameBox })
         {
             box.LostKeyboardFocus += (_, _) => CommitField(box);
             box.KeyDown += InspectorField_KeyDown;
@@ -107,8 +109,21 @@ public partial class MainWindow : Window
 
     private void RefreshAll()
     {
+        if (editor.Screen.Id != shownScreenId)
+        {
+            // Another screen: nothing on it is selected, and rejected input typed for the
+            // previous screen's fields no longer applies.
+            shownScreenId = editor.Screen.Id;
+            selection.Clear();
+            SetFieldError(ScreenNameBox, null);
+            SetFieldError(ScreenWidthBox, null);
+            SetFieldError(ScreenHeightBox, null);
+            SurfaceScroller.ScrollToHome();
+        }
+
+        RefreshScreenTabs();
         selection.RemoveAll(id => editor.FindControl(id) is null);
-        Surface.Render(editor.Document.Screen, selection, isPreview, PreviewButton_Clicked);
+        Surface.Render(editor.Screen, selection, isPreview, PreviewButton_Clicked);
         RefreshInspector();
         Title = $"{ProjectDisplayName}{(editor.IsDirty ? " ●" : "")} — {AppTitle}";
         CommandManager.InvalidateRequerySuggested();
@@ -170,7 +185,7 @@ public partial class MainWindow : Window
     private void Surface_BandSelected(object? sender, BandSelectedEventArgs e)
     {
         var area = e.Area;
-        var inside = editor.Document.Screen.Controls
+        var inside = editor.Screen.Controls
             .Where(c => c.X < area.Right && c.Right() > area.X && c.Y < area.Bottom && c.Bottom() > area.Y)
             .Select(c => c.Id);
         var additive = (e.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) != 0;
@@ -192,7 +207,7 @@ public partial class MainWindow : Window
     /// <summary>Adds a control at a point: into the innermost container there, or onto the screen.</summary>
     private void AddControl(ControlType type, double x, double y)
     {
-        var container = ContainerLayout.ContainerAt(editor.Document.Screen, x, y);
+        var container = ContainerLayout.ContainerAt(editor.Screen, x, y);
         var control = (container is not null ? editor.AddControlTo(type, container.Control.Id, x, y) : null)
             ?? editor.AddControl(type, x, y);
         ToolboxList.SelectedItem = null;
@@ -260,8 +275,9 @@ public partial class MainWindow : Window
             UpdateInspectorErrors();
         }
 
-        SetField(ScreenWidthBox, editor.Document.Screen.Width.ToString(CultureInfo.CurrentCulture));
-        SetField(ScreenHeightBox, editor.Document.Screen.Height.ToString(CultureInfo.CurrentCulture));
+        SetField(ScreenNameBox, editor.Screen.Name);
+        SetField(ScreenWidthBox, editor.Screen.Width.ToString(CultureInfo.CurrentCulture));
+        SetField(ScreenHeightBox, editor.Screen.Height.ToString(CultureInfo.CurrentCulture));
 
         inspectedId = control?.Id;
         NoSelectionText.Visibility = control is null ? Visibility.Visible : Visibility.Collapsed;
@@ -368,6 +384,18 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (box == ScreenNameBox)
+        {
+            var renameError = editor.RenameScreen(box.Text.Trim());
+            SetFieldError(box, renameError);
+            if (renameError is null)
+            {
+                RefreshInspector();
+            }
+
+            return;
+        }
+
         if (inspectedId is not { } id || editor.FindControl(id) is not { } control)
         {
             return;
@@ -394,7 +422,7 @@ public partial class MainWindow : Window
 
     private void CommitScreenSize(TextBox box)
     {
-        var screen = editor.Document.Screen;
+        var screen = editor.Screen;
         string? error;
         if (!int.TryParse(box.Text.Trim(), NumberStyles.Integer, CultureInfo.CurrentCulture, out var value))
         {
@@ -473,15 +501,17 @@ public partial class MainWindow : Window
     private void UpdateInspectorErrors()
     {
         // Screen fields show their errors in the Screen section; control fields in the inspector.
-        var screenMessages = fieldErrors.Where(f => f.Key == ScreenWidthBox || f.Key == ScreenHeightBox).Select(f => f.Value).ToList();
+        var screenMessages = fieldErrors.Where(f => IsScreenField(f.Key)).Select(f => f.Value).ToList();
         ScreenErrorText.Text = string.Join(Environment.NewLine, screenMessages);
         ScreenErrorText.Visibility = screenMessages.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
-        var messages = fieldErrors.Where(f => f.Key != ScreenWidthBox && f.Key != ScreenHeightBox).Select(f => f.Value)
+        var messages = fieldErrors.Where(f => !IsScreenField(f.Key)).Select(f => f.Value)
             .Append(anchorError).OfType<string>().ToList();
         InspectorErrorText.Text = string.Join(Environment.NewLine, messages);
         InspectorErrorText.Visibility = messages.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
+
+    private bool IsScreenField(TextBox box) => box == ScreenNameBox || box == ScreenWidthBox || box == ScreenHeightBox;
 
     private void AnchorBox_Click(object sender, RoutedEventArgs e)
     {
@@ -568,7 +598,7 @@ public partial class MainWindow : Window
         if (e.Key == Key.Enter && ArmedToolboxItem is { } armed)
         {
             // Cascade keyboard-added controls so they do not stack exactly on top of each other.
-            var offset = 20 + editor.Document.Screen.Controls.Count % 10 * 20;
+            var offset = 20 + editor.Screen.Controls.Count % 10 * 20;
             AddControl(armed.Type, offset, offset);
             e.Handled = true;
         }
@@ -613,10 +643,10 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>Applies a value still being typed in the inspector before a file command runs.</summary>
+    /// <summary>Applies a value still being typed in the Properties panel before a command runs.</summary>
     private void CommitFocusedField()
     {
-        if (Keyboard.FocusedElement is TextBox box && InspectorPanel.IsAncestorOf(box))
+        if (Keyboard.FocusedElement is TextBox box && (InspectorPanel.IsAncestorOf(box) || ScreenPanel.IsAncestorOf(box)))
         {
             CommitField(box);
         }
@@ -842,7 +872,7 @@ public partial class MainWindow : Window
         // Copies keep the design's draw order, whatever order they were selected in. A control
         // copied from inside a container becomes a free-standing copy at its screen position;
         // one inside another selected control is already copied with it.
-        var screen = editor.Document.Screen;
+        var screen = editor.Screen;
         clipboard = ContainerLayout.Flatten(screen)
             .Where(p => selection.Contains(p.Control.Id))
             .Where(p => !selection.Any(other => other != p.Control.Id && ControlTree.IsSelfOrDescendant(screen.Controls, other, p.Control.Id)))
@@ -876,16 +906,16 @@ public partial class MainWindow : Window
     private void Paste()
     {
         pasteCount++;
-        var pasted = editor.PasteControls(clipboard, pasteCount * Math.Max(1, editor.Document.Screen.GridSize));
+        var pasted = editor.PasteControls(clipboard, pasteCount * Math.Max(1, editor.Screen.GridSize));
         SetSelection(pasted.Select(c => c.Id));
         StatusText.Text = pasted.Count == 1 ? $"Pasted {pasted[0].Name}" : $"Pasted {pasted.Count} controls";
     }
 
     private void SelectAll_CanExecute(object sender, CanExecuteRoutedEventArgs e) =>
-        e.CanExecute = !isPreview && editor.Document.Screen.Controls.Count > 0;
+        e.CanExecute = !isPreview && editor.Screen.Controls.Count > 0;
 
     private void SelectAll_Executed(object sender, ExecutedRoutedEventArgs e) =>
-        SetSelection(editor.Document.Screen.Controls.Select(c => c.Id));
+        SetSelection(editor.Screen.Controls.Select(c => c.Id));
 
     private void BringToFront_Executed(object sender, ExecutedRoutedEventArgs e)
     {
@@ -902,6 +932,127 @@ public partial class MainWindow : Window
             StatusText.Text = "Sent to back";
         }
     }
+
+    /// <summary>Keeps the screen tabs in step with the document and the screen being shown.</summary>
+    private void RefreshScreenTabs()
+    {
+        var tabs = editor.Document.Screens
+            .Select((screen, index) => new ScreenTab(screen.Id, screen.Name, index == 0
+                ? $"{screen.Name}: the main screen, which an exported app opens with"
+                : screen.Name))
+            .ToList();
+        refreshingScreenTabs = true;
+        if (ScreenTabs.ItemsSource is not List<ScreenTab> shown || !shown.SequenceEqual(tabs))
+        {
+            ScreenTabs.ItemsSource = tabs;
+        }
+
+        ScreenTabs.SelectedIndex = tabs.FindIndex(t => t.Id == editor.Screen.Id);
+        refreshingScreenTabs = false;
+    }
+
+    private void ScreenTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!refreshingScreenTabs && ScreenTabs.SelectedItem is ScreenTab tab)
+        {
+            ShowScreen(tab.Id);
+        }
+    }
+
+    private void ShowScreen(string id)
+    {
+        // A value typed for the current screen applies to it before another screen shows.
+        CommitFocusedField();
+        if (editor.SelectScreen(id))
+        {
+            StatusText.Text = $"Screen {editor.Screen.Name}";
+        }
+    }
+
+    /// <summary>
+    /// Ctrl+PageUp and Ctrl+PageDown switch screens from anywhere. They are handled before the
+    /// design surface's scroll viewer, which would otherwise take them as page scrolling.
+    /// </summary>
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
+    {
+        if (Keyboard.Modifiers == ModifierKeys.Control && e.Key is Key.PageUp or Key.PageDown)
+        {
+            var command = e.Key == Key.PageUp ? EditorCommands.PreviousScreen : EditorCommands.NextScreen;
+            if (command.CanExecute(null, this))
+            {
+                command.Execute(null, this);
+            }
+
+            e.Handled = true;
+            return;
+        }
+
+        base.OnPreviewKeyDown(e);
+    }
+
+    private int ScreenIndex => editor.Document.Screens.FindIndex(s => s.Id == editor.Screen.Id);
+
+    private void Designing_CanExecute(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = !isPreview;
+
+    private void AddScreen_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        CommitFocusedField();
+        var screen = editor.AddScreen();
+        StatusText.Text = $"Added screen {screen.Name}. Rename it in the Properties panel.";
+    }
+
+    private void DuplicateScreen_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        CommitFocusedField();
+        var screen = editor.DuplicateScreen();
+        StatusText.Text = $"Added screen {screen.Name}, a copy.";
+    }
+
+    private void DeleteScreen_CanExecute(object sender, CanExecuteRoutedEventArgs e) =>
+        e.CanExecute = !isPreview && editor.Document.Screens.Count > 1;
+
+    private void DeleteScreen_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        var name = editor.Screen.Name;
+        if (editor.DeleteScreen() is { } error)
+        {
+            StatusText.Text = error;
+            return;
+        }
+
+        StatusText.Text = $"Deleted screen {name}. Undo brings it back.";
+    }
+
+    private void MoveScreenEarlier_CanExecute(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = !isPreview && ScreenIndex > 0;
+
+    private void MoveScreenEarlier_Executed(object sender, ExecutedRoutedEventArgs e) => MoveScreen(-1);
+
+    private void MoveScreenLater_CanExecute(object sender, CanExecuteRoutedEventArgs e) =>
+        e.CanExecute = !isPreview && ScreenIndex < editor.Document.Screens.Count - 1;
+
+    private void MoveScreenLater_Executed(object sender, ExecutedRoutedEventArgs e) => MoveScreen(1);
+
+    private void MoveScreen(int delta)
+    {
+        if (editor.MoveScreen(delta))
+        {
+            StatusText.Text = ScreenIndex == 0
+                ? $"{editor.Screen.Name} is now the main screen, which an exported app opens with."
+                : $"Moved screen {editor.Screen.Name}";
+        }
+    }
+
+    // Switching screens works in Preview too, to try each one.
+    private void PreviousScreen_CanExecute(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = ScreenIndex > 0;
+
+    private void PreviousScreen_Executed(object sender, ExecutedRoutedEventArgs e) => ShowScreen(editor.Document.Screens[ScreenIndex - 1].Id);
+
+    private void NextScreen_CanExecute(object sender, CanExecuteRoutedEventArgs e) =>
+        e.CanExecute = ScreenIndex < editor.Document.Screens.Count - 1;
+
+    private void NextScreen_Executed(object sender, ExecutedRoutedEventArgs e) => ShowScreen(editor.Document.Screens[ScreenIndex + 1].Id);
+
+    private sealed record ScreenTab(string Id, string Name, string ToolTip);
 
     private void Undo_CanExecute(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = !isPreview && editor.CanUndo;
 

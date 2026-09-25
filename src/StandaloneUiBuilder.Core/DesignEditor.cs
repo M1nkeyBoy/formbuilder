@@ -10,9 +10,13 @@ namespace StandaloneUiBuilder.Core;
 /// </summary>
 public sealed class DesignEditor
 {
-    private readonly Stack<ProjectDocument> undoStack = new();
-    private readonly Stack<ProjectDocument> redoStack = new();
+    // Each history entry remembers which screen was showing before and after the change, so undo
+    // and redo return to the screen where the change is visible. An undo entry holds the
+    // document before the change; a redo entry, the document after it.
+    private readonly Stack<HistoryEntry> undoStack = new();
+    private readonly Stack<HistoryEntry> redoStack = new();
     private ProjectDocument? savedDocument;
+    private string activeScreenId;
 
     public DesignEditor()
         : this(ProjectDocument.CreateBlank())
@@ -23,12 +27,19 @@ public sealed class DesignEditor
     {
         Document = document;
         savedDocument = document;
+        activeScreenId = document.MainScreen.Id;
     }
 
     /// <summary>Raised after any change to <see cref="Document"/> or <see cref="IsDirty"/>.</summary>
     public event EventHandler? Changed;
 
     public ProjectDocument Document { get; private set; }
+
+    /// <summary>
+    /// The screen being edited. Which screen is showing is editor state, like the selection:
+    /// it is not saved and changing it does not change the document.
+    /// </summary>
+    public ScreenDocument Screen => Document.FindScreen(activeScreenId) ?? Document.MainScreen;
 
     public bool CanUndo => undoStack.Count > 0;
 
@@ -47,14 +58,15 @@ public sealed class DesignEditor
         redoStack.Clear();
         Document = document;
         savedDocument = isDirty ? null : document;
+        activeScreenId = document.MainScreen.Id;
         OnChanged();
     }
 
     /// <summary>Finds a control anywhere, including inside containers.</summary>
-    public ControlDocument? FindControl(Guid id) => ControlTree.Find(Document.Screen.Controls, id);
+    public ControlDocument? FindControl(Guid id) => ControlTree.Find(Screen.Controls, id);
 
     /// <summary>The container a control is in, or null if it is directly on the screen.</summary>
-    public ControlDocument? ParentOf(Guid id) => ControlTree.ParentOf(Document.Screen.Controls, id);
+    public ControlDocument? ParentOf(Guid id) => ControlTree.ParentOf(Screen.Controls, id);
 
     /// <summary>
     /// Adds a control of the given type with its top-left corner at a point, snapped to the
@@ -63,12 +75,12 @@ public sealed class DesignEditor
     public ControlDocument AddControl(ControlType type, double x, double y)
     {
         var definition = ControlCatalog.Get(type);
-        var screen = Document.Screen;
+        var screen = Screen;
         var name = NextDefaultName(screen, type);
 
         var control = NewControl(type, name).WithBounds(DesignGeometry.Place(screen, definition, x, y));
 
-        Commit(Document with { Screen = screen with { Controls = screen.Controls.Add(control) } });
+        Commit(Document.WithScreen(screen with { Controls = screen.Controls.Add(control) }));
         return control;
     }
 
@@ -78,7 +90,7 @@ public sealed class DesignEditor
     /// </summary>
     public ControlDocument? AddControlTo(ControlType type, Guid containerId, double x, double y)
     {
-        var screen = Document.Screen;
+        var screen = Screen;
         if (Placed(containerId) is not { } container)
         {
             return null;
@@ -87,7 +99,7 @@ public sealed class DesignEditor
         var control = NewControl(type, NextDefaultName(screen, type));
         var (index, row, column) = DropPosition(container, x, y, ignore: null);
         control = control with { Row = row, Column = column };
-        Commit(Document with { Screen = screen with { Controls = ControlTree.Insert(screen.Controls, containerId, index, control) } });
+        Commit(Document.WithScreen(screen with { Controls = ControlTree.Insert(screen.Controls, containerId, index, control) }));
         return control;
     }
 
@@ -97,7 +109,7 @@ public sealed class DesignEditor
     /// </summary>
     public string? MoveIntoContainer(Guid id, Guid containerId, double x, double y)
     {
-        var screen = Document.Screen;
+        var screen = Screen;
         if (FindControl(id) is not { } control || Placed(containerId) is not { } container)
         {
             return "The control no longer exists.";
@@ -126,7 +138,7 @@ public sealed class DesignEditor
         var controls = ControlTree.Insert(ControlTree.Remove(screen.Controls, [id]), containerId, index, moved);
         if (!ControlTree.All(controls).SequenceEqual(ControlTree.All(screen.Controls)))
         {
-            Commit(Document with { Screen = screen with { Controls = controls } });
+            Commit(Document.WithScreen(screen with { Controls = controls }));
         }
 
         return null;
@@ -138,7 +150,7 @@ public sealed class DesignEditor
     /// </summary>
     public string? MoveToScreen(Guid id, double x, double y)
     {
-        var screen = Document.Screen;
+        var screen = Screen;
         if (FindControl(id) is not { } control)
         {
             return "The control no longer exists.";
@@ -152,7 +164,7 @@ public sealed class DesignEditor
         var size = new ControlDefinition(control.Type, Math.Min(control.Width, screen.Width), Math.Min(control.Height, screen.Height), 0, 0, false, false, false);
         var moved = control.WithBounds(DesignGeometry.Place(screen, size, x, y)) with { Row = null, Column = null, RowSpan = null, ColumnSpan = null };
         var controls = ControlTree.Remove(screen.Controls, [id]).Add(moved);
-        Commit(Document with { Screen = screen with { Controls = controls } });
+        Commit(Document.WithScreen(screen with { Controls = controls }));
         return null;
     }
 
@@ -359,12 +371,12 @@ public sealed class DesignEditor
             return "The control no longer exists.";
         }
 
-        if (!ControlTree.IsRoot(Document.Screen.Controls, id))
+        if (!ControlTree.IsRoot(Screen.Controls, id))
         {
             return "Its container decides where this control goes.";
         }
 
-        if (DocumentValidator.ValidateBounds(Document.Screen, control.Type, bounds) is { } error)
+        if (DocumentValidator.ValidateBounds(Screen, control.Type, bounds) is { } error)
         {
             return error;
         }
@@ -385,7 +397,7 @@ public sealed class DesignEditor
         }
 
         name = name.Trim();
-        if (DocumentValidator.ValidateName(Document.Screen, id, name) is { } error)
+        if (DocumentValidator.ValidateName(Screen, id, name) is { } error)
         {
             return error;
         }
@@ -434,23 +446,136 @@ public sealed class DesignEditor
 
     public void Undo()
     {
-        if (undoStack.TryPop(out var previous))
+        if (undoStack.TryPop(out var entry))
         {
-            redoStack.Push(Document);
-            Document = previous;
+            redoStack.Push(entry with { Document = Document });
+            Document = entry.Document;
+            activeScreenId = entry.ScreenBefore;
             OnChanged();
         }
     }
 
     public void Redo()
     {
-        if (redoStack.TryPop(out var next))
+        if (redoStack.TryPop(out var entry))
         {
-            undoStack.Push(Document);
-            Document = next;
+            undoStack.Push(entry with { Document = Document });
+            Document = entry.Document;
+            activeScreenId = entry.ScreenAfter;
             OnChanged();
         }
     }
+
+    /// <summary>Shows another screen for editing. Returns false if there is no such screen.</summary>
+    public bool SelectScreen(string id)
+    {
+        if (Document.FindScreen(id) is null)
+        {
+            return false;
+        }
+
+        if (id != Screen.Id)
+        {
+            activeScreenId = id;
+            OnChanged();
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Adds an empty screen after the current one, the same size as it, and shows it. Its name
+    /// is the lowest free one of Screen2, Screen3, and so on.
+    /// </summary>
+    public ScreenDocument AddScreen()
+    {
+        var current = Screen;
+        var screen = new ScreenDocument
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Name = NextScreenName("Screen2"),
+            Width = current.Width,
+            Height = current.Height,
+            GridSize = current.GridSize,
+        };
+        InsertScreen(screen);
+        return screen;
+    }
+
+    /// <summary>
+    /// Copies the current screen, with new control IDs, after it and shows the copy. The copy is
+    /// named after the original with the lowest free number: Main becomes Main2.
+    /// </summary>
+    public ScreenDocument DuplicateScreen()
+    {
+        var current = Screen;
+        var copy = current with
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Name = NextScreenName(current.Name),
+            Controls = current.Controls.ConvertAll(ControlTree.WithNewIds),
+        };
+        InsertScreen(copy);
+        return copy;
+    }
+
+    /// <summary>Renames the current screen. The name must be an identifier not used by another screen.</summary>
+    public string? RenameScreen(string name)
+    {
+        var screen = Screen;
+        if (DocumentValidator.ValidateScreenName(Document, screen.Id, name) is { } error)
+        {
+            return error;
+        }
+
+        if (screen.Name != name)
+        {
+            Commit(Document.WithScreen(screen with { Name = name }));
+        }
+
+        return null;
+    }
+
+    /// <summary>Deletes the current screen and shows the one before it. The last screen cannot be deleted.</summary>
+    public string? DeleteScreen()
+    {
+        if (Document.Screens.Count == 1)
+        {
+            return "A project needs at least one screen.";
+        }
+
+        var index = Document.Screens.FindIndex(s => s.Id == Screen.Id);
+        var screens = Document.Screens.RemoveAt(index);
+        Commit(Document with { Screens = screens }, screens[Math.Max(0, index - 1)].Id);
+        return null;
+    }
+
+    /// <summary>
+    /// Moves the current screen earlier (negative) or later (positive) in the screen order.
+    /// The first screen is the one a generated application opens with.
+    /// </summary>
+    public bool MoveScreen(int delta)
+    {
+        var screen = Screen;
+        var index = Document.Screens.FindIndex(s => s.Id == screen.Id);
+        var target = Math.Clamp(index + delta, 0, Document.Screens.Count - 1);
+        if (target == index)
+        {
+            return false;
+        }
+
+        Commit(Document with { Screens = Document.Screens.RemoveAt(index).Insert(target, screen) });
+        return true;
+    }
+
+    private void InsertScreen(ScreenDocument screen)
+    {
+        var index = Document.Screens.FindIndex(s => s.Id == Screen.Id);
+        Commit(Document with { Screens = Document.Screens.Insert(index + 1, screen) }, screen.Id);
+    }
+
+    private string NextScreenName(string name) =>
+        UniqueName(name, new HashSet<string>(Document.Screens.Select(s => s.Name), StringComparer.OrdinalIgnoreCase));
 
     /// <summary>
     /// Moves several controls by the same offset as one step. The offset is reduced if needed
@@ -458,7 +583,7 @@ public sealed class DesignEditor
     /// </summary>
     public bool MoveControls(IReadOnlyCollection<Guid> ids, int dx, int dy)
     {
-        var screen = Document.Screen;
+        var screen = Screen;
         var moving = screen.Controls.Where(c => ids.Contains(c.Id)).ToList();
         if (moving.Count == 0)
         {
@@ -473,18 +598,18 @@ public sealed class DesignEditor
         }
 
         var controls = screen.Controls.ConvertAll(c => ids.Contains(c.Id) ? c with { X = c.X + dx, Y = c.Y + dy } : c);
-        Commit(Document with { Screen = screen with { Controls = controls } });
+        Commit(Document.WithScreen(screen with { Controls = controls }));
         return true;
     }
 
     /// <summary>Removes several controls as one step. Returns the number removed.</summary>
     public int DeleteControls(IReadOnlyCollection<Guid> ids)
     {
-        var screen = Document.Screen;
+        var screen = Screen;
         var removed = ControlTree.All(screen.Controls).Count(c => ids.Contains(c.Id));
         if (removed > 0)
         {
-            Commit(Document with { Screen = screen with { Controls = ControlTree.Remove(screen.Controls, ids) } });
+            Commit(Document.WithScreen(screen with { Controls = ControlTree.Remove(screen.Controls, ids) }));
         }
 
         return removed;
@@ -497,7 +622,7 @@ public sealed class DesignEditor
     /// </summary>
     public IReadOnlyList<ControlDocument> PasteControls(IReadOnlyList<ControlDocument> copies, int offset)
     {
-        var screen = Document.Screen;
+        var screen = Screen;
         if (copies.Count == 0)
         {
             return [];
@@ -528,7 +653,7 @@ public sealed class DesignEditor
 
         if (pasted.Count > 0)
         {
-            Commit(Document with { Screen = screen with { Controls = screen.Controls.AddRange(pasted) } });
+            Commit(Document.WithScreen(screen with { Controls = screen.Controls.AddRange(pasted) }));
         }
 
         return pasted;
@@ -555,7 +680,7 @@ public sealed class DesignEditor
             return $"The screen can be at most {Maximum} × {Maximum}.";
         }
 
-        var screen = Document.Screen;
+        var screen = Screen;
         if (screen.Controls.FirstOrDefault(c => c.X + c.Width > width || c.Y + c.Height > height) is { } outside)
         {
             return $"\"{outside.Name}\" would be outside the screen. Move or resize it first.";
@@ -563,7 +688,7 @@ public sealed class DesignEditor
 
         if (screen.Width != width || screen.Height != height)
         {
-            Commit(Document with { Screen = screen with { Width = width, Height = height } });
+            Commit(Document.WithScreen(screen with { Width = width, Height = height }));
         }
 
         return null;
@@ -571,7 +696,7 @@ public sealed class DesignEditor
 
     private bool Reorder(IReadOnlyCollection<Guid> ids, bool toFront)
     {
-        var screen = Document.Screen;
+        var screen = Screen;
         var chosen = screen.Controls.Where(c => ids.Contains(c.Id)).ToList();
         var others = screen.Controls.Where(c => !ids.Contains(c.Id)).ToList();
         var reordered = (toFront ? others.Concat(chosen) : chosen.Concat(others)).ToImmutableList();
@@ -580,7 +705,7 @@ public sealed class DesignEditor
             return false;
         }
 
-        Commit(Document with { Screen = screen with { Controls = reordered } });
+        Commit(Document.WithScreen(screen with { Controls = reordered }));
         return true;
     }
 
@@ -606,7 +731,7 @@ public sealed class DesignEditor
     }
 
     private PlacedControl? Placed(Guid containerId) =>
-        ContainerLayout.Flatten(Document.Screen).FirstOrDefault(p => p.Control.Id == containerId && p.Control.Children is not null);
+        ContainerLayout.Flatten(Screen).FirstOrDefault(p => p.Control.Id == containerId && p.Control.Children is not null);
 
     /// <summary>Where a control dropped at a screen point goes in a container.</summary>
     private static (int Index, int? Row, int? Column) DropPosition(PlacedControl container, double x, double y, Guid? ignore)
@@ -691,17 +816,23 @@ public sealed class DesignEditor
 
     private void Replace(ControlDocument current, ControlDocument replacement)
     {
-        var screen = Document.Screen;
-        Commit(Document with { Screen = screen with { Controls = ControlTree.Replace(screen.Controls, current.Id, _ => replacement) } });
+        var screen = Screen;
+        Commit(Document.WithScreen(screen with { Controls = ControlTree.Replace(screen.Controls, current.Id, _ => replacement) }));
     }
 
-    private void Commit(ProjectDocument next)
+    /// <param name="screenId">The screen to show afterwards; by default the current one.</param>
+    private void Commit(ProjectDocument next, string? screenId = null)
     {
-        undoStack.Push(Document);
+        var before = Screen.Id;
+        var after = screenId ?? before;
+        undoStack.Push(new HistoryEntry(Document, before, after));
         redoStack.Clear();
         Document = next;
+        activeScreenId = after;
         OnChanged();
     }
+
+    private sealed record HistoryEntry(ProjectDocument Document, string ScreenBefore, string ScreenAfter);
 
     private void OnChanged() => Changed?.Invoke(this, EventArgs.Empty);
 }

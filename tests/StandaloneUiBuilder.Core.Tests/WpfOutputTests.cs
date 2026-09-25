@@ -29,8 +29,8 @@ public sealed class WpfOutputTests : IDisposable
         var control = editor.AddControl(type, 0, 0);
         editor.Rename(control.Id, name);
         var document = editor.Document;
-        var renamed = document.Screen.Controls[0] with { Properties = properties };
-        return document with { Screen = document.Screen with { Controls = [renamed] } };
+        var renamed = document.MainScreen.Controls[0] with { Properties = properties };
+        return document.WithScreen(document.MainScreen with { Controls = [renamed] });
     }
 
     [Theory]
@@ -51,10 +51,10 @@ public sealed class WpfOutputTests : IDisposable
 
         var elements = Canvas(document).Elements().ToList();
 
-        Assert.Equal(document.Screen.Controls.Count, elements.Count);
+        Assert.Equal(document.MainScreen.Controls.Count, elements.Count);
         for (var i = 0; i < elements.Count; i++)
         {
-            var control = document.Screen.Controls[i];
+            var control = document.MainScreen.Controls[i];
             var element = elements[i];
             Assert.Equal(control.Type.ToString(), element.Name.LocalName);
             Assert.Equal(control.Name, (string?)element.Attribute(Xaml + "Name"));
@@ -78,7 +78,7 @@ public sealed class WpfOutputTests : IDisposable
         Assert.Equal("CustomerForm.MainWindow", (string?)root.Attribute(Xaml + "Class"));
         Assert.Equal("Customer form", (string?)root.Attribute("Title"));
         Assert.Equal("WidthAndHeight", (string?)root.Attribute("SizeToContent"));
-        Assert.Equal(AnchorLayout.IsResizable(Sample().Screen) ? "CanResize" : "CanMinimize", (string?)root.Attribute("ResizeMode"));
+        Assert.Equal(AnchorLayout.IsResizable(Sample().MainScreen) ? "CanResize" : "CanMinimize", (string?)root.Attribute("ResizeMode"));
         Assert.Equal("800", (string?)(grid.Attribute("Width") ?? grid.Attribute("MinWidth")));
         Assert.Equal("600", (string?)(grid.Attribute("Height") ?? grid.Attribute("MinHeight")));
     }
@@ -173,10 +173,10 @@ public sealed class WpfOutputTests : IDisposable
         var codeBehind = Path.Combine(folder, "MainWindow.xaml.cs");
         File.AppendAllText(codeBehind, "// my code\n");
 
-        var moved = document with
+        var moved = document.WithScreen(document.MainScreen with
         {
-            Screen = document.Screen with { Controls = document.Screen.Controls.SetItem(0, document.Screen.Controls[0] with { X = 70 }) },
-        };
+            Controls = document.MainScreen.Controls.SetItem(0, document.MainScreen.Controls[0] with { X = 70 }),
+        });
         var result = WpfExporter.Export(moved, directory);
 
         Assert.Equal(["MainWindow.xaml"], result.Updated);
@@ -265,7 +265,7 @@ public sealed class WpfOutputTests : IDisposable
         var document = Sample();
         var folder = WpfExporter.Export(document, directory).ProjectFolder;
 
-        var fewer = document with { Screen = document.Screen with { Controls = document.Screen.Controls.RemoveAll(c => c.Name == "CancelButton") } };
+        var fewer = document.WithScreen(document.MainScreen with { Controls = document.MainScreen.Controls.RemoveAll(c => c.Name == "CancelButton") });
         var result = WpfExporter.Export(fewer, directory);
 
         Assert.Contains("MainWindow.Events.g.cs", result.Updated);

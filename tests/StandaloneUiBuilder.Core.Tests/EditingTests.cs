@@ -142,7 +142,7 @@ public class EditingTests
 
         Assert.Same(before, editor.Document);
         editor.Undo();
-        Assert.Empty(editor.Document.Screen.Controls);
+        Assert.Empty(editor.Screen.Controls);
     }
 
     [Fact]

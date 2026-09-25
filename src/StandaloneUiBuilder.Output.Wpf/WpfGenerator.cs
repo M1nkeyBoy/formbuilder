@@ -5,13 +5,18 @@ using StandaloneUiBuilder.Core;
 namespace StandaloneUiBuilder.Output.Wpf;
 
 /// <summary>
-/// Generates a complete WPF application from a builder project: a project file, App and a
-/// MainWindow whose Canvas holds the screen's controls at their designed positions.
+/// Generates a complete WPF application from a builder project: a project file, App, and a
+/// window for each screen that holds its controls at their designed positions. The first
+/// screen is MainWindow, which the application opens with; the others are named after
+/// themselves (SettingsWindow) for the developer's code to open.
 /// Output is deterministic: the same document always produces the same text.
 /// </summary>
 public static class WpfGenerator
 {
+    /// <summary>The first screen's window, which the application opens with.</summary>
     public const string WindowClassName = "MainWindow";
+
+    private const string ClassSuffix = "Window";
 
     public const string GeneratedMarker = ProjectExporter.GeneratedMarker;
 
@@ -19,10 +24,11 @@ public static class WpfGenerator
     // same as the design surface. A Windows test compares the two.
     private const string LabelPadding = "2,0";
 
-    // Names that would clash with members the generated window already has.
+    // Names that would clash with members the generated window already has. The window's own
+    // class name is checked separately.
     private static readonly HashSet<string> ReservedNames = new(StringComparer.Ordinal)
     {
-        WindowClassName, "InitializeComponent", "Content", "Title", "Width", "Height", "Name",
+        "InitializeComponent", "Content", "Title", "Width", "Height", "Name",
         "Resources", "Parent", "Owner", "Icon", "Left", "Top", "Background", "Foreground",
     };
 
@@ -49,15 +55,32 @@ public static class WpfGenerator
     /// </summary>
     public static IReadOnlyList<string> Check(ProjectDocument document)
     {
+        var problems = CodeNames.CheckScreenClassNames(document, ClassSuffix, "window").ToList();
+        foreach (var screen in document.Screens)
+        {
+            // With one screen, messages read as before; with several, they say which screen.
+            var prefix = document.Screens.Count > 1 ? $"Screen \"{screen.Name}\": " : "";
+            problems.AddRange(CheckScreen(ClassName(document, screen), screen).Select(p => prefix + p));
+        }
+
+        return problems;
+    }
+
+    /// <summary>The class a screen's window gets: MainWindow for the first screen, otherwise SettingsWindow and so on.</summary>
+    public static string ClassName(ProjectDocument document, ScreenDocument screen) =>
+        CodeNames.ScreenClassName(document, screen, ClassSuffix);
+
+    private static List<string> CheckScreen(string className, ScreenDocument screen)
+    {
         var problems = new List<string>();
-        var all = ControlTree.All(document.Screen.Controls).ToList();
+        var all = ControlTree.All(screen.Controls).ToList();
         foreach (var control in all)
         {
             if (CodeNames.CSharpKeywords.Contains(control.Name))
             {
                 problems.Add($"\"{control.Name}\" is a C# keyword and cannot be used as a control name in WPF code. Rename it.");
             }
-            else if (ReservedNames.Contains(control.Name))
+            else if (ReservedNames.Contains(control.Name) || control.Name == className)
             {
                 problems.Add($"\"{control.Name}\" clashes with a member of the generated window. Rename the control.");
             }
@@ -82,27 +105,41 @@ public static class WpfGenerator
     /// <summary>Turns a project name into a C# namespace: "Customer form" becomes "CustomerForm".</summary>
     public static string ToNamespace(string projectName) => CodeNames.ToNamespace(projectName);
 
-    public static IReadOnlyList<GeneratedFile> Generate(ProjectDocument document, string rootNamespace) =>
-    [
-        new($"{rootNamespace}.csproj", ProjectFileText(rootNamespace), Regenerate: false),
-        new("App.xaml", AppXaml(rootNamespace), Regenerate: false),
-        new("App.xaml.cs", AppCode(rootNamespace), Regenerate: false),
-        new($"{WindowClassName}.xaml", WindowXaml(document, rootNamespace), Regenerate: true),
-        new($"{WindowClassName}.xaml.cs", WindowCode(rootNamespace), Regenerate: false),
-        new($"{WindowClassName}.Events.g.cs", EventsCode(document, rootNamespace), Regenerate: true),
-    ];
-
-    public static string WindowXaml(ProjectDocument document, string rootNamespace)
+    public static IReadOnlyList<GeneratedFile> Generate(ProjectDocument document, string rootNamespace)
     {
-        var screen = document.Screen;
+        List<GeneratedFile> files =
+        [
+            new($"{rootNamespace}.csproj", ProjectFileText(rootNamespace), Regenerate: false),
+            new("App.xaml", AppXaml(rootNamespace), Regenerate: false),
+            new("App.xaml.cs", AppCode(rootNamespace), Regenerate: false),
+        ];
+
+        foreach (var screen in document.Screens)
+        {
+            var className = ClassName(document, screen);
+            files.Add(new($"{className}.xaml", WindowXaml(document, screen, rootNamespace), Regenerate: true));
+            files.Add(new($"{className}.xaml.cs", WindowCode(rootNamespace, className), Regenerate: false));
+            files.Add(new($"{className}.Events.g.cs", EventsCode(document, screen, rootNamespace), Regenerate: true));
+        }
+
+        return files;
+    }
+
+    /// <summary>The first screen's window.</summary>
+    public static string WindowXaml(ProjectDocument document, string rootNamespace) =>
+        WindowXaml(document, document.MainScreen, rootNamespace);
+
+    public static string WindowXaml(ProjectDocument document, ScreenDocument screen, string rootNamespace)
+    {
+        var className = ClassName(document, screen);
         var resizable = AnchorLayout.IsResizable(screen);
         var xaml = new StringBuilder();
         xaml.AppendLine($"<!-- {GeneratedMarker} from \"{Comment(document.Name)}\". This file is replaced on every export;");
-        xaml.AppendLine($"     put your own code in {WindowClassName}.xaml.cs. -->");
-        xaml.AppendLine($"<Window x:Class=\"{rootNamespace}.{WindowClassName}\"");
+        xaml.AppendLine($"     put your own code in {className}.xaml.cs. -->");
+        xaml.AppendLine($"<Window x:Class=\"{rootNamespace}.{className}\"");
         xaml.AppendLine("        xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"");
         xaml.AppendLine("        xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"");
-        xaml.AppendLine($"        Title=\"{Attribute(document.Name)}\"");
+        xaml.AppendLine($"        Title=\"{Attribute(WindowTitle(document, screen))}\"");
         xaml.AppendLine("        SizeToContent=\"WidthAndHeight\"");
         xaml.AppendLine($"        ResizeMode=\"{(resizable ? "CanResize" : "CanMinimize")}\"");
         xaml.AppendLine("        UseLayoutRounding=\"True\">");
@@ -288,12 +325,16 @@ public static class WpfGenerator
     /// XAML refers to, which calls a partial method the developer may implement. Unimplemented
     /// hooks compile away, so adding or removing controls never breaks the build.
     /// </summary>
-    public static string EventsCode(ProjectDocument document, string rootNamespace)
+    public static string EventsCode(ProjectDocument document, string rootNamespace) =>
+        EventsCode(document, document.MainScreen, rootNamespace);
+
+    public static string EventsCode(ProjectDocument document, ScreenDocument screen, string rootNamespace)
     {
+        var className = ClassName(document, screen);
         var code = new StringBuilder();
         code.AppendLine("// <auto-generated>");
         code.AppendLine($"// {GeneratedMarker}. This file is replaced on every export.");
-        code.AppendLine($"// To respond to a control, implement its partial method in {WindowClassName}.xaml.cs, for example:");
+        code.AppendLine($"// To respond to a control, implement its partial method in {className}.xaml.cs, for example:");
         code.AppendLine("//     partial void OnSubmitButtonClick(RoutedEventArgs e) { MessageBox.Show(\"Submitted\"); }");
         code.AppendLine("// </auto-generated>");
         code.AppendLine("#nullable enable");
@@ -302,11 +343,11 @@ public static class WpfGenerator
         code.AppendLine();
         code.AppendLine($"namespace {rootNamespace};");
         code.AppendLine();
-        code.AppendLine($"public partial class {WindowClassName}");
+        code.AppendLine($"public partial class {className}");
         code.AppendLine("{");
 
         var first = true;
-        foreach (var control in ControlTree.All(document.Screen.Controls))
+        foreach (var control in ControlTree.All(screen.Controls))
         {
             if (EventFor(control.Type) is not { } e)
             {
@@ -329,18 +370,26 @@ public static class WpfGenerator
         return code.ToString();
     }
 
-    private static string WindowCode(string rootNamespace) => $$"""
+    /// <summary>
+    /// The first screen's window shows the project name; other screens show their own name,
+    /// the only title the builder has for them.
+    /// </summary>
+    private static string WindowTitle(ProjectDocument document, ScreenDocument screen) =>
+        screen.Id == document.MainScreen.Id ? document.Name : screen.Name;
+
+    private static string WindowCode(string rootNamespace, string className) => $$"""
         using System.Windows;
 
         namespace {{rootNamespace}};
 
         // Created once by Standalone UI Builder and never overwritten: add your code here.
-        // The controls are declared in {{WindowClassName}}.xaml, which is regenerated on every export.
-        // To respond to a control, implement its hook from {{WindowClassName}}.Events.g.cs, for example:
+        // The controls are declared in {{className}}.xaml, which is regenerated on every export.
+        // To respond to a control, implement its hook from {{className}}.Events.g.cs, for example:
         //     partial void OnSubmitButtonClick(RoutedEventArgs e) { MessageBox.Show("Submitted"); }
-        public partial class {{WindowClassName}} : Window
+        // To show another screen, create its window: new SettingsWindow { Owner = this }.ShowDialog();
+        public partial class {{className}} : Window
         {
-            public {{WindowClassName}}()
+            public {{className}}()
             {
                 InitializeComponent();
             }

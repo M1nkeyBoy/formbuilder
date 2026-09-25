@@ -329,3 +329,32 @@ Choices made during the prototype slices that affect later work.
   (`Absolute` rows plus percentages of the remaining space) all follow it. The layout demo
   now has a fixed 60-DIP top row and columns sharing 2:1, so the Windows layout checks cover
   sized tracks in both targets.
+
+## Slice 19 — Multiple screens
+
+- **A list of screens.** A project holds `screens` in order, always at least one. Control
+  names only need to be unique within their screen, since each screen becomes its own class;
+  screen names are identifiers, unique across the project. Control IDs stay unique across
+  the whole project, so copying between screens never produces duplicates.
+- **Which screen is showing is editor state,** like the selection: not saved, not an edit,
+  and switching screens never marks the project changed. Each undo step remembers the screen
+  shown before and after the change, so undo and redo bring back the screen where the
+  change is visible.
+- **Tabs above the canvas** rather than a separate panel: they take one row, show every
+  screen at once and read naturally left to right as the screen order. The Screen menu holds
+  the commands, and the Properties panel's Screen section (shown when nothing is selected)
+  gains the name. Ctrl+PageUp and Ctrl+PageDown switch screens, handled before the canvas's
+  scroll viewer, which would otherwise take them as page scrolling.
+- **The first screen is the main window.** In output it is always `MainWindow`/`MainForm`,
+  whatever its name, so `App.xaml` and `Program.cs` (created once and then the developer's)
+  never need to change. Other screens are named after themselves (`SettingsWindow`,
+  `SettingsForm`). The only clash this allows, a later screen named `Main`, blocks export
+  with a message.
+- **No navigation yet.** Opening one screen from another is an action, which the spec defers;
+  the generated code comments show the one line that does it from a hook. The Windows
+  WinForms test implements exactly that hook to open the layout demo's second screen and
+  check its layout.
+- **Format version 6.** Older files' single `screen` becomes the only entry in `screens`.
+  Files are never deleted on export: a renamed or removed screen's old files stay, with any
+  code the developer wrote in them.
+

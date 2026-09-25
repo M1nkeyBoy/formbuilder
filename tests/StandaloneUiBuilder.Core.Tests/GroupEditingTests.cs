@@ -58,10 +58,10 @@ public class GroupEditingTests
         var (editor, a, b, c) = ThreeControls();
 
         Assert.Equal(2, editor.DeleteControls([a.Id, c.Id]));
-        Assert.Equal([b.Id], editor.Document.Screen.Controls.Select(x => x.Id));
+        Assert.Equal([b.Id], editor.Screen.Controls.Select(x => x.Id));
 
         editor.Undo();
-        Assert.Equal(3, editor.Document.Screen.Controls.Count);
+        Assert.Equal(3, editor.Screen.Controls.Count);
     }
 
     [Fact]
@@ -77,11 +77,11 @@ public class GroupEditingTests
         Assert.All(pasted, p => Assert.DoesNotContain(p.Id, new[] { a.Id, b.Id }));
         Assert.Equal(["Button2", "Caption2"], pasted.Select(p => p.Name));
         Assert.Equal(new ControlBounds(110, 110, 100, 30), pasted[0].Bounds);
-        Assert.Equal(pasted.Select(p => p.Id), editor.Document.Screen.Controls.TakeLast(2).Select(c => c.Id));
+        Assert.Equal(pasted.Select(p => p.Id), editor.Screen.Controls.TakeLast(2).Select(c => c.Id));
         Assert.Empty(DocumentValidator.Validate(editor.Document));
 
         editor.Undo();
-        Assert.Equal(3, editor.Document.Screen.Controls.Count);
+        Assert.Equal(3, editor.Screen.Controls.Count);
     }
 
     [Fact]
@@ -126,16 +126,16 @@ public class GroupEditingTests
         var (editor, a, b, c) = ThreeControls();
 
         Assert.True(editor.BringToFront([a.Id, b.Id]));
-        Assert.Equal([c.Id, a.Id, b.Id], editor.Document.Screen.Controls.Select(x => x.Id));
+        Assert.Equal([c.Id, a.Id, b.Id], editor.Screen.Controls.Select(x => x.Id));
 
         Assert.True(editor.SendToBack([b.Id]));
-        Assert.Equal([b.Id, c.Id, a.Id], editor.Document.Screen.Controls.Select(x => x.Id));
+        Assert.Equal([b.Id, c.Id, a.Id], editor.Screen.Controls.Select(x => x.Id));
 
         // Already at the back: nothing to record.
         Assert.False(editor.SendToBack([b.Id]));
 
         editor.Undo();
-        Assert.Equal([c.Id, a.Id, b.Id], editor.Document.Screen.Controls.Select(x => x.Id));
+        Assert.Equal([c.Id, a.Id, b.Id], editor.Screen.Controls.Select(x => x.Id));
     }
 
     [Fact]
@@ -144,14 +144,14 @@ public class GroupEditingTests
         var (editor, _, _, _) = ThreeControls();
 
         Assert.Null(editor.SetScreenSize(1024, 768));
-        Assert.Equal((1024, 768), (editor.Document.Screen.Width, editor.Document.Screen.Height));
+        Assert.Equal((1024, 768), (editor.Screen.Width, editor.Screen.Height));
 
         Assert.Contains("TextBox1", editor.SetScreenSize(600, 768));
         Assert.NotNull(editor.SetScreenSize(50, 768));
-        Assert.Equal(1024, editor.Document.Screen.Width);
+        Assert.Equal(1024, editor.Screen.Width);
 
         editor.Undo();
-        Assert.Equal(800, editor.Document.Screen.Width);
+        Assert.Equal(800, editor.Screen.Width);
     }
 
     [Fact]

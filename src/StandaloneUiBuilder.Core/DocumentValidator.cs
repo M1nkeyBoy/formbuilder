@@ -70,37 +70,85 @@ public static partial class DocumentValidator
         return null;
     }
 
+    /// <summary>Checks a proposed name for a screen; returns an error message or null.</summary>
+    public static string? ValidateScreenName(ProjectDocument document, string screenId, string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return "Screen name cannot be empty.";
+        }
+
+        if (!NamePattern().IsMatch(name))
+        {
+            return "Screen name must start with a letter or underscore and contain only letters, digits and underscores.";
+        }
+
+        foreach (var other in document.Screens)
+        {
+            if (other.Id != screenId && string.Equals(other.Name, name, StringComparison.OrdinalIgnoreCase))
+            {
+                return $"Another screen is already named \"{other.Name}\".";
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>Validates a whole document; returns every problem found.</summary>
     public static IReadOnlyList<string> Validate(ProjectDocument document)
     {
         var errors = new List<string>();
-        var screen = document.Screen;
 
         if (document.ProjectId == Guid.Empty)
         {
             errors.Add("The project has no ID.");
         }
 
-        if (screen is null)
+        if (document.Screens is not { Count: > 0 } screens)
         {
             errors.Add("The project has no screen.");
             return errors;
         }
 
-        if (screen.Width <= 0 || screen.Height <= 0)
-        {
-            errors.Add($"The screen size {screen.Width} × {screen.Height} is not valid.");
-        }
-
-        if (screen.GridSize <= 0)
-        {
-            errors.Add($"The grid size {screen.GridSize} is not valid.");
-        }
-
+        // Control IDs are unique across the whole project, screen IDs across its screens.
         var ids = new HashSet<Guid>();
-        foreach (var control in screen.Controls)
+        var screenIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var screen in screens)
         {
-            ValidateControl(screen, control, parent: null, ids, errors);
+            // With one screen, messages read as before; with several, they say which screen.
+            var prefix = screens.Count > 1 ? $"Screen \"{screen.Name}\": " : "";
+            var screenErrors = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(screen.Id))
+            {
+                screenErrors.Add("The screen has no ID.");
+            }
+            else if (!screenIds.Add(screen.Id))
+            {
+                screenErrors.Add($"The screen has the same ID as another screen ({screen.Id}).");
+            }
+
+            if (ValidateScreenName(document, screen.Id, screen.Name) is { } nameError)
+            {
+                screenErrors.Add(nameError);
+            }
+
+            if (screen.Width <= 0 || screen.Height <= 0)
+            {
+                screenErrors.Add($"The screen size {screen.Width} × {screen.Height} is not valid.");
+            }
+
+            if (screen.GridSize <= 0)
+            {
+                screenErrors.Add($"The grid size {screen.GridSize} is not valid.");
+            }
+
+            foreach (var control in screen.Controls)
+            {
+                ValidateControl(screen, control, parent: null, ids, screenErrors);
+            }
+
+            errors.AddRange(screenErrors.Select(e => prefix + e));
         }
 
         return errors;

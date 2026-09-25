@@ -6,19 +6,25 @@ namespace StandaloneUiBuilder.Output.WinForms;
 
 /// <summary>
 /// Generates a complete WinForms application from a builder project: a project file, Program,
-/// and a MainForm whose Designer file creates every control with its designed position, size,
-/// anchors, text and values. The Designer file follows the shape Visual Studio writes.
+/// and a form for each screen whose Designer file creates every control with its designed
+/// position, size, anchors, text and values. The Designer file follows the shape Visual Studio
+/// writes. The first screen is MainForm, which Program runs; the others are named after
+/// themselves (SettingsForm) for the developer's code to open.
 /// Output is deterministic: the same document always produces the same text.
 /// </summary>
 public static class WinFormsGenerator
 {
+    /// <summary>The first screen's form, which Program runs.</summary>
     public const string FormClassName = "MainForm";
 
+    private const string ClassSuffix = "Form";
+
     // Form members the generated code assigns or calls through "this."; a control field with one
-    // of these names would hide it and break the build.
+    // of these names would hide it and break the build. The form's own class name is checked
+    // separately.
     private static readonly HashSet<string> ReservedNames = new(StringComparer.Ordinal)
     {
-        FormClassName, "InitializeComponent", "components", "Dispose", "Controls", "Text", "Name",
+        "InitializeComponent", "components", "Dispose", "Controls", "Text", "Name",
         "ClientSize", "AutoScaleDimensions", "AutoScaleMode", "FormBorderStyle", "MaximizeBox",
         "MinimumSize", "SuspendLayout", "ResumeLayout", "PerformLayout", "SizeFromClientSize",
     };
@@ -53,15 +59,32 @@ public static class WinFormsGenerator
     /// <summary>Returns reasons the document cannot be exported to WinForms as it stands, or an empty list.</summary>
     public static IReadOnlyList<string> Check(ProjectDocument document)
     {
+        var problems = CodeNames.CheckScreenClassNames(document, ClassSuffix, "form").ToList();
+        foreach (var screen in document.Screens)
+        {
+            // With one screen, messages read as before; with several, they say which screen.
+            var prefix = document.Screens.Count > 1 ? $"Screen \"{screen.Name}\": " : "";
+            problems.AddRange(CheckScreen(ClassName(document, screen), screen).Select(p => prefix + p));
+        }
+
+        return problems;
+    }
+
+    /// <summary>The class a screen's form gets: MainForm for the first screen, otherwise SettingsForm and so on.</summary>
+    public static string ClassName(ProjectDocument document, ScreenDocument screen) =>
+        CodeNames.ScreenClassName(document, screen, ClassSuffix);
+
+    private static List<string> CheckScreen(string className, ScreenDocument screen)
+    {
         var problems = new List<string>();
-        var all = ControlTree.All(document.Screen.Controls).ToList();
+        var all = ControlTree.All(screen.Controls).ToList();
         foreach (var control in all)
         {
             if (CodeNames.CSharpKeywords.Contains(control.Name))
             {
                 problems.Add($"\"{control.Name}\" is a C# keyword and cannot be used as a control name in WinForms code. Rename it.");
             }
-            else if (ReservedNames.Contains(control.Name))
+            else if (ReservedNames.Contains(control.Name) || control.Name == className)
             {
                 problems.Add($"\"{control.Name}\" clashes with a member of the generated form. Rename the control.");
             }
@@ -82,18 +105,32 @@ public static class WinFormsGenerator
         return problems;
     }
 
-    public static IReadOnlyList<GeneratedFile> Generate(ProjectDocument document, string rootNamespace) =>
-    [
-        new($"{rootNamespace}.csproj", ProjectFileText(rootNamespace), Regenerate: false),
-        new("Program.cs", ProgramCode(rootNamespace), Regenerate: false),
-        new($"{FormClassName}.cs", FormCode(rootNamespace), Regenerate: false),
-        new($"{FormClassName}.Designer.cs", DesignerCode(document, rootNamespace), Regenerate: true),
-        new($"{FormClassName}.Events.g.cs", EventsCode(document, rootNamespace), Regenerate: true),
-    ];
-
-    public static string DesignerCode(ProjectDocument document, string rootNamespace)
+    public static IReadOnlyList<GeneratedFile> Generate(ProjectDocument document, string rootNamespace)
     {
-        var screen = document.Screen;
+        List<GeneratedFile> files =
+        [
+            new($"{rootNamespace}.csproj", ProjectFileText(rootNamespace), Regenerate: false),
+            new("Program.cs", ProgramCode(rootNamespace), Regenerate: false),
+        ];
+
+        foreach (var screen in document.Screens)
+        {
+            var className = ClassName(document, screen);
+            files.Add(new($"{className}.cs", FormCode(rootNamespace, className), Regenerate: false));
+            files.Add(new($"{className}.Designer.cs", DesignerCode(document, screen, rootNamespace), Regenerate: true));
+            files.Add(new($"{className}.Events.g.cs", EventsCode(document, screen, rootNamespace), Regenerate: true));
+        }
+
+        return files;
+    }
+
+    /// <summary>The first screen's form.</summary>
+    public static string DesignerCode(ProjectDocument document, string rootNamespace) =>
+        DesignerCode(document, document.MainScreen, rootNamespace);
+
+    public static string DesignerCode(ProjectDocument document, ScreenDocument screen, string rootNamespace)
+    {
+        var className = ClassName(document, screen);
         var controls = screen.Controls;
         var all = ControlTree.All(controls).ToList();
         var containers = all.Where(c => c.Children is not null).ToList();
@@ -102,13 +139,13 @@ public static class WinFormsGenerator
 
         code.AppendLine("// <auto-generated>");
         code.AppendLine($"// {ProjectExporter.GeneratedMarker} from \"{Comment(document.Name)}\". This file is replaced on every export;");
-        code.AppendLine($"// change the layout in the builder, and put your own code in {FormClassName}.cs.");
+        code.AppendLine($"// change the layout in the builder, and put your own code in {className}.cs.");
         code.AppendLine("// </auto-generated>");
         code.AppendLine("#nullable disable");
         code.AppendLine();
         code.AppendLine($"namespace {rootNamespace};");
         code.AppendLine();
-        code.AppendLine($"partial class {FormClassName}");
+        code.AppendLine($"partial class {className}");
         code.AppendLine("{");
         code.AppendLine("    private System.ComponentModel.IContainer components = null;");
         code.AppendLine();
@@ -145,7 +182,7 @@ public static class WinFormsGenerator
         }
 
         code.AppendLine("        // ");
-        code.AppendLine($"        // {FormClassName}");
+        code.AppendLine($"        // {className}");
         code.AppendLine("        // ");
 
         // Sizes are designed in DIPs (1/96 inch); Dpi scaling makes them physical at any DPI.
@@ -169,8 +206,10 @@ public static class WinFormsGenerator
             code.AppendLine("        this.MaximizeBox = false;");
         }
 
-        code.AppendLine($"        this.Name = \"{FormClassName}\";");
-        code.AppendLine($"        this.Text = {Literal(document.Name)};");
+        code.AppendLine($"        this.Name = \"{className}\";");
+
+        // The first screen's form shows the project name; other screens show their own name.
+        code.AppendLine($"        this.Text = {Literal(screen.Id == document.MainScreen.Id ? document.Name : screen.Name)};");
         for (var i = containers.Count - 1; i >= 0; i--)
         {
             code.AppendLine($"        this.{containers[i].Name}.ResumeLayout(false);");
@@ -372,23 +411,27 @@ public static class WinFormsGenerator
         }
     }
 
-    public static string EventsCode(ProjectDocument document, string rootNamespace)
+    public static string EventsCode(ProjectDocument document, string rootNamespace) =>
+        EventsCode(document, document.MainScreen, rootNamespace);
+
+    public static string EventsCode(ProjectDocument document, ScreenDocument screen, string rootNamespace)
     {
+        var className = ClassName(document, screen);
         var code = new StringBuilder();
         code.AppendLine("// <auto-generated>");
         code.AppendLine($"// {ProjectExporter.GeneratedMarker}. This file is replaced on every export.");
-        code.AppendLine($"// To respond to a control, implement its partial method in {FormClassName}.cs, for example:");
+        code.AppendLine($"// To respond to a control, implement its partial method in {className}.cs, for example:");
         code.AppendLine("//     partial void OnSubmitButtonClick(EventArgs e) { MessageBox.Show(\"Submitted\"); }");
         code.AppendLine("// </auto-generated>");
         code.AppendLine("#nullable enable");
         code.AppendLine();
         code.AppendLine($"namespace {rootNamespace};");
         code.AppendLine();
-        code.AppendLine($"partial class {FormClassName}");
+        code.AppendLine($"partial class {className}");
         code.AppendLine("{");
 
         var first = true;
-        foreach (var control in ControlTree.All(document.Screen.Controls))
+        foreach (var control in ControlTree.All(screen.Controls))
         {
             if (EventFor(control.Type) is not { } e)
             {
@@ -411,16 +454,17 @@ public static class WinFormsGenerator
         return code.ToString();
     }
 
-    private static string FormCode(string rootNamespace) => $$"""
+    private static string FormCode(string rootNamespace, string className) => $$"""
         namespace {{rootNamespace}};
 
         // Created once by Standalone UI Builder and never overwritten: add your code here.
-        // The controls are created in {{FormClassName}}.Designer.cs, which is regenerated on every export.
-        // To respond to a control, implement its hook from {{FormClassName}}.Events.g.cs, for example:
+        // The controls are created in {{className}}.Designer.cs, which is regenerated on every export.
+        // To respond to a control, implement its hook from {{className}}.Events.g.cs, for example:
         //     partial void OnSubmitButtonClick(EventArgs e) { MessageBox.Show("Submitted"); }
-        public partial class {{FormClassName}} : Form
+        // To show another screen, create its form: using var settings = new SettingsForm(); settings.ShowDialog(this);
+        public partial class {{className}} : Form
         {
-            public {{FormClassName}}()
+            public {{className}}()
             {
                 InitializeComponent();
             }

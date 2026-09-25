@@ -28,12 +28,12 @@ public sealed class ProjectFileTests : IDisposable
     {
         Assert.Equal(expected.ProjectId, actual.ProjectId);
         Assert.Equal(expected.Name, actual.Name);
-        Assert.Equal(expected.Screen with { Controls = [] }, actual.Screen with { Controls = [] });
-        Assert.Equal(expected.Screen.Controls.Count, actual.Screen.Controls.Count);
-        for (var i = 0; i < expected.Screen.Controls.Count; i++)
+        Assert.Equal(expected.MainScreen with { Controls = [] }, actual.MainScreen with { Controls = [] });
+        Assert.Equal(expected.MainScreen.Controls.Count, actual.MainScreen.Controls.Count);
+        for (var i = 0; i < expected.MainScreen.Controls.Count; i++)
         {
-            var e = expected.Screen.Controls[i];
-            var a = actual.Screen.Controls[i];
+            var e = expected.MainScreen.Controls[i];
+            var a = actual.MainScreen.Controls[i];
             Assert.Equal(e with { Properties = new() }, a with { Properties = new() });
             Assert.Equal(e.Properties.Text, a.Properties.Text);
             Assert.Equal(e.Properties.IsChecked, a.Properties.IsChecked);
@@ -92,7 +92,9 @@ public sealed class ProjectFileTests : IDisposable
     {
         var json = ProjectFile.Serialize(PopulatedDocument());
 
-        Assert.Contains("\"schemaVersion\": 5", json);
+        Assert.Contains("\"schemaVersion\": 6", json);
+        Assert.Contains("\"screens\": [", json);
+        Assert.DoesNotContain("mainScreen", json, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("\"type\": \"Button\"", json);
         Assert.Contains("\"name\": \"SubmitButton\"", json);
         Assert.Contains("\"gridSize\": 10", json);
@@ -106,14 +108,14 @@ public sealed class ProjectFileTests : IDisposable
 
         var document = ProjectFile.Load(sample);
 
-        Assert.Equal(5, document.Screen.Controls.Select(c => c.Type).Distinct().Count());
+        Assert.Equal(5, document.MainScreen.Controls.Select(c => c.Type).Distinct().Count());
     }
 
     [Theory]
     [InlineData("not json", "not valid JSON")]
     [InlineData("[]", "no schema version")]
     [InlineData("""{ "name": "x" }""", "no schema version")]
-    [InlineData("""{ "schemaVersion": 6, "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971", "screen": {} }""", "newer version")]
+    [InlineData("""{ "schemaVersion": 7, "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971", "screen": {} }""", "newer version")]
     [InlineData("""{ "schemaVersion": 0, "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971", "screen": {} }""", "not valid")]
     [InlineData("""{ "schemaVersion": 1, "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971" }""", "not a valid project")]
     public void InvalidFilesAreRejectedWithAClearReason(string json, string expected)
@@ -161,7 +163,7 @@ public sealed class ProjectFileTests : IDisposable
             }
             """;
 
-        var control = Assert.Single(ProjectFile.Deserialize(json).Screen.Controls);
+        var control = Assert.Single(ProjectFile.Deserialize(json).MainScreen.Controls);
 
         Assert.Equal("", control.Properties.Text);
         Assert.False(control.Properties.IsChecked);

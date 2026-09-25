@@ -25,12 +25,12 @@ public class ContainerOutputTests
     public void DemoSampleIsValidAndUsesEveryContainerFeature()
     {
         var document = Demo();
-        var all = ControlTree.All(document.Screen.Controls).ToList();
+        var all = ControlTree.All(document.MainScreen.Controls).ToList();
 
         Assert.Empty(DocumentValidator.Validate(document));
         Assert.Contains(all, c => c.Type == ControlType.Grid);
         Assert.Contains(all, c => c.Properties.Orientation == StackOrientation.Horizontal);
-        Assert.Contains(all, c => c.Type == ControlType.StackPanel && ControlTree.ParentOf(document.Screen.Controls, c.Id) is not null);
+        Assert.Contains(all, c => c.Type == ControlType.StackPanel && ControlTree.ParentOf(document.MainScreen.Controls, c.Id) is not null);
         Assert.Empty(WpfGenerator.Check(document));
         Assert.Empty(WinFormsGenerator.Check(document));
     }

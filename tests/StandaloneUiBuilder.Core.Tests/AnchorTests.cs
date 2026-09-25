@@ -110,7 +110,7 @@ public class AnchorTests
         Assert.Contains("\"anchor\": [", json);
         Assert.Contains("\"left\"", json);
         Assert.Contains("\"bottom\"", json);
-        Assert.Equal(AnchorEdges.Left | AnchorEdges.Right | AnchorEdges.Bottom, reloaded.Screen.Controls.Single().Anchor);
+        Assert.Equal(AnchorEdges.Left | AnchorEdges.Right | AnchorEdges.Bottom, reloaded.MainScreen.Controls.Single().Anchor);
     }
 
     [Fact]
@@ -132,7 +132,7 @@ public class AnchorTests
 
         var document = ProjectFile.Deserialize(json);
 
-        Assert.Equal(AnchorEdges.Default, document.Screen.Controls.Single().Anchor);
+        Assert.Equal(AnchorEdges.Default, document.MainScreen.Controls.Single().Anchor);
         Assert.Contains($"\"schemaVersion\": {ProjectDocument.CurrentSchemaVersion}", ProjectFile.Serialize(document));
     }
 

@@ -18,6 +18,19 @@ Exporting "Customer form" into `C:\Exports` produces `C:\Exports\CustomerForm\`:
 | `MainForm.cs` | Constructor calling `InitializeComponent()`; your code goes here | Kept |
 | `MainForm.Designer.cs` | Creates and lays out every control | **Regenerated** |
 | `MainForm.Events.g.cs` | Event wiring and hooks | **Regenerated** |
+| `SettingsForm.cs`, `.Designer.cs`, `.Events.g.cs` | The same three files for each further screen, named after it | As for `MainForm` |
+
+Each screen becomes its own form. The first screen is always `MainForm`, which `Program`
+runs; every other screen is named after itself (Settings becomes `SettingsForm`, titled
+"Settings"), and your code opens it:
+
+```csharp
+partial void OnSettingsButtonClick(EventArgs e) => new SettingsForm().Show(this);
+```
+
+A later screen named `Main` would clash with `MainForm` and blocks the export. Renaming,
+reordering or deleting screens after exporting leaves the old screen's files, and any code
+in them, for you to move; the builder never deletes files.
 
 `MainForm.Designer.cs` has the shape Visual Studio's form designer writes, so the form opens
 in Visual Studio's designer. Change the layout in the builder, though: the builder rewrites
@@ -93,5 +106,6 @@ refers to the control, not the Form property.
   containers), runs them, and reads each control's real
   position and size through UI Automation. It then enlarges the window and checks that
   anchored controls moved and stretched as the Core anchor rules say, and that an
-  implemented Click hook runs.
+  implemented Click hook runs. For the layout demo, that hook opens its second screen's
+  form, whose layout is checked the same way.
 - CI builds and runs the exported sample and captures a screenshot.

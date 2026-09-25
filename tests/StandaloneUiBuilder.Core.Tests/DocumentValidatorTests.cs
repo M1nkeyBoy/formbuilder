@@ -19,7 +19,7 @@ public class DocumentValidatorTests
     private static ProjectDocument WithControls(params ControlDocument[] controls)
     {
         var document = ProjectDocument.CreateBlank();
-        return document with { Screen = document.Screen with { Controls = [.. controls] } };
+        return document.WithScreen(document.MainScreen with { Controls = [.. controls] });
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public class DocumentValidatorTests
         var button = Button("Button1");
         var document = WithControls(button);
 
-        Assert.Null(DocumentValidator.ValidateName(document.Screen, button.Id, "Button1"));
+        Assert.Null(DocumentValidator.ValidateName(document.MainScreen, button.Id, "Button1"));
     }
 
     [Fact]
@@ -113,7 +113,7 @@ public class DocumentValidatorTests
     public void InvalidScreenSizeIsRejected()
     {
         var document = ProjectDocument.CreateBlank();
-        document = document with { Screen = document.Screen with { Width = 0, GridSize = 0 } };
+        document = document.WithScreen(document.MainScreen with { Width = 0, GridSize = 0 });
 
         Assert.Equal(2, DocumentValidator.Validate(document).Count);
     }

@@ -102,12 +102,19 @@ public sealed partial class WpfOutputParityTests
     /// <summary>
     /// Compares, control by control and including controls inside containers: the generated
     /// XAML as WPF lays it out; the designer's Preview as WPF lays it out; and the Core layout
-    /// rules. At the design size and, for a resizable screen, at a larger size.
+    /// rules. At the design size and, for a resizable screen, at a larger size. Every screen.
     /// </summary>
     private static void AssertParity(ProjectDocument document)
     {
-        var screen = document.Screen;
-        var xaml = CompiledOnlyAttributes().Replace(WpfGenerator.WindowXaml(document, "Parity"), "");
+        foreach (var screen in document.Screens)
+        {
+            AssertParity(document, screen);
+        }
+    }
+
+    private static void AssertParity(ProjectDocument document, ScreenDocument screen)
+    {
+        var xaml = CompiledOnlyAttributes().Replace(WpfGenerator.WindowXaml(document, screen, "Parity"), "");
         var window = (Window)XamlReader.Parse(xaml);
         var grid = (Grid)window.Content;
         Assert.Equal(screen.Controls.Count, grid.Children.Count);

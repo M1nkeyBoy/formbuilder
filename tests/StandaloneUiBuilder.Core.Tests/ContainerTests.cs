@@ -15,7 +15,7 @@ public class ContainerTests
     }
 
     private static ControlBounds BoundsOf(DesignEditor editor, Guid id) =>
-        ContainerLayout.Flatten(editor.Document.Screen).Single(p => p.Control.Id == id).Bounds;
+        ContainerLayout.Flatten(editor.Screen).Single(p => p.Control.Id == id).Bounds;
 
     [Fact]
     public void ContainersAreInTheToolboxWithSensibleDefaults()
@@ -114,8 +114,8 @@ public class ContainerTests
         var stack = editor.AddControlTo(ControlType.StackPanel, grid.Id, 200, 100)!; // cell (1, 1)
         var button = editor.AddControlTo(ControlType.Button, stack.Id, 200, 100)!;
 
-        var atDesign = ContainerLayout.Flatten(editor.Document.Screen).Single(p => p.Control.Id == button.Id);
-        var resized = ContainerLayout.Flatten(editor.Document.Screen, 1040, 760).Single(p => p.Control.Id == button.Id);
+        var atDesign = ContainerLayout.Flatten(editor.Screen).Single(p => p.Control.Id == button.Id);
+        var resized = ContainerLayout.Flatten(editor.Screen, 1040, 760).Single(p => p.Control.Id == button.Id);
 
         Assert.Equal(2, atDesign.Depth);
         Assert.Equal(new ControlBounds(120, 80, 120, 30), atDesign.Bounds);
@@ -130,16 +130,16 @@ public class ContainerTests
 
         Assert.Null(editor.MoveIntoContainer(loose.Id, stack.Id, 150, 101));
         Assert.Equal(loose.Id, editor.FindControl(stack.Id)!.Children![0].Id);
-        Assert.DoesNotContain(editor.Document.Screen.Controls, c => c.Id == loose.Id);
+        Assert.DoesNotContain(editor.Screen.Controls, c => c.Id == loose.Id);
 
         Assert.Null(editor.MoveToScreen(label.Id, 603, 497));
-        var onScreen = Assert.Single(editor.Document.Screen.Controls, c => c.Id == label.Id);
+        var onScreen = Assert.Single(editor.Screen.Controls, c => c.Id == label.Id);
         Assert.Equal(new ControlBounds(600, 500, 80, 20), onScreen.Bounds);
         Assert.Empty(DocumentValidator.Validate(editor.Document));
 
         editor.Undo();
         editor.Undo();
-        Assert.Contains(editor.Document.Screen.Controls, c => c.Id == loose.Id);
+        Assert.Contains(editor.Screen.Controls, c => c.Id == loose.Id);
     }
 
     [Fact]
@@ -235,7 +235,7 @@ public class ContainerTests
         Assert.Contains("\"orientation\": \"Horizontal\"", json);
         Assert.Contains("\"row\": 1", json);
         Assert.Equal(ProjectFile.Serialize(editor.Document), ProjectFile.Serialize(reloaded));
-        Assert.Equal(3, ControlTree.All(reloaded.Screen.Controls).Count());
+        Assert.Equal(3, ControlTree.All(reloaded.MainScreen.Controls).Count());
     }
 
     [Theory]

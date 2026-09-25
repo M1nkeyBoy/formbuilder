@@ -24,8 +24,17 @@ Exporting a project named "Customer form" into a folder `C:\Exports` produces
 | `MainWindow.xaml` | The window and every control | **Regenerated** |
 | `MainWindow.xaml.cs` | Constructor calling `InitializeComponent()` | Kept |
 | `MainWindow.Events.g.cs` | Event wiring and hooks (below) | **Regenerated** |
+| `SettingsWindow.xaml`, `.xaml.cs`, `.Events.g.cs` | The same three files for each further screen, named after it | As for `MainWindow` |
 
-Only `MainWindow.xaml` and `MainWindow.Events.g.cs` are rewritten on later exports. The other files are created once and
+Each screen becomes its own window. The first screen is always `MainWindow`, which the app
+opens with; every other screen is named after itself, so a screen called Settings becomes
+`SettingsWindow` (titled "Settings"). Your code opens it, for example from a button hook:
+
+```csharp
+partial void OnSettingsButtonClick(RoutedEventArgs e) => new SettingsWindow { Owner = this }.ShowDialog();
+```
+
+Only the `.xaml` and `.Events.g.cs` files are rewritten on later exports. The other files are created once and
 then belong to you, so code you add to `MainWindow.xaml.cs` survives design changes. If a
 file's content would not change, it is not rewritten.
 
@@ -119,8 +128,14 @@ before later controls exist.
   `Height`, `Name` and similar) or with another control's generated handler or hook (a Label
   called `OnSaveClick` next to a Button called `Save`). The message names the control to
   rename.
+- A later screen whose window name would clash with the first screen's: a second screen
+  named `Main` would also become `MainWindow`. Rename it.
 - A `MainWindow.xaml` in the target folder that the builder did not generate. It is never
   overwritten.
+
+Renaming, reordering or deleting screens after exporting leaves the old screen's files in
+the folder, including code you wrote for it; move that code to the new window and delete
+the old files. The builder never deletes files.
 
 ## Not generated yet
 

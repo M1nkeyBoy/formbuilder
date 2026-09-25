@@ -30,6 +30,10 @@ public sealed class WinFormsOutputTests
     [UiWalkthroughFact]
     public void GeneratedFormLaysOutControlsByTheirAnchors() => AssertGeneratedForm(Sample(), "CustomerForm", checkSubmitHook: true);
 
+    /// <summary>
+    /// The layout demo has a second screen. Its OK button's hook is implemented to open that
+    /// screen's form, whose layout is then checked too.
+    /// </summary>
     [UiWalkthroughFact]
     public void GeneratedFormLaysOutContainers() => AssertGeneratedForm(
         ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", "layout-demo.uibproj")), "LayoutDemo", checkSubmitHook: false);
@@ -42,6 +46,12 @@ public sealed class WinFormsOutputTests
             ImplementSubmitHook(folder);
         }
 
+        var secondScreen = document.Screens.Skip(1).FirstOrDefault();
+        if (secondScreen is not null)
+        {
+            ImplementHook(folder, "OnOkButtonClick", $"new {WinFormsGenerator.ClassName(document, secondScreen)}().Show(this)");
+        }
+
         var exe = Build(folder, projectName);
 
         using var automation = new FlaUI.UIA3.UIA3Automation();
@@ -50,7 +60,7 @@ public sealed class WinFormsOutputTests
         {
             var window = app.GetMainWindow(automation, TimeSpan.FromSeconds(20))
                 ?? throw new InvalidOperationException("The generated form did not open.");
-            var screen = document.Screen;
+            var screen = document.MainScreen;
 
             AssertLayout(window, screen, screen.Width, screen.Height);
 
@@ -67,6 +77,16 @@ public sealed class WinFormsOutputTests
             {
                 EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("SubmitButton")), "Submit button").AsButton().Invoke();
                 EditorSession.WaitUntil(() => window.Title.StartsWith("Submitted", StringComparison.Ordinal), () => $"Title after clicking Submit: {window.Title}");
+            }
+
+            // Another screen is its own form, opened by the developer's code.
+            if (secondScreen is not null)
+            {
+                EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("OkButton")), "OK button").AsButton().Invoke();
+                var second = EditorSession.WaitFor(
+                    () => app.GetAllTopLevelWindows(automation).FirstOrDefault(w => w.Title == secondScreen.Name),
+                    $"the {secondScreen.Name} form");
+                AssertLayout(second, secondScreen, secondScreen.Width, secondScreen.Height);
             }
         }
         finally
@@ -118,13 +138,17 @@ public sealed class WinFormsOutputTests
         }
     }
 
-    private static void ImplementSubmitHook(string folder)
+    private static void ImplementSubmitHook(string folder) =>
+        ImplementHook(folder, "OnSubmitButtonClick", "Text = \"Submitted \" + NameTextBox.Text");
+
+    /// <summary>Implements one of the main form's hooks, as a developer would in MainForm.cs.</summary>
+    private static void ImplementHook(string folder, string hook, string body)
     {
         var formFile = Path.Combine(folder, "MainForm.cs");
         var code = File.ReadAllText(formFile).TrimEnd();
-        if (!code.Contains("partial void OnSubmitButtonClick(EventArgs e) =>", StringComparison.Ordinal))
+        if (!code.Contains($"partial void {hook}(EventArgs e) =>", StringComparison.Ordinal))
         {
-            File.WriteAllText(formFile, code[..^1] + "    partial void OnSubmitButtonClick(EventArgs e) => Text = \"Submitted \" + NameTextBox.Text;\n}\n");
+            File.WriteAllText(formFile, code[..^1] + $"    partial void {hook}(EventArgs e) => {body};\n}}\n");
         }
     }
 

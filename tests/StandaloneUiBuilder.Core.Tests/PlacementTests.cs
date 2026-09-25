@@ -67,7 +67,7 @@ public class PlacementTests
         var first = editor.AddControl(ControlType.Label, 0, 0);
         var second = editor.AddControl(ControlType.TextBox, 0, 0);
 
-        Assert.Equal([first.Id, second.Id], editor.Document.Screen.Controls.Select(c => c.Id));
+        Assert.Equal([first.Id, second.Id], editor.Screen.Controls.Select(c => c.Id));
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public class PlacementTests
 
         Assert.True(editor.DeleteControl(button.Id));
 
-        Assert.Equal([label, combo], editor.Document.Screen.Controls);
+        Assert.Equal([label, combo], editor.Screen.Controls);
     }
 
     [Fact]

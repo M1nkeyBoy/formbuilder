@@ -33,10 +33,15 @@ choices are recorded in `docs/decisions.md`.
   several controls; drag, nudge (arrow keys, Shift for a grid step), copy, cut, paste,
   duplicate (Ctrl+D) or delete them together. Ctrl+A selects all. Edit > Bring to Front
   (Ctrl+]) and Send to Back (Ctrl+[) change which control is drawn on top.
-- **Screen size.** With nothing selected, the Properties panel sets the design's width and
+- **Screens.** A project can have several screens, shown as tabs above the canvas. The
+  Screen menu adds (Ctrl+Shift+N, or the + beside the tabs), duplicates, deletes and reorders
+  them; Ctrl+PageUp and Ctrl+PageDown switch between them. The first screen is the one an
+  exported app opens with; each other screen becomes its own window or form for your code
+  to open. With nothing selected, the Properties panel sets the screen's name, width and
   height.
 - **Undo and redo.** Ctrl+Z and Ctrl+Y cover adding, deleting, moving, resizing and property
-  changes. A whole drag is one step.
+  changes, and screen changes. A whole drag is one step. Undo shows the screen the change
+  was on.
 - **Preview.** Switch to Preview (bottom left, or View > Preview) to try the controls. Type
   in text boxes, tick check boxes, pick ComboBox items and click buttons. Nothing you do in
   Preview changes the design.
@@ -52,7 +57,8 @@ choices are recorded in `docs/decisions.md`.
   ComboBox has a hook method you can fill in to respond to it. See
   [`docs/wpf-output.md`](docs/wpf-output.md) and [`docs/winforms-output.md`](docs/winforms-output.md).
 
-Try it with the sample: File > Open > `docs\samples\customer-form.uibproj`.
+Try it with the samples: File > Open > `docs\samples\customer-form.uibproj`, or
+`docs\samples\layout-demo.uibproj` for containers and a second screen.
 
 | Design | Preview |
 |---|---|
@@ -127,7 +133,8 @@ tests use this so they never touch your own drafts.
 
 ## Known limitations
 
-- One screen per project.
+- Screens do not open each other by themselves: exported code opens a screen from a hook you
+  write.
 - Five built-in controls and two containers. Grid rows and columns can be fixed or shared,
   but not sized to their content. Copy and paste stay within the editor rather than using the system clipboard.
 - Layout is absolute positions plus anchors, with StackPanel and Grid containers.

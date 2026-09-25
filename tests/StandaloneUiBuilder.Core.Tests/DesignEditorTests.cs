@@ -10,7 +10,7 @@ public class DesignEditorTests
         var editor = new DesignEditor();
 
         Assert.False(editor.IsDirty);
-        Assert.Empty(editor.Document.Screen.Controls);
+        Assert.Empty(editor.Screen.Controls);
     }
 
     [Fact]

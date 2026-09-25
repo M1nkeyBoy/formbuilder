@@ -34,4 +34,42 @@ public static class EditorCommands
         nameof(SendToBack),
         typeof(EditorCommands),
         [new KeyGesture(Key.OemOpenBrackets, ModifierKeys.Control)]);
+
+    public static RoutedUICommand AddScreen { get; } = new(
+        "_Add Screen",
+        nameof(AddScreen),
+        typeof(EditorCommands),
+        [new KeyGesture(Key.N, ModifierKeys.Control | ModifierKeys.Shift)]);
+
+    public static RoutedUICommand DuplicateScreen { get; } = new(
+        "D_uplicate Screen",
+        nameof(DuplicateScreen),
+        typeof(EditorCommands));
+
+    public static RoutedUICommand DeleteScreen { get; } = new(
+        "_Delete Screen",
+        nameof(DeleteScreen),
+        typeof(EditorCommands));
+
+    public static RoutedUICommand MoveScreenEarlier { get; } = new(
+        "Move _Earlier",
+        nameof(MoveScreenEarlier),
+        typeof(EditorCommands));
+
+    public static RoutedUICommand MoveScreenLater { get; } = new(
+        "Move _Later",
+        nameof(MoveScreenLater),
+        typeof(EditorCommands));
+
+    public static RoutedUICommand PreviousScreen { get; } = new(
+        "_Previous Screen",
+        nameof(PreviousScreen),
+        typeof(EditorCommands),
+        [new KeyGesture(Key.PageUp, ModifierKeys.Control)]);
+
+    public static RoutedUICommand NextScreen { get; } = new(
+        "_Next Screen",
+        nameof(NextScreen),
+        typeof(EditorCommands),
+        [new KeyGesture(Key.PageDown, ModifierKeys.Control)]);
 }

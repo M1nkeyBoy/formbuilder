@@ -33,7 +33,7 @@ public sealed class QualityTests : IDisposable
         ProjectFile.Save(editor.Document, projectPath);
 
         // A Button in the middle of the screen, surrounded by other controls.
-        var target = editor.Document.Screen.Controls[31];
+        var target = editor.Screen.Controls[31];
         Assert.Equal(Core.ControlType.Button, target.Type);
 
         using var session = EditorSession.Launch(recoveryDirectory, projectPath);

@@ -10,10 +10,10 @@ public sealed record ProjectDocument
 {
     /// <summary>
     /// The format version this builder writes. Older versions (1: no anchors, 2: no containers,
-    /// 3: no grid spans, 4: no sized grid rows and columns) are still read. See
+    /// 3: no grid spans, 4: no sized grid rows and columns, 5: one screen) are still read. See
     /// docs/project-format.md for the history.
     /// </summary>
-    public const int CurrentSchemaVersion = 5;
+    public const int CurrentSchemaVersion = 6;
 
     public const int OldestSupportedSchemaVersion = 1;
     public const string DefaultName = "Untitled";
@@ -24,13 +24,32 @@ public sealed record ProjectDocument
 
     public string Name { get; init; } = DefaultName;
 
-    public required ScreenDocument Screen { get; init; }
+    /// <summary>The project's screens, in order. There is always at least one.</summary>
+    public required ImmutableList<ScreenDocument> Screens { get; init; }
+
+    /// <summary>The first screen: the one a generated application opens with.</summary>
+    [JsonIgnore]
+    public ScreenDocument MainScreen => Screens[0];
 
     public static ProjectDocument CreateBlank() => new()
     {
         ProjectId = Guid.NewGuid(),
-        Screen = new ScreenDocument(),
+        Screens = [new ScreenDocument()],
     };
+
+    public ScreenDocument? FindScreen(string id) => Screens.FirstOrDefault(s => s.Id == id);
+
+    /// <summary>Replaces the screen with the same ID.</summary>
+    public ProjectDocument WithScreen(ScreenDocument screen)
+    {
+        var index = Screens.FindIndex(s => s.Id == screen.Id);
+        if (index < 0)
+        {
+            throw new ArgumentException($"The project has no screen with ID \"{screen.Id}\".", nameof(screen));
+        }
+
+        return this with { Screens = Screens.SetItem(index, screen) };
+    }
 }
 
 public sealed record ScreenDocument
@@ -39,9 +58,14 @@ public sealed record ScreenDocument
     public const int DefaultHeight = 600;
     public const int DefaultGridSize = 10;
 
-    public string Id { get; init; } = "main";
+    public const string DefaultId = "main";
+    public const string DefaultName = "Main";
 
-    public string Name { get; init; } = "Main";
+    /// <summary>A stable ID, unique within the project. The first screen of a new project is "main".</summary>
+    public string Id { get; init; } = DefaultId;
+
+    /// <summary>An identifier, unique within the project; it names the screen's generated window.</summary>
+    public string Name { get; init; } = DefaultName;
 
     public int Width { get; init; } = DefaultWidth;
 

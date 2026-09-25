@@ -44,7 +44,7 @@ public sealed class RecoveryStoreTests : IDisposable
 
         Assert.Equal(@"C:\Projects\form.uibproj", draft.ProjectPath);
         Assert.Equal(document.ProjectId, draft.Document.ProjectId);
-        Assert.Equal(document.Screen.Controls.Single().Id, draft.Document.Screen.Controls.Single().Id);
+        Assert.Equal(document.MainScreen.Controls.Single().Id, draft.Document.MainScreen.Controls.Single().Id);
     }
 
     [Fact]

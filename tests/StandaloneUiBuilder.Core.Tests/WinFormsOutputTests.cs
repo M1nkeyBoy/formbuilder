@@ -24,13 +24,13 @@ public sealed class WinFormsOutputTests : IDisposable
         editor.Rename(control.Id, name);
         editor.SetAnchor(control.Id, anchor);
         var document = editor.Document;
-        var only = document.Screen.Controls[0];
+        var only = document.MainScreen.Controls[0];
         if (properties is not null)
         {
             only = only with { Properties = ControlCatalog.Get(type).Normalize(properties) };
         }
 
-        return document with { Screen = document.Screen with { Controls = [only] } };
+        return document.WithScreen(document.MainScreen with { Controls = [only] });
     }
 
     private static void AssertValidCSharp(string code)
@@ -70,7 +70,7 @@ public sealed class WinFormsOutputTests : IDisposable
     public void TabOrderFollowsTheDesignAndLaterControlsAreOnTop()
     {
         var code = Designer(Sample());
-        var names = Sample().Screen.Controls.Select(c => c.Name).ToList();
+        var names = Sample().MainScreen.Controls.Select(c => c.Name).ToList();
 
         Assert.Contains($"this.{names[0]}.TabIndex = 0;", code);
         Assert.Contains($"this.{names[^1]}.TabIndex = {names.Count - 1};", code);

@@ -1,5 +1,7 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 namespace StandaloneUiBuilder.Core;
 
@@ -10,7 +12,7 @@ public sealed class ProjectFileException(string message, Exception? innerExcepti
 /// <summary>
 /// Reads and writes <c>.uibproj</c> files: versioned JSON described in docs/project-format.md.
 /// </summary>
-public static class ProjectFile
+public static partial class ProjectFile
 {
     public const string Extension = ".uibproj";
 
@@ -43,8 +45,13 @@ public static class ProjectFile
 
         using (parsed)
         {
-            CheckSchemaVersion(parsed.RootElement);
-            CheckControlTypes(parsed.RootElement);
+            if (CheckSchemaVersion(parsed.RootElement) < 6)
+            {
+                json = WrapSingleScreen(json);
+            }
+
+            using var migrated = JsonDocument.Parse(json);
+            CheckControlTypes(migrated.RootElement);
         }
 
         ProjectDocument? document;
@@ -58,15 +65,17 @@ public static class ProjectFile
             throw new ProjectFileException($"The file is not a valid project{where}.", ex);
         }
 
-        if (document?.Screen is null)
+        if (document?.Screens is not { Count: > 0 } || document.Screens.Contains(null!))
         {
             throw new ProjectFileException("The file is not a valid project: it has no screen.");
         }
 
         // Fill in type-specific values that older or hand-edited files omit, and drop values
         // the control type does not use.
-        var screen = document.Screen with { Controls = document.Screen.Controls.ConvertAll(Normalize) };
-        document = document with { Screen = screen };
+        document = document with
+        {
+            Screens = document.Screens.ConvertAll(screen => screen with { Controls = screen.Controls.ConvertAll(Normalize) }),
+        };
 
         var errors = DocumentValidator.Validate(document);
         if (errors.Count > 0)
@@ -142,7 +151,32 @@ public static class ProjectFile
         return Deserialize(json);
     }
 
-    private static void CheckSchemaVersion(JsonElement root)
+    /// <summary>
+    /// Versions 1 to 5 hold one "screen"; version 6 holds a list of "screens". An older file's
+    /// screen becomes the only one. Those versions had no way to rename the screen, so a name
+    /// that is not an identifier (only possible by hand-editing) becomes "Main".
+    /// </summary>
+    private static string WrapSingleScreen(string json)
+    {
+        if (JsonNode.Parse(json) is not JsonObject root || root["screen"] is not JsonObject screen || root.ContainsKey("screens"))
+        {
+            return json;
+        }
+
+        if (screen["name"] is not JsonValue name || !name.TryGetValue<string>(out var text) || !IdentifierPattern().IsMatch(text))
+        {
+            screen["name"] = ScreenDocument.DefaultName;
+        }
+
+        root.Remove("screen");
+        root["screens"] = new JsonArray(screen);
+        return root.ToJsonString();
+    }
+
+    [GeneratedRegex("^[A-Za-z_][A-Za-z0-9_]*$")]
+    private static partial Regex IdentifierPattern();
+
+    private static int CheckSchemaVersion(JsonElement root)
     {
         if (root.ValueKind != JsonValueKind.Object
             || !root.TryGetProperty("schemaVersion", out var versionElement)
@@ -166,27 +200,53 @@ public static class ProjectFile
         // Version 1 had no anchors; every control loads with the default (left and top), which
         // is how version 1 designs behaved. Versions 3 to 5 added containers, grid spans and
         // sized grid rows and columns; older files have none of them, so need nothing else.
+        // Version 6 allows several screens; older files are read as having one.
+        return version;
     }
 
     // Unknown types would otherwise fail inside the JSON reader with an unhelpful message.
     private static void CheckControlTypes(JsonElement root)
     {
-        if (!root.TryGetProperty("screen", out var screen) || screen.ValueKind != JsonValueKind.Object
-            || !screen.TryGetProperty("controls", out var controls) || controls.ValueKind != JsonValueKind.Array)
+        if (!root.TryGetProperty("screens", out var screens) || screens.ValueKind != JsonValueKind.Array)
+        {
+            return;
+        }
+
+        foreach (var screen in screens.EnumerateArray())
+        {
+            if (screen.ValueKind == JsonValueKind.Object && screen.TryGetProperty("controls", out var controls))
+            {
+                CheckControlList(controls);
+            }
+        }
+    }
+
+    private static void CheckControlList(JsonElement controls)
+    {
+        if (controls.ValueKind != JsonValueKind.Array)
         {
             return;
         }
 
         foreach (var control in controls.EnumerateArray())
         {
-            if (control.ValueKind == JsonValueKind.Object
-                && control.TryGetProperty("type", out var typeElement)
+            if (control.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            if (control.TryGetProperty("type", out var typeElement)
                 && typeElement.ValueKind == JsonValueKind.String
                 && !(Enum.TryParse<ControlType>(typeElement.GetString(), ignoreCase: true, out var type) && Enum.IsDefined(type)))
             {
                 var name = control.TryGetProperty("name", out var nameElement) ? nameElement.ToString() : "(unnamed)";
                 throw new ProjectFileException(
                     $"The project uses a control type this version does not support: \"{typeElement.GetString()}\" (control \"{name}\").");
+            }
+
+            if (control.TryGetProperty("children", out var children))
+            {
+                CheckControlList(children);
             }
         }
     }
