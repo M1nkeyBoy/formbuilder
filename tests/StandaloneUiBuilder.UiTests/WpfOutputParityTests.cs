@@ -15,8 +15,9 @@ namespace StandaloneUiBuilder.UiTests;
 /// </summary>
 public sealed partial class WpfOutputParityTests
 {
-    [GeneratedRegex(@"\s+x:Class=""[^""]*""")]
-    private static partial Regex ClassAttribute();
+    // XamlReader cannot load x:Class or event handler attributes; those need compiled XAML.
+    [GeneratedRegex(@"\s+(x:Class|Click|TextChanged|SelectionChanged)=""[^""]*""")]
+    private static partial Regex CompiledOnlyAttributes();
 
     private static ProjectDocument Sample() =>
         ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", "customer-form.uibproj"));
@@ -53,12 +54,21 @@ public sealed partial class WpfOutputParityTests
 
         var result = WpfExporter.Export(Sample(), parent);
 
+        // Implement a hook the way a developer would, so the CI build proves the wiring compiles.
+        var codeBehind = Path.Combine(result.ProjectFolder, "MainWindow.xaml.cs");
+        var code = File.ReadAllText(codeBehind).TrimEnd();
+        if (!code.Contains("partial void OnSubmitButtonClick(RoutedEventArgs e) =>", StringComparison.Ordinal))
+        {
+            code = code[..^1] + "    partial void OnSubmitButtonClick(RoutedEventArgs e) => Title = \"Submitted \" + NameTextBox.Text;\n}\n";
+            File.WriteAllText(codeBehind, code);
+        }
+
         Assert.True(File.Exists(Path.Combine(result.ProjectFolder, "CustomerForm.csproj")));
     }
 
     private static void AssertParity(ProjectDocument document)
     {
-        var xaml = ClassAttribute().Replace(WpfGenerator.WindowXaml(document, "Parity"), "", 1);
+        var xaml = CompiledOnlyAttributes().Replace(WpfGenerator.WindowXaml(document, "Parity"), "");
         var window = (Window)XamlReader.Parse(xaml);
         var canvas = (Canvas)window.Content;
 

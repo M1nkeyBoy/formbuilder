@@ -152,9 +152,9 @@ public sealed class WpfOutputTests : IDisposable
 
         Assert.Equal(Path.Combine(directory, "CustomerForm"), result.ProjectFolder);
         Assert.Equal(
-            ["App.xaml", "App.xaml.cs", "CustomerForm.csproj", "MainWindow.xaml", "MainWindow.xaml.cs"],
+            ["App.xaml", "App.xaml.cs", "CustomerForm.csproj", "MainWindow.Events.g.cs", "MainWindow.xaml", "MainWindow.xaml.cs"],
             Directory.GetFiles(result.ProjectFolder).Select(Path.GetFileName).Order());
-        Assert.Equal(5, result.Created.Count);
+        Assert.Equal(6, result.Created.Count);
         Assert.Contains("<UseWPF>true</UseWPF>", File.ReadAllText(Path.Combine(result.ProjectFolder, "CustomerForm.csproj")));
         Assert.Contains("namespace CustomerForm;", File.ReadAllText(Path.Combine(result.ProjectFolder, "MainWindow.xaml.cs")));
     }
@@ -174,6 +174,7 @@ public sealed class WpfOutputTests : IDisposable
         var result = WpfExporter.Export(moved, directory);
 
         Assert.Equal(["MainWindow.xaml"], result.Updated);
+        Assert.Contains("MainWindow.Events.g.cs", result.Kept);
         Assert.Empty(result.Created);
         Assert.EndsWith("// my code\n", File.ReadAllText(codeBehind));
         Assert.Contains("Canvas.Left=\"70\"", File.ReadAllText(Path.Combine(folder, "MainWindow.xaml")));
@@ -188,7 +189,7 @@ public sealed class WpfOutputTests : IDisposable
 
         Assert.Empty(result.Created);
         Assert.Empty(result.Updated);
-        Assert.Equal(5, result.Kept.Count);
+        Assert.Equal(6, result.Kept.Count);
     }
 
     [Fact]
@@ -223,5 +224,59 @@ public sealed class WpfOutputTests : IDisposable
 
         Assert.Contains("not created by Standalone UI Builder", ex.Message);
         Assert.Equal("<Window />", File.ReadAllText(handWritten));
+    }
+
+    [Fact]
+    public void EachInteractiveControlIsWiredToAHandler()
+    {
+        var elements = Canvas(Sample()).Elements().ToDictionary(e => (string)e.Attribute(Xaml + "Name")!);
+
+        Assert.Equal("SubmitButton_Click", (string?)elements["SubmitButton"].Attribute("Click"));
+        Assert.Equal("NewsletterCheckBox_Click", (string?)elements["NewsletterCheckBox"].Attribute("Click"));
+        Assert.Equal("NameTextBox_TextChanged", (string?)elements["NameTextBox"].Attribute("TextChanged"));
+        Assert.Equal("PlanComboBox_SelectionChanged", (string?)elements["PlanComboBox"].Attribute("SelectionChanged"));
+        Assert.Equal(["x:Name", "Canvas.Left", "Canvas.Top", "Width", "Height", "Padding", "VerticalContentAlignment", "Content"],
+            elements["TitleLabel"].Attributes().Select(a => a.Name.Namespace == Xaml ? "x:" + a.Name.LocalName : a.Name.LocalName));
+    }
+
+    [Fact]
+    public void EventsFileDeclaresAHandlerAndHookPerInteractiveControl()
+    {
+        var code = WpfGenerator.EventsCode(Sample(), "CustomerForm");
+
+        Assert.Contains("namespace CustomerForm;", code);
+        Assert.Contains("private void SubmitButton_Click(object sender, RoutedEventArgs e) => OnSubmitButtonClick(e);", code);
+        Assert.Contains("partial void OnSubmitButtonClick(RoutedEventArgs e);", code);
+        Assert.Contains("partial void OnNameTextBoxTextChanged(TextChangedEventArgs e);", code);
+        Assert.Contains("partial void OnPlanComboBoxSelectionChanged(SelectionChangedEventArgs e);", code);
+        Assert.Contains("partial void OnNewsletterCheckBoxClick(RoutedEventArgs e);", code);
+        Assert.DoesNotContain("TitleLabel", code);
+    }
+
+    [Fact]
+    public void EventsFileIsRegeneratedWhenControlsChange()
+    {
+        var document = Sample();
+        var folder = WpfExporter.Export(document, directory).ProjectFolder;
+
+        var fewer = document with { Screen = document.Screen with { Controls = document.Screen.Controls.RemoveAll(c => c.Name == "CancelButton") } };
+        var result = WpfExporter.Export(fewer, directory);
+
+        Assert.Contains("MainWindow.Events.g.cs", result.Updated);
+        Assert.DoesNotContain("CancelButton", File.ReadAllText(Path.Combine(folder, "MainWindow.Events.g.cs")));
+    }
+
+    [Fact]
+    public void ControlNamedLikeAnotherControlsHookIsReported()
+    {
+        var editor = new DesignEditor();
+        var button = editor.AddControl(ControlType.Button, 0, 0);
+        var label = editor.AddControl(ControlType.Label, 0, 50);
+        editor.Rename(button.Id, "Save");
+        editor.Rename(label.Id, "OnSaveClick");
+
+        var problem = Assert.Single(WpfGenerator.Check(editor.Document));
+
+        Assert.Contains("OnSaveClick", problem);
     }
 }

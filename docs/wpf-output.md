@@ -22,8 +22,9 @@ Exporting a project named "Customer form" into a folder `C:\Exports` produces
 | `App.xaml`, `App.xaml.cs` | Starts `MainWindow` | Kept |
 | `MainWindow.xaml` | The window and every control | **Regenerated** |
 | `MainWindow.xaml.cs` | Constructor calling `InitializeComponent()` | Kept |
+| `MainWindow.Events.g.cs` | Event wiring and hooks (below) | **Regenerated** |
 
-Only `MainWindow.xaml` is rewritten on later exports. The other files are created once and
+Only `MainWindow.xaml` and `MainWindow.Events.g.cs` are rewritten on later exports. The other files are created once and
 then belong to you, so code you add to `MainWindow.xaml.cs` survives design changes. If a
 file's content would not change, it is not rewritten.
 
@@ -60,16 +61,47 @@ Example (`docs/samples/customer-form.uibproj`):
 </Canvas>
 ```
 
+## Responding to controls
+
+Every Button, CheckBox, TextBox and ComboBox is wired to one event, and each has a *hook*: a
+partial method you can implement in `MainWindow.xaml.cs`.
+
+| Control | Event | Hook to implement |
+|---|---|---|
+| Button | `Click` | `partial void On<Name>Click(RoutedEventArgs e)` |
+| CheckBox | `Click` | `partial void On<Name>Click(RoutedEventArgs e)` |
+| TextBox | `TextChanged` | `partial void On<Name>TextChanged(TextChangedEventArgs e)` |
+| ComboBox | `SelectionChanged` | `partial void On<Name>SelectionChanged(SelectionChangedEventArgs e)` |
+
+For example, in `MainWindow.xaml.cs`:
+
+```csharp
+partial void OnSubmitButtonClick(RoutedEventArgs e)
+{
+    MessageBox.Show($"Thanks, {NameTextBox.Text}");
+}
+```
+
+The XAML refers to a private handler such as `SubmitButton_Click` in the regenerated
+`MainWindow.Events.g.cs`, which calls the hook. Hooks you do not implement compile to
+nothing, so adding controls in the designer never breaks the build. If you remove or rename a
+control whose hook you implemented, the compiler reports that hook as having no declaration,
+which tells you exactly which method to move or delete.
+
+Note that WPF raises `TextChanged` while the window loads when a TextBox has initial text,
+before later controls exist.
+
 ## What stops an export
 
 - A control named with a C# keyword (for example `class`), or with a name that clashes with
   the generated window (`MainWindow`, `InitializeComponent`, `Content`, `Title`, `Width`,
-  `Height`, `Name` and similar). The message names the control to rename.
+  `Height`, `Name` and similar) or with another control's generated handler or hook (a Label
+  called `OnSaveClick` next to a Button called `Save`). The message names the control to
+  rename.
 - A `MainWindow.xaml` in the target folder that the builder did not generate. It is never
   overwritten.
 
 ## Not generated yet
 
-Event handlers, data binding, styles and resizable layouts. Buttons do nothing until you add
-code. Absolute positions suit fixed-size tools and dialogs; responsive layouts need the
+Data binding, styles and resizable layouts. Absolute positions suit fixed-size tools and dialogs; responsive layouts need the
 layout-model work listed in the spec's "decisions to revisit".

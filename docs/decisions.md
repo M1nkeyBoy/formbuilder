@@ -143,3 +143,15 @@ Choices made during the prototype slices that affect later work.
 - **Project name.** Export uses the name shown in the title bar (the file name once saved).
 - **Result summary.** After exporting, the editor lists which files were created, updated or
   left unchanged and offers to open the folder.
+
+## Slice 10 — Event hooks in WPF output
+
+- **No project format change.** Hooks are derived from control names and types, so nothing new
+  is stored in `.uibproj` files. Choosing which controls get handlers can come later with
+  actions.
+- **Partial-method hooks.** The regenerated `MainWindow.Events.g.cs` holds the handler the
+  XAML names and declares a partial method; the developer implements it in their own file.
+  Unimplemented hooks compile away, so the design can change freely without breaking the
+  build, and a stale implementation fails loudly with a clear compiler message.
+- **One event per type.** Button and CheckBox: Click. TextBox: TextChanged. ComboBox:
+  SelectionChanged. Label: none.
