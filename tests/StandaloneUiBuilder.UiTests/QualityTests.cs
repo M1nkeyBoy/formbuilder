@@ -10,7 +10,13 @@ public sealed class QualityTests : IDisposable
     private readonly string projectPath = Path.Combine(
         EditorSession.ArtifactsDirectory, $"quality-{Guid.NewGuid():N}.uibproj");
 
-    public void Dispose() => File.Delete(projectPath);
+    private readonly string recoveryDirectory = Directory.CreateTempSubdirectory("uib-recovery-").FullName;
+
+    public void Dispose()
+    {
+        File.Delete(projectPath);
+        Directory.Delete(recoveryDirectory, recursive: true);
+    }
 
     /// <summary>Placement, move and resize stay responsive on a screen with at least 50 controls.</summary>
     [UiWalkthroughFact]
@@ -21,27 +27,32 @@ public sealed class QualityTests : IDisposable
         var types = ControlCatalog.All.Select(d => d.Type).ToArray();
         for (var i = 0; i < 60; i++)
         {
-            editor.AddControl(types[i % types.Length], 10 + i % 6 * 130, 10 + i / 6 * 55);
+            editor.AddControl(types[i % types.Length], 10 + i % 6 * 130, 10 + i / 6 * 50);
         }
 
         ProjectFile.Save(editor.Document, projectPath);
-        var target = editor.Document.Screen.Controls[0];
 
-        using var session = EditorSession.Launch(projectPath);
+        // A Button in the middle of the screen, surrounded by other controls.
+        var target = editor.Document.Screen.Controls[31];
+        Assert.Equal(Core.ControlType.Button, target.Type);
+
+        using var session = EditorSession.Launch(recoveryDirectory, projectPath);
         EditorSession.WaitUntil(() => session.Window.Title.StartsWith("quality-", StringComparison.Ordinal), () => "Project did not open.");
 
         var select = Stopwatch.StartNew();
-        session.ClickCanvas(target.X + 5, target.Y + 5);
+        session.ClickCanvas(target.X + 50, target.Y + 15);
         EditorSession.WaitUntil(() => session.Field("NameBox").Text == target.Name, () => "Could not select a control.");
         select.Stop();
 
         var move = Stopwatch.StartNew();
-        session.DragOnCanvas(target.X + 5, target.Y + 5, target.X + 25, target.Y + 5);
+        session.DragOnCanvas(target.X + 50, target.Y + 15, target.X + 70, target.Y + 15);
         EditorSession.WaitUntil(() => session.Field("XBox").Text == (target.X + 20).ToString(), () => "Move did not apply.");
         move.Stop();
 
+        // Drag the right-edge handle, halfway down the control.
         var resize = Stopwatch.StartNew();
-        session.DragOnCanvas(target.X + 20 + target.Width, target.Y + target.Height, target.X + 40 + target.Width, target.Y + target.Height);
+        var right = target.X + 20 + target.Width;
+        session.DragOnCanvas(right, target.Y + target.Height / 2, right + 20, target.Y + target.Height / 2);
         EditorSession.WaitUntil(() => session.Field("WidthBox").Text == (target.Width + 20).ToString(), () => "Resize did not apply.");
         resize.Stop();
 
@@ -72,7 +83,7 @@ public sealed class QualityTests : IDisposable
     [UiWalkthroughFact]
     public void KeyboardReachesToolboxAndInspector()
     {
-        using var session = EditorSession.Launch();
+        using var session = EditorSession.Launch(recoveryDirectory);
         _ = session.Window;
 
         // Tab from the start of the window until the toolbox has focus.

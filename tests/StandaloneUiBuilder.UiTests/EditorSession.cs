@@ -54,7 +54,11 @@ internal sealed class EditorSession : IDisposable
         }
     }
 
-    public static EditorSession Launch(string? projectPath = null)
+    /// <summary>
+    /// Starts the editor. Recovery drafts go to <paramref name="recoveryDirectory"/>, so a test
+    /// that ends the editor abruptly cannot affect another test or the user's own drafts.
+    /// </summary>
+    public static EditorSession Launch(string recoveryDirectory, string? projectPath = null)
     {
 #if RELEASE
         const string configuration = "Release";
@@ -63,6 +67,7 @@ internal sealed class EditorSession : IDisposable
 #endif
         var exe = Path.Combine(RepositoryRoot, "src", "StandaloneUiBuilder", "bin", configuration, "net10.0-windows", "StandaloneUiBuilder.exe");
         var startInfo = new ProcessStartInfo(exe);
+        startInfo.Environment["UIB_RECOVERY_DIR"] = recoveryDirectory;
         if (projectPath is not null)
         {
             startInfo.ArgumentList.Add(projectPath);

@@ -96,7 +96,9 @@ dotnet test StandaloneUiBuilder.sln
 
 While a project has unsaved changes, a recovery copy is written two seconds after the last
 edit to `%LOCALAPPDATA%\StandaloneUiBuilder\Recovery`. It is deleted when you save, discard
-or close normally. Recovery copies never overwrite your project file.
+or close normally. Recovery copies never overwrite your project file. Setting the
+`UIB_RECOVERY_DIR` environment variable stores them in a different folder instead; the UI
+tests use this so they never touch your own drafts.
 
 ## Known limitations
 

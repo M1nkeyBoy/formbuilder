@@ -23,8 +23,12 @@ public partial class MainWindow : Window
     private string? projectPath;
     private bool isPreview;
 
-    private readonly RecoveryStore recoveryStore = new(Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "StandaloneUiBuilder", "Recovery"));
+    // UIB_RECOVERY_DIR moves recovery drafts elsewhere, so automated tests never touch a
+    // user's real drafts or each other's.
+    private readonly RecoveryStore recoveryStore = new(
+        Environment.GetEnvironmentVariable("UIB_RECOVERY_DIR") is { Length: > 0 } recoveryDirectory
+            ? recoveryDirectory
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "StandaloneUiBuilder", "Recovery"));
 
     private readonly DispatcherTimer draftTimer = new() { Interval = TimeSpan.FromSeconds(2) };
     private RecoverySession? recoverySession;

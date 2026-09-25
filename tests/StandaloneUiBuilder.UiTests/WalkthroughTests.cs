@@ -16,15 +16,18 @@ public sealed class WalkthroughTests : IDisposable
     private readonly string projectPath = Path.Combine(
         EditorSession.ArtifactsDirectory, $"walkthrough-{Guid.NewGuid():N}.uibproj");
 
+    private readonly string recoveryDirectory = Directory.CreateTempSubdirectory("uib-recovery-").FullName;
+
     public void Dispose()
     {
         File.Delete(projectPath);
+        Directory.Delete(recoveryDirectory, recursive: true);
     }
 
     [UiWalkthroughFact]
     public void FullWalkthrough()
     {
-        using (var editor = EditorSession.Launch())
+        using (var editor = EditorSession.Launch(recoveryDirectory))
         {
             Assert.Equal($"Untitled — {EditorSession.AppTitle}", editor.Window.Title);
             PlaceAllFiveControls(editor);
@@ -38,7 +41,7 @@ public sealed class WalkthroughTests : IDisposable
 
         AssertSavedProject(expectedX: 150);
 
-        using (var editor = EditorSession.Launch(projectPath))
+        using (var editor = EditorSession.Launch(recoveryDirectory, projectPath))
         {
             ReopenEditAndSave(editor);
         }
@@ -196,7 +199,7 @@ public sealed class WalkthroughTests : IDisposable
 
     private void CrashRecovery()
     {
-        using (var editor = EditorSession.Launch(projectPath))
+        using (var editor = EditorSession.Launch(recoveryDirectory, projectPath))
         {
             editor.ClickCanvas(220, 160);
             EditorSession.WaitUntil(() => editor.Field("NameBox").Text == "SubmitButton", () => "Could not select the button before the crash.");
@@ -208,7 +211,7 @@ public sealed class WalkthroughTests : IDisposable
             editor.App.Kill();
         }
 
-        using (var editor = EditorSession.Launch(projectPath))
+        using (var editor = EditorSession.Launch(recoveryDirectory, projectPath))
         {
             editor.DialogButton("Yes").Invoke();
             EditorSession.WaitUntil(() => editor.Window.Title.Contains('●'), () => "Recovered work is not shown as unsaved.");
