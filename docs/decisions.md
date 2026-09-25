@@ -182,3 +182,25 @@ Choices made during the prototype slices that affect later work.
 - **Generated XAML changed from Canvas to Grid** for every design, so that one form handles
   all anchors. Existing exports pick this up on the next export; control names, and
   therefore developers' code, are unaffected.
+
+## Slice 12 — WinForms output
+
+- **Second target: WinForms**, using the same approach as WPF: a text-only generator,
+  regenerated layout and event files, developer-owned form and program files, and
+  partial-method hooks.
+- **Shared export rules.** Naming (`CodeNames`) and writing a project folder
+  (`ProjectExporter`: marker check, keep-or-regenerate, stable namespace) moved into
+  `StandaloneUiBuilder.Output`, used by both generators.
+- **Visual Studio's designer shape.** `MainForm.Designer.cs` uses fully qualified type names
+  and `this.` member access, as the Visual Studio designer does, so the form opens there and
+  a control named like a type (for example `Size`) cannot break the code.
+- **DPI.** Designs are in DIPs, so the form uses `AutoScaleMode.Dpi` at 96 DPI and the project
+  opts into per-monitor DPI.
+- **Known differences** are documented rather than worked around: single-line TextBox and
+  ComboBox heights follow the font in WinForms.
+- **Hidden members.** Controls named after common Form members (`CancelButton`) are declared
+  `new` to keep the build free of warnings; names the generated code itself uses are
+  refused.
+- **Syntax checks.** The unit tests parse all generated C# with Roslyn
+  (`Microsoft.CodeAnalysis.CSharp`, test project only), since the WinForms libraries are not
+  available off Windows.

@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\StandaloneUiBuilder.Core\StandaloneUiBuilder.Core.csproj" />
     <ProjectReference Include="..\StandaloneUiBuilder.Output.Wpf\StandaloneUiBuilder.Output.Wpf.csproj" />
+    <ProjectReference Include="..\StandaloneUiBuilder.Output.WinForms\StandaloneUiBuilder.Output.WinForms.csproj" />
   </ItemGroup>
 
 </Project>

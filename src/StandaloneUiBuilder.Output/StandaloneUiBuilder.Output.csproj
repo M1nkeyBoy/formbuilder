@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Turns a builder project into WPF source. Plain text generation: it does not depend on
-       WPF, so it builds and is tested on any platform. -->
+  <!-- Shared by the output generators: naming rules and the export-to-folder logic. -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -10,7 +9,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\StandaloneUiBuilder.Core\StandaloneUiBuilder.Core.csproj" />
-    <ProjectReference Include="..\StandaloneUiBuilder.Output\StandaloneUiBuilder.Output.csproj" />
   </ItemGroup>
 
 </Project>

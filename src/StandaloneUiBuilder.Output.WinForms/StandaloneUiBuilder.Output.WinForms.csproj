@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Turns a builder project into WPF source. Plain text generation: it does not depend on
-       WPF, so it builds and is tested on any platform. -->
+  <!-- Turns a builder project into WinForms source. Plain text generation: it does not depend
+       on WinForms, so it builds and is tested on any platform. -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

@@ -1,0 +1,146 @@
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using FlaUI.Core.AutomationElements;
+using StandaloneUiBuilder.Core;
+using StandaloneUiBuilder.Output.WinForms;
+
+namespace StandaloneUiBuilder.UiTests;
+
+/// <summary>
+/// Builds the exported WinForms sample, runs it and checks where each control really is, at
+/// the design size and after enlarging the window, against the Core anchor rules.
+/// </summary>
+public sealed class WinFormsOutputTests
+{
+    private static ProjectDocument Sample() =>
+        ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", "customer-form.uibproj"));
+
+    /// <summary>Exports the sample, with a hook implemented, so CI can also build and run it.</summary>
+    [WindowsFact]
+    public void SampleExports()
+    {
+        var parent = Environment.GetEnvironmentVariable("UIB_EXPORT_DIR") ?? Directory.CreateTempSubdirectory("uib-export-").FullName;
+        var result = WinFormsExporter.Export(Sample(), Path.Combine(parent, "winforms"));
+        ImplementSubmitHook(result.ProjectFolder);
+
+        Assert.True(File.Exists(Path.Combine(result.ProjectFolder, "MainForm.Designer.cs")));
+    }
+
+    [UiWalkthroughFact]
+    public void GeneratedFormLaysOutControlsByTheirAnchors()
+    {
+        var document = Sample();
+        var folder = WinFormsExporter.Export(document, Directory.CreateTempSubdirectory("uib-winforms-").FullName).ProjectFolder;
+        ImplementSubmitHook(folder);
+        var exe = Build(folder);
+
+        using var automation = new FlaUI.UIA3.UIA3Automation();
+        using var app = FlaUI.Core.Application.Launch(exe);
+        try
+        {
+            var window = app.GetMainWindow(automation, TimeSpan.FromSeconds(20))
+                ?? throw new InvalidOperationException("The generated form did not open.");
+            var screen = document.Screen;
+
+            AssertLayout(window, screen, screen.Width, screen.Height);
+
+            // Enlarge the window; controls anchored right move and those anchored both ways stretch.
+            var outer = window.BoundingRectangle;
+            window.Patterns.Transform.Pattern.Resize(outer.Width + 200, outer.Height + 100);
+            Thread.Sleep(500);
+            var client = ClientRect(window);
+            Assert.True(client.Width > screen.Width + 150, $"The window did not grow: client area is {client.Width} wide.");
+            AssertLayout(window, screen, client.Width, client.Height);
+
+            // The implemented hook runs when the button is clicked.
+            EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("SubmitButton")), "Submit button").AsButton().Invoke();
+            EditorSession.WaitUntil(() => window.Title.StartsWith("Submitted", StringComparison.Ordinal), () => $"Title after clicking Submit: {window.Title}");
+        }
+        finally
+        {
+            app.Close();
+            if (!app.HasExited)
+            {
+                app.Kill();
+            }
+        }
+    }
+
+    private static void AssertLayout(Window window, ScreenDocument screen, int width, int height)
+    {
+        var client = ClientRect(window);
+        foreach (var control in screen.Controls)
+        {
+            var element = window.FindFirstDescendant(cf => cf.ByAutomationId(control.Name))
+                ?? throw new InvalidOperationException($"{control.Name} is not in the generated form.");
+            var r = element.BoundingRectangle;
+            var actual = new ControlBounds(r.Left - client.Left, r.Top - client.Top, r.Width, r.Height);
+            var expected = AnchorLayout.Resolve(screen, control, width, height);
+            var what = $"{control.Name} ({control.Anchor}) at {width} × {height}";
+
+            Assert.True(expected.X == actual.X && expected.Y == actual.Y && expected.Width == actual.Width, $"{what}: form has {actual}, expected {expected}");
+
+            // Single-line TextBox and ComboBox heights follow the font in WinForms.
+            if (control.Type is not (Core.ControlType.TextBox or Core.ControlType.ComboBox))
+            {
+                Assert.True(expected.Height == actual.Height, $"{what}: height {actual.Height}, expected {expected.Height}");
+            }
+        }
+    }
+
+    private static void ImplementSubmitHook(string folder)
+    {
+        var formFile = Path.Combine(folder, "MainForm.cs");
+        var code = File.ReadAllText(formFile).TrimEnd();
+        if (!code.Contains("partial void OnSubmitButtonClick(EventArgs e) =>", StringComparison.Ordinal))
+        {
+            File.WriteAllText(formFile, code[..^1] + "    partial void OnSubmitButtonClick(EventArgs e) => Text = \"Submitted \" + NameTextBox.Text;\n}\n");
+        }
+    }
+
+    private static string Build(string folder)
+    {
+        var build = Process.Start(new ProcessStartInfo("dotnet", ["build", folder, "--configuration", "Release", "--nologo"])
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        })!;
+        var output = build.StandardOutput.ReadToEnd() + build.StandardError.ReadToEnd();
+        build.WaitForExit();
+        Assert.True(build.ExitCode == 0, "The generated WinForms project did not build:\n" + output);
+        return Path.Combine(folder, "bin", "Release", "net10.0-windows", "CustomerForm.exe");
+    }
+
+    private static System.Drawing.Rectangle ClientRect(Window window)
+    {
+        var handle = window.Properties.NativeWindowHandle.Value;
+        GetClientRect(handle, out var rect);
+        var origin = new NativePoint();
+        ClientToScreen(handle, ref origin);
+        return new System.Drawing.Rectangle(origin.X, origin.Y, rect.Right - rect.Left, rect.Bottom - rect.Top);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativePoint
+    {
+        public int X;
+        public int Y;
+    }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetClientRect(IntPtr hWnd, out NativeRect rect);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool ClientToScreen(IntPtr hWnd, ref NativePoint point);
+}

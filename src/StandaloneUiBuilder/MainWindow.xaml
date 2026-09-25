@@ -44,6 +44,7 @@
         <CommandBinding Command="ApplicationCommands.Save" Executed="Save_Executed" />
         <CommandBinding Command="ApplicationCommands.SaveAs" Executed="SaveAs_Executed" />
         <CommandBinding Command="{x:Static local:EditorCommands.ExportWpf}" Executed="ExportWpf_Executed" />
+        <CommandBinding Command="{x:Static local:EditorCommands.ExportWinForms}" Executed="ExportWinForms_Executed" />
         <CommandBinding Command="ApplicationCommands.Delete" Executed="Delete_Executed" CanExecute="Delete_CanExecute" />
         <CommandBinding Command="ApplicationCommands.Undo" Executed="Undo_Executed" CanExecute="Undo_CanExecute" />
         <CommandBinding Command="ApplicationCommands.Redo" Executed="Redo_Executed" CanExecute="Redo_CanExecute" />
@@ -58,6 +59,7 @@
                 <MenuItem Header="Save _As…" Command="ApplicationCommands.SaveAs" InputGestureText="Ctrl+Shift+S" />
                 <Separator />
                 <MenuItem Command="{x:Static local:EditorCommands.ExportWpf}" />
+                <MenuItem Command="{x:Static local:EditorCommands.ExportWinForms}" InputGestureText="Ctrl+Shift+E" />
                 <Separator />
                 <MenuItem Header="E_xit" Click="Exit_Click" />
             </MenuItem>

@@ -52,7 +52,7 @@ public sealed partial class WpfOutputParityTests
     {
         var parent = Environment.GetEnvironmentVariable("UIB_EXPORT_DIR") ?? Directory.CreateTempSubdirectory("uib-export-").FullName;
 
-        var result = WpfExporter.Export(Sample(), parent);
+        var result = WpfExporter.Export(Sample(), Path.Combine(parent, "wpf"));
 
         // Implement a hook the way a developer would, so the CI build proves the wiring compiles.
         var codeBehind = Path.Combine(result.ProjectFolder, "MainWindow.xaml.cs");

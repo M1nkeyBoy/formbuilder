@@ -32,6 +32,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\StandaloneUiBuilder.Core\StandaloneUiBuilder.Core.csproj" />
     <ProjectReference Include="..\..\src\StandaloneUiBuilder.Output.Wpf\StandaloneUiBuilder.Output.Wpf.csproj" />
+    <ProjectReference Include="..\..\src\StandaloneUiBuilder.Output.WinForms\StandaloneUiBuilder.Output.WinForms.csproj" />
     <!-- The walkthroughs launch the editor's own executable; the output tests use its ControlFactory. -->
     <ProjectReference Include="..\..\src\StandaloneUiBuilder\StandaloneUiBuilder.csproj" />
   </ItemGroup>

@@ -1,5 +1,6 @@
 using System.Xml.Linq;
 using StandaloneUiBuilder.Core;
+using StandaloneUiBuilder.Output;
 using StandaloneUiBuilder.Output.Wpf;
 
 namespace StandaloneUiBuilder.Core.Tests;
@@ -147,7 +148,7 @@ public sealed class WpfOutputTests : IDisposable
 
         var problem = Assert.Single(WpfGenerator.Check(document));
         Assert.Contains(name, problem);
-        Assert.Throws<WpfExportException>(() => WpfExporter.Export(document, directory));
+        Assert.Throws<ExportException>(() => WpfExporter.Export(document, directory));
     }
 
     [Fact]
@@ -225,7 +226,7 @@ public sealed class WpfOutputTests : IDisposable
         var handWritten = Path.Combine(folder, "MainWindow.xaml");
         File.WriteAllText(handWritten, "<Window />");
 
-        var ex = Assert.Throws<WpfExportException>(() => WpfExporter.Export(Sample(), directory));
+        var ex = Assert.Throws<ExportException>(() => WpfExporter.Export(Sample(), directory));
 
         Assert.Contains("not created by Standalone UI Builder", ex.Message);
         Assert.Equal("<Window />", File.ReadAllText(handWritten));

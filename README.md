@@ -30,10 +30,12 @@ choices are recorded in `docs/decisions.md`.
   Save, Discard or Cancel before they could be lost.
 - **Recovery.** If the editor closes unexpectedly, it offers to recover your unsaved work
   the next time it starts.
-- **Export to WPF.** File > Export to WPF… (Ctrl+E) writes a complete WPF project into a
-  folder you choose. Build it with `dotnet build` or open it in Visual Studio. Exporting
-  again updates only `MainWindow.xaml`, so code you add to `MainWindow.xaml.cs` is kept.
-  See [`docs/wpf-output.md`](docs/wpf-output.md).
+- **Export to WPF or WinForms.** File > Export to WPF… (Ctrl+E) or Export to WinForms…
+  (Ctrl+Shift+E) writes a complete project into a folder you choose. Build it with
+  `dotnet build` or open it in Visual Studio. Exporting again rewrites only the generated
+  layout and event files, so code you add is kept. Each Button, CheckBox, TextBox and
+  ComboBox has a hook method you can fill in to respond to it. See
+  [`docs/wpf-output.md`](docs/wpf-output.md) and [`docs/winforms-output.md`](docs/winforms-output.md).
 
 Try it with the sample: File > Open > `docs\samples\customer-form.uibproj`.
 
@@ -115,8 +117,8 @@ tests use this so they never touch your own drafts.
   selection, copy/paste or keyboard nudging.
 - Layout is absolute positions plus anchors. There are no nested containers (stacks, grids)
   yet, which richer responsive layouts for WinUI, MAUI or Blazor would need.
-- WPF is the only output so far, and it generates layout only: no event handlers, data
-  binding or styles. No import of existing projects.
+- Output is WPF and WinForms. It covers layout and one event hook per control; there is no
+  data binding, styling, or import of existing projects.
 - The automated UI tests assume 100% display scaling. 150% scaling has been checked by hand.
 - Only the most recent recovery draft is offered at each start; older ones wait for later
   starts.
@@ -127,9 +129,11 @@ tests use this so they never touch your own drafts.
 StandaloneUiBuilder.sln
 src/StandaloneUiBuilder/              WPF editor: window, design surface, preview
 src/StandaloneUiBuilder.Core/         Document model, editing rules, undo, file format, recovery
+src/StandaloneUiBuilder.Output/       Shared naming and export-to-folder rules for the generators
 src/StandaloneUiBuilder.Output.Wpf/   Generates a WPF project from a design (no WPF dependency)
-tests/StandaloneUiBuilder.Core.Tests/ Unit tests for Core and the WPF generator
-tests/StandaloneUiBuilder.UiTests/    Windows tests: UI walkthrough (opt-in), WPF output parity
+src/StandaloneUiBuilder.Output.WinForms/ Generates a WinForms project (no WinForms dependency)
+tests/StandaloneUiBuilder.Core.Tests/ Unit tests for Core and both generators
+tests/StandaloneUiBuilder.UiTests/    Windows tests: UI walkthrough (opt-in), output layout checks
 docs/                                 Decisions, project file format and samples
 ```
 
@@ -138,8 +142,8 @@ docs/                                 Decisions, project file format and samples
 `.github/workflows/windows-build.yml` runs on a Windows runner on every push:
 
 1. Builds the solution and runs the Core tests.
-2. Runs the UI walkthrough and the WPF output tests, exports the sample project, then
-   builds and runs the generated WPF app.
+2. Runs the UI walkthrough and the output tests, exports the sample project to WPF and
+   WinForms, then builds and runs both generated apps.
 3. Opens the sample project and takes a screenshot.
 4. Uploads every screenshot as the `screenshots` artifact, and also prints each one to the
    job log as base64 between `SCREENSHOT-BASE64-BEGIN <name>` and `SCREENSHOT-BASE64-END`.

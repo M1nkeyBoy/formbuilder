@@ -8,6 +8,8 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using StandaloneUiBuilder.Core;
 using StandaloneUiBuilder.Design;
+using StandaloneUiBuilder.Output;
+using StandaloneUiBuilder.Output.WinForms;
 using StandaloneUiBuilder.Output.Wpf;
 
 namespace StandaloneUiBuilder;
@@ -511,21 +513,30 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ExportWpf_Executed(object sender, ExecutedRoutedEventArgs e)
+    private void ExportWpf_Executed(object sender, ExecutedRoutedEventArgs e) =>
+        Export("WPF", WpfGenerator.Check, WpfExporter.Export);
+
+    private void ExportWinForms_Executed(object sender, ExecutedRoutedEventArgs e) =>
+        Export("WinForms", WinFormsGenerator.Check, WinFormsExporter.Export);
+
+    private void Export(
+        string target,
+        Func<ProjectDocument, IReadOnlyList<string>> check,
+        Func<ProjectDocument, string, ExportResult> export)
     {
         CommitFocusedField();
 
-        // The generated window and namespace are named after the project as the user sees it.
+        // The generated code and namespace are named after the project as the user sees it.
         var document = editor.Document with { Name = ProjectDisplayName };
-        if (WpfGenerator.Check(document) is { Count: > 0 } problems)
+        if (check(document) is { Count: > 0 } problems)
         {
-            ShowError("The design cannot be exported to WPF yet.", string.Join(Environment.NewLine, problems));
+            ShowError($"The design cannot be exported to {target} yet.", string.Join(Environment.NewLine, problems));
             return;
         }
 
         var dialog = new Microsoft.Win32.OpenFolderDialog
         {
-            Title = "Choose the folder to put the WPF project in",
+            Title = $"Choose the folder to put the {target} project in",
             InitialDirectory = lastExportFolder ?? (projectPath is not null ? Path.GetDirectoryName(projectPath) : null) ?? "",
         };
         if (dialog.ShowDialog(this) != true)
@@ -533,21 +544,21 @@ public partial class MainWindow : Window
             return;
         }
 
-        WpfExportResult result;
+        ExportResult result;
         try
         {
-            result = WpfExporter.Export(document, dialog.FolderName);
+            result = export(document, dialog.FolderName);
         }
-        catch (WpfExportException ex)
+        catch (ExportException ex)
         {
-            ShowError("Could not export to WPF.", ex.Message);
+            ShowError($"Could not export to {target}.", ex.Message);
             return;
         }
 
         lastExportFolder = dialog.FolderName;
-        StatusText.Text = $"Exported WPF project to {result.ProjectFolder}";
+        StatusText.Text = $"Exported {target} project to {result.ProjectFolder}";
 
-        var summary = new List<string> { $"Exported the WPF project to:{Environment.NewLine}{result.ProjectFolder}" };
+        var summary = new List<string> { $"Exported the {target} project to:{Environment.NewLine}{result.ProjectFolder}" };
         if (result.Created.Count > 0)
         {
             summary.Add("Created: " + string.Join(", ", result.Created));

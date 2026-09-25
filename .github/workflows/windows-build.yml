@@ -22,8 +22,8 @@ jobs:
         run: dotnet test tests/StandaloneUiBuilder.Core.Tests --configuration Release --no-build
 
       # Drives the real editor with mouse and keyboard through the prototype acceptance
-      # walkthrough, saving screenshots along the way. Also checks generated WPF output
-      # against the designer and exports the sample project.
+      # walkthrough, saving screenshots along the way. Also checks generated WPF and
+      # WinForms output and exports the sample project to both.
       - name: UI walkthrough
         env:
           UIB_RUN_UI_TESTS: "1"
@@ -57,10 +57,10 @@ jobs:
         if: always()
         shell: pwsh
         run: |
-          dotnet build artifacts/generated/CustomerForm/CustomerForm.csproj --configuration Release
+          dotnet build artifacts/generated/wpf/CustomerForm/CustomerForm.csproj --configuration Release
           if ($LASTEXITCODE -ne 0) { throw "The generated WPF project did not build." }
 
-          $app = Start-Process -FilePath "artifacts/generated/CustomerForm/bin/Release/net10.0-windows/CustomerForm.exe" -PassThru
+          $app = Start-Process -FilePath "artifacts/generated/wpf/CustomerForm/bin/Release/net10.0-windows/CustomerForm.exe" -PassThru
           Start-Sleep -Seconds 8
           if ($app.HasExited) { throw "The generated app exited during startup (exit code $($app.ExitCode))." }
 
@@ -71,6 +71,28 @@ jobs:
           $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
           New-Item -ItemType Directory -Force -Path artifacts/screenshots | Out-Null
           $bitmap.Save("artifacts/screenshots/06-generated-wpf-app.png", [System.Drawing.Imaging.ImageFormat]::Png)
+          $graphics.Dispose(); $bitmap.Dispose()
+
+          Stop-Process -Id $app.Id
+
+      # The exported WinForms sample must build and run as an ordinary WinForms application.
+      - name: Build and run the generated WinForms app
+        if: always()
+        shell: pwsh
+        run: |
+          dotnet build artifacts/generated/winforms/CustomerForm/CustomerForm.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "The generated WinForms project did not build." }
+
+          $app = Start-Process -FilePath "artifacts/generated/winforms/CustomerForm/bin/Release/net10.0-windows/CustomerForm.exe" -PassThru
+          Start-Sleep -Seconds 8
+          if ($app.HasExited) { throw "The generated WinForms app exited during startup (exit code $($app.ExitCode))." }
+
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
+          $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+          $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+          $bitmap.Save("artifacts/screenshots/08-generated-winforms-app.png", [System.Drawing.Imaging.ImageFormat]::Png)
           $graphics.Dispose(); $bitmap.Dispose()
 
           Stop-Process -Id $app.Id
@@ -117,11 +139,11 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: generated-wpf-sample
+          name: generated-samples
           path: |
-            artifacts/generated/CustomerForm/*.cs
-            artifacts/generated/CustomerForm/*.xaml
-            artifacts/generated/CustomerForm/*.csproj
+            artifacts/generated/*/CustomerForm/*.cs
+            artifacts/generated/*/CustomerForm/*.xaml
+            artifacts/generated/*/CustomerForm/*.csproj
 
       - uses: actions/upload-artifact@v4
         with:

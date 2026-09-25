@@ -10,4 +10,10 @@ public static class EditorCommands
         nameof(ExportWpf),
         typeof(EditorCommands),
         [new KeyGesture(Key.E, ModifierKeys.Control)]);
+
+    public static RoutedUICommand ExportWinForms { get; } = new(
+        "Export to Win_Forms…",
+        nameof(ExportWinForms),
+        typeof(EditorCommands),
+        [new KeyGesture(Key.E, ModifierKeys.Control | ModifierKeys.Shift)]);
 }
