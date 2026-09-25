@@ -145,8 +145,12 @@ public sealed class WalkthroughTests : IDisposable
     {
         EditorSession.Press(VirtualKeyShort.CONTROL, VirtualKeyShort.SHIFT, VirtualKeyShort.KEY_S);
         var dialog = editor.Dialog();
-        EditorSession.Within(dialog, editor.Find.ByAutomationId("1001"), "file name box").AsTextBox().Text = projectPath;
-        EditorSession.Within(dialog, editor.Find.ByAutomationId("1").And(editor.Find.ByControlType(UiaControlType.Button)), "Save button").AsButton().Invoke();
+        // Type the path as a user would; setting the value directly is not always picked up by
+        // the Windows file dialog.
+        EditorSession.Within(dialog, editor.Find.ByAutomationId("1001"), "file name box").Click();
+        EditorSession.Press(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_A);
+        FlaUI.Core.Input.Keyboard.Type(projectPath);
+        EditorSession.Press(VirtualKeyShort.RETURN);
 
         var name = Path.GetFileNameWithoutExtension(projectPath);
         EditorSession.WaitUntil(() => editor.Window.Title == $"{name} — {EditorSession.AppTitle}", () => $"Title after save: {editor.Window.Title}");
