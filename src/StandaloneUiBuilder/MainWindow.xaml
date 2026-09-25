@@ -106,6 +106,7 @@
                          AutomationProperties.Name="Toolbox"
                          PreviewMouseLeftButtonDown="ToolboxList_PreviewMouseLeftButtonDown"
                          PreviewMouseMove="ToolboxList_PreviewMouseMove"
+                         PreviewMouseLeftButtonUp="ToolboxList_PreviewMouseLeftButtonUp"
                          KeyDown="ToolboxList_KeyDown"
                          SelectionChanged="ToolboxList_SelectionChanged">
                     <ListBox.ItemContainerStyle>

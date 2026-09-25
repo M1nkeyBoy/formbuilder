@@ -166,16 +166,31 @@ internal sealed class EditorSession : IDisposable
         where T : class
     {
         var result = Retry.WhileNull(find, Timeout, TimeSpan.FromMilliseconds(200));
-        return result.Result ?? throw new TimeoutException($"Timed out waiting for {what}.");
+        if (result.Result is null)
+        {
+            CaptureFailure();
+            throw new TimeoutException($"Timed out waiting for {what}.");
+        }
+
+        return result.Result;
     }
 
     public static void WaitUntil(Func<bool> condition, Func<string> describe)
     {
         var result = Retry.WhileFalse(condition, Timeout, TimeSpan.FromMilliseconds(200));
+        if (!result.Result)
+        {
+            CaptureFailure();
+        }
+
         Assert.True(result.Result, describe());
     }
 
     public void WaitForExit() => WaitUntil(() => App.HasExited, () => "The editor did not exit.");
+
+    /// <summary>Saves what is on screen when a step fails, while the editor is still open.</summary>
+    private static void CaptureFailure() =>
+        Capture.Screen().ToFile(Path.Combine(ArtifactsDirectory, $"failure-{DateTime.Now:HHmmss}.png"));
 
     public void Dispose()
     {

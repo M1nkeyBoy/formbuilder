@@ -300,10 +300,22 @@ public partial class MainWindow : Window
         toolboxDragStart = e.GetPosition(ToolboxList);
     }
 
+    private void ToolboxList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        // A click, not a drag: forget the press so a later move cannot start a drag.
+        toolboxDragStart = null;
+    }
+
     private void ToolboxList_PreviewMouseMove(object sender, MouseEventArgs e)
     {
-        if (e.LeftButton != MouseButtonState.Pressed || toolboxDragStart is not { } start)
+        if (toolboxDragStart is not { } start)
         {
+            return;
+        }
+
+        if (e.LeftButton != MouseButtonState.Pressed)
+        {
+            toolboxDragStart = null;
             return;
         }
 
