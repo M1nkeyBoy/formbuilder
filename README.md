@@ -1,8 +1,8 @@
 # Standalone UI Builder
 
 A Windows desktop designer for placing and editing controls on a gridded canvas, saving the
-design as a project file, and exporting it as a ready-to-build WPF, WinForms, WinUI 3 or
-Blazor application. Design
+design as a project file, and exporting it as a ready-to-build WPF, WinForms, WinUI 3,
+.NET MAUI or Blazor application. Design
 choices are recorded in `docs/decisions.md`.
 
 ## What it does
@@ -60,14 +60,15 @@ choices are recorded in `docs/decisions.md`.
   exported come back exactly. See [`docs/wpf-import.md`](docs/wpf-import.md).
 - **Recovery.** If the editor closes unexpectedly, it offers to recover your unsaved work
   the next time it starts.
-- **Export to WPF, WinForms, WinUI 3 or Blazor.** File > Export to WPF… (Ctrl+E), Export to
-  WinForms… (Ctrl+Shift+E), Export to WinUI 3… or Export to Blazor… writes a complete project
-  into a folder you choose. Build it with
+- **Export to WPF, WinForms, WinUI 3, .NET MAUI or Blazor.** File > Export to WPF… (Ctrl+E),
+  Export to WinForms… (Ctrl+Shift+E), Export to WinUI 3…, Export to .NET MAUI… or Export to
+  Blazor… writes a complete project into a folder you choose. Build it with
   `dotnet build` or open it in Visual Studio. Exporting again rewrites only the generated
   layout and event files, so code you add is kept. Each Button, CheckBox, TextBox and
   ComboBox has a hook method you can fill in to respond to it. See
   [`docs/wpf-output.md`](docs/wpf-output.md), [`docs/winforms-output.md`](docs/winforms-output.md),
-  [`docs/winui-output.md`](docs/winui-output.md) and [`docs/blazor-output.md`](docs/blazor-output.md). The Blazor app is a web app: run it with
+  [`docs/winui-output.md`](docs/winui-output.md), [`docs/maui-output.md`](docs/maui-output.md) and
+  [`docs/blazor-output.md`](docs/blazor-output.md). The Blazor app is a web app: run it with
   `dotnet run` and open it in a browser.
 
 Try it with the samples: File > Open > `docs\samples\customer-form.uibproj`, or
@@ -155,7 +156,8 @@ tests use this so they never touch your own drafts.
   RadioButtons group by the container they are in. Grid rows and columns can be fixed or shared,
   but not sized to their content. Copy and paste stay within the editor rather than using the system clipboard.
 - Layout is absolute positions plus anchors, with StackPanel and Grid containers.
-- Output is WPF, WinForms, WinUI 3 and Blazor; .NET MAUI is not generated yet. It covers
+- Output is WPF, WinForms, WinUI 3, .NET MAUI (for Windows; other platforms can be added to
+  the project) and Blazor. It covers
   layout, per-control fonts and colours, and one event hook per control; there is no data
   binding and no shared styles or themes. Import reads WPF windows only.
 - The automated UI tests assume 100% display scaling. 150% scaling has been checked by hand.
@@ -172,6 +174,7 @@ src/StandaloneUiBuilder.Output/       Shared naming and export-to-folder rules f
 src/StandaloneUiBuilder.Output.Wpf/   Generates a WPF project from a design (no WPF dependency)
 src/StandaloneUiBuilder.Output.WinForms/ Generates a WinForms project (no WinForms dependency)
 src/StandaloneUiBuilder.Output.WinUI/ Generates a WinUI 3 app (no Windows App SDK dependency)
+src/StandaloneUiBuilder.Output.Maui/  Generates a .NET MAUI app (no MAUI dependency)
 src/StandaloneUiBuilder.Output.Blazor/ Generates a Blazor web app (no ASP.NET Core dependency)
 src/StandaloneUiBuilder.Import.Wpf/   Reads WPF window XAML into a project (no WPF dependency)
 tests/StandaloneUiBuilder.Core.Tests/ Unit tests for Core and both generators

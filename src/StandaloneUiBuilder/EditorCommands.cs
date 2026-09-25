@@ -27,6 +27,11 @@ public static class EditorCommands
         nameof(ExportWinUI),
         typeof(EditorCommands));
 
+    public static RoutedUICommand ExportMaui { get; } = new(
+        "Export to ._NET MAUI…",
+        nameof(ExportMaui),
+        typeof(EditorCommands));
+
     public static RoutedUICommand ExportBlazor { get; } = new(
         "Export to _Blazor…",
         nameof(ExportBlazor),

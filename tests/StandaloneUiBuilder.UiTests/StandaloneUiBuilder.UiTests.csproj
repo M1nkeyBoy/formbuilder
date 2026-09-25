@@ -36,6 +36,7 @@
     <!-- The walkthroughs launch the editor's own executable; the output tests use its ControlFactory. -->
     <ProjectReference Include="..\..\src\StandaloneUiBuilder\StandaloneUiBuilder.csproj" />
     <ProjectReference Include="..\..\src\StandaloneUiBuilder.Output.WinUI\StandaloneUiBuilder.Output.WinUI.csproj" />
+    <ProjectReference Include="..\..\src\StandaloneUiBuilder.Output.Maui\StandaloneUiBuilder.Output.Maui.csproj" />
   </ItemGroup>
 
 </Project>

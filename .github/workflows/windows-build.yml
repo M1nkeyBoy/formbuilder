@@ -15,6 +15,10 @@ jobs:
         with:
           global-json-file: global.json
 
+      # Only for building and checking the .NET MAUI output; the builder itself does not use it.
+      - name: Install the .NET MAUI workload
+        run: dotnet workload install maui-windows
+
       - name: Build
         run: dotnet build StandaloneUiBuilder.sln --configuration Release
 
@@ -62,14 +66,14 @@ jobs:
 
           Stop-Process -Id $app.Id
 
-      # Every exported sample must build and run as an ordinary WPF, WinForms or WinUI 3 application.
+      # Every exported sample must build and run as an ordinary WPF, WinForms, WinUI 3 or .NET MAUI application.
       - name: Build and run the generated apps
         if: always()
         shell: pwsh
         run: |
           Add-Type -AssemblyName System.Windows.Forms, System.Drawing
           New-Item -ItemType Directory -Force -Path artifacts/screenshots | Out-Null
-          foreach ($target in "wpf", "winforms", "winui") {
+          foreach ($target in "wpf", "winforms", "winui", "maui") {
             Get-ChildItem "artifacts/generated/$target" -Directory | ForEach-Object {
               $name = $_.Name
               dotnet build "$($_.FullName)/$name.csproj" --configuration Release

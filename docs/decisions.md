@@ -506,3 +506,23 @@ Choices made during the prototype slices that affect later work.
   source, and exported XAML can be brought back when it has drifted.
 - **An import starts a new, unsaved project,** so nothing is overwritten, and it goes through
   the same validation as opening a file.
+
+## Slice 27 — .NET MAUI output
+
+- **The last target the spec names.** Built for Windows, the one platform the builder can
+  build and check automatically; the project lists only the Windows target framework, and a
+  developer adds Android, iOS or Mac Catalyst to it. Unpackaged and self-contained, like the
+  WinUI 3 output, so it runs from its build folder.
+- **Same layout, MAUI's words.** Layout options and margins replace alignment and margins,
+  requests replace sizes, stack layouts take the spacing directly. Where MAUI differs, the
+  nearest control stands in (Entry, Editor, Picker, CollectionView); a CheckBox, which has no
+  text in MAUI, sits beside a Label; a GroupBox is drawn.
+- **AutomationId as well as x:Name,** since MAUI takes UI Automation IDs only from
+  AutomationId; the Windows test finds controls by it, and so can a developer's own tests.
+- **Screens as modal pages.** Opening a screen pushes its page modally and closing pops it,
+  which works on every MAUI platform, unlike extra windows.
+- **Window size is approximate.** A MAUI window's size includes its frame and MAUI's own
+  title bar, so the window opens slightly larger than the design; the page itself is laid
+  out exactly, and the Windows test checks controls relative to the page.
+- CI installs the MAUI workload only to build and check this output; the builder does not
+  depend on MAUI.

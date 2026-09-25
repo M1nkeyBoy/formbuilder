@@ -47,6 +47,7 @@
         <CommandBinding Command="{x:Static local:EditorCommands.ExportWpf}" Executed="ExportWpf_Executed" />
         <CommandBinding Command="{x:Static local:EditorCommands.ExportWinForms}" Executed="ExportWinForms_Executed" />
         <CommandBinding Command="{x:Static local:EditorCommands.ExportWinUI}" Executed="ExportWinUI_Executed" />
+        <CommandBinding Command="{x:Static local:EditorCommands.ExportMaui}" Executed="ExportMaui_Executed" />
         <CommandBinding Command="{x:Static local:EditorCommands.ExportBlazor}" Executed="ExportBlazor_Executed" />
         <CommandBinding Command="ApplicationCommands.Delete" Executed="Delete_Executed" CanExecute="HasSelection_CanExecute" />
         <CommandBinding Command="ApplicationCommands.Copy" Executed="Copy_Executed" CanExecute="HasSelection_CanExecute" />
@@ -80,6 +81,7 @@
                 <MenuItem Command="{x:Static local:EditorCommands.ExportWpf}" />
                 <MenuItem Command="{x:Static local:EditorCommands.ExportWinForms}" InputGestureText="Ctrl+Shift+E" />
                 <MenuItem Command="{x:Static local:EditorCommands.ExportWinUI}" />
+                <MenuItem Command="{x:Static local:EditorCommands.ExportMaui}" />
                 <MenuItem Command="{x:Static local:EditorCommands.ExportBlazor}" />
                 <Separator />
                 <MenuItem Header="E_xit" Click="Exit_Click" />

@@ -22,6 +22,7 @@
     <ProjectReference Include="..\StandaloneUiBuilder.Output.Blazor\StandaloneUiBuilder.Output.Blazor.csproj" />
     <ProjectReference Include="..\StandaloneUiBuilder.Output.WinUI\StandaloneUiBuilder.Output.WinUI.csproj" />
     <ProjectReference Include="..\StandaloneUiBuilder.Import.Wpf\StandaloneUiBuilder.Import.Wpf.csproj" />
+    <ProjectReference Include="..\StandaloneUiBuilder.Output.Maui\StandaloneUiBuilder.Output.Maui.csproj" />
   </ItemGroup>
 
 </Project>

@@ -11,6 +11,7 @@ using StandaloneUiBuilder.Design;
 using StandaloneUiBuilder.Import.Wpf;
 using StandaloneUiBuilder.Output;
 using StandaloneUiBuilder.Output.Blazor;
+using StandaloneUiBuilder.Output.Maui;
 using StandaloneUiBuilder.Output.WinUI;
 using StandaloneUiBuilder.Output.WinForms;
 using StandaloneUiBuilder.Output.Wpf;
@@ -975,6 +976,9 @@ public partial class MainWindow : Window
 
     private void ExportWinUI_Executed(object sender, ExecutedRoutedEventArgs e) =>
         Export("WinUI 3", WinUIGenerator.Check, WinUIExporter.Export);
+
+    private void ExportMaui_Executed(object sender, ExecutedRoutedEventArgs e) =>
+        Export(".NET MAUI", MauiGenerator.Check, MauiExporter.Export);
 
     private void ExportBlazor_Executed(object sender, ExecutedRoutedEventArgs e) =>
         Export("Blazor", BlazorGenerator.Check, BlazorExporter.Export);
