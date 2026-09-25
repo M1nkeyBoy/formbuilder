@@ -1,8 +1,8 @@
 # Standalone UI Builder
 
 A Windows desktop designer for placing and editing controls on a gridded canvas, saving the
-design as a project file and reopening it later. This is the first prototype; it does not
-generate application code. Design choices are recorded in `docs/decisions.md`.
+design as a project file, and exporting it as a ready-to-build WPF application. Design
+choices are recorded in `docs/decisions.md`.
 
 ## What it does
 
@@ -26,6 +26,10 @@ generate application code. Design choices are recorded in `docs/decisions.md`.
   Save, Discard or Cancel before they could be lost.
 - **Recovery.** If the editor closes unexpectedly, it offers to recover your unsaved work
   the next time it starts.
+- **Export to WPF.** File > Export to WPF… (Ctrl+E) writes a complete WPF project into a
+  folder you choose. Build it with `dotnet build` or open it in Visual Studio. Exporting
+  again updates only `MainWindow.xaml`, so code you add to `MainWindow.xaml.cs` is kept.
+  See [`docs/wpf-output.md`](docs/wpf-output.md).
 
 Try it with the sample: File > Open > `docs\samples\customer-form.uibproj`.
 
@@ -107,7 +111,8 @@ tests use this so they never touch your own drafts.
   selection, copy/paste or keyboard nudging.
 - Positions are absolute. This suits the prototype but not the responsive layouts that later
   WinUI, MAUI or Blazor output will need (see the spec's "decisions to revisit").
-- No code generation or import of existing projects.
+- WPF is the only output so far, and it generates layout only: no event handlers, data
+  binding or styles. No import of existing projects.
 - The automated UI tests assume 100% display scaling. 150% scaling has been checked by hand.
 - Only the most recent recovery draft is offered at each start; older ones wait for later
   starts.
@@ -118,8 +123,9 @@ tests use this so they never touch your own drafts.
 StandaloneUiBuilder.sln
 src/StandaloneUiBuilder/              WPF editor: window, design surface, preview
 src/StandaloneUiBuilder.Core/         Document model, editing rules, undo, file format, recovery
-tests/StandaloneUiBuilder.Core.Tests/ Unit tests for Core
-tests/StandaloneUiBuilder.UiTests/    End-to-end UI walkthrough (Windows, opt-in)
+src/StandaloneUiBuilder.Output.Wpf/   Generates a WPF project from a design (no WPF dependency)
+tests/StandaloneUiBuilder.Core.Tests/ Unit tests for Core and the WPF generator
+tests/StandaloneUiBuilder.UiTests/    Windows tests: UI walkthrough (opt-in), WPF output parity
 docs/                                 Decisions, project file format and samples
 ```
 
@@ -128,7 +134,8 @@ docs/                                 Decisions, project file format and samples
 `.github/workflows/windows-build.yml` runs on a Windows runner on every push:
 
 1. Builds the solution and runs the Core tests.
-2. Runs the UI walkthrough.
+2. Runs the UI walkthrough and the WPF output tests, exports the sample project, then
+   builds and runs the generated WPF app.
 3. Opens the sample project and takes a screenshot.
 4. Uploads every screenshot as the `screenshots` artifact, and also prints each one to the
    job log as base64 between `SCREENSHOT-BASE64-BEGIN <name>` and `SCREENSHOT-BASE64-END`.

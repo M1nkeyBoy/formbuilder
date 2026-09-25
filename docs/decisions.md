@@ -134,3 +134,12 @@ Choices made during the prototype slices that affect later work.
 - **Visual parity.** The generator writes the same padding and alignment the designer's
   `ControlFactory` sets. Both places carry a comment saying so, and Slice 8 adds a Windows test
   that compares them.
+
+## Slice 9 — Export command
+
+- **File > Export to WPF… (Ctrl+E).** The user picks a parent folder; the project goes in a
+  subfolder named after its namespace. The editor remembers the last folder for the session
+  only, so the project file format is unchanged.
+- **Project name.** Export uses the name shown in the title bar (the file name once saved).
+- **Result summary.** After exporting, the editor lists which files were created, updated or
+  left unchanged and offers to open the folder.

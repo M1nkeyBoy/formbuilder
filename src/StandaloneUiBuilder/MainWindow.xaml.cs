@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Windows;
@@ -7,6 +8,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using StandaloneUiBuilder.Core;
 using StandaloneUiBuilder.Design;
+using StandaloneUiBuilder.Output.Wpf;
 
 namespace StandaloneUiBuilder;
 
@@ -21,6 +23,7 @@ public partial class MainWindow : Window
     private Guid? inspectedId;
     private Point? toolboxDragStart;
     private string? projectPath;
+    private string? lastExportFolder;
     private bool isPreview;
 
     // UIB_RECOVERY_DIR moves recovery drafts elsewhere, so automated tests never touch a
@@ -453,6 +456,67 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog(this) == true)
         {
             OpenPath(dialog.FileName);
+        }
+    }
+
+    private void ExportWpf_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        CommitFocusedField();
+
+        // The generated window and namespace are named after the project as the user sees it.
+        var document = editor.Document with { Name = ProjectDisplayName };
+        if (WpfGenerator.Check(document) is { Count: > 0 } problems)
+        {
+            ShowError("The design cannot be exported to WPF yet.", string.Join(Environment.NewLine, problems));
+            return;
+        }
+
+        var dialog = new Microsoft.Win32.OpenFolderDialog
+        {
+            Title = "Choose the folder to put the WPF project in",
+            InitialDirectory = lastExportFolder ?? (projectPath is not null ? Path.GetDirectoryName(projectPath) : null) ?? "",
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        WpfExportResult result;
+        try
+        {
+            result = WpfExporter.Export(document, dialog.FolderName);
+        }
+        catch (WpfExportException ex)
+        {
+            ShowError("Could not export to WPF.", ex.Message);
+            return;
+        }
+
+        lastExportFolder = dialog.FolderName;
+        StatusText.Text = $"Exported WPF project to {result.ProjectFolder}";
+
+        var summary = new List<string> { $"Exported the WPF project to:{Environment.NewLine}{result.ProjectFolder}" };
+        if (result.Created.Count > 0)
+        {
+            summary.Add("Created: " + string.Join(", ", result.Created));
+        }
+
+        if (result.Updated.Count > 0)
+        {
+            summary.Add("Updated: " + string.Join(", ", result.Updated));
+        }
+
+        if (result.Kept.Count > 0)
+        {
+            summary.Add("Left unchanged: " + string.Join(", ", result.Kept));
+        }
+
+        summary.Add("Open the folder?");
+        var answer = MessageBox.Show(this, string.Join(Environment.NewLine + Environment.NewLine, summary), AppTitle,
+            MessageBoxButton.YesNo, MessageBoxImage.Information);
+        if (answer == MessageBoxResult.Yes)
+        {
+            Process.Start(new ProcessStartInfo("explorer.exe", $"\"{result.ProjectFolder}\"") { UseShellExecute = true });
         }
     }
 
