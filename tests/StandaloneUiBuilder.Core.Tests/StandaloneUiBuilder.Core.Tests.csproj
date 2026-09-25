@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\StandaloneUiBuilder.Core\StandaloneUiBuilder.Core.csproj" />
+    <ProjectReference Include="..\..\src\StandaloneUiBuilder.Output.Wpf\StandaloneUiBuilder.Output.Wpf.csproj" />
   </ItemGroup>
 
 </Project>

@@ -7,6 +7,7 @@ namespace StandaloneUiBuilder.Design;
 /// <summary>
 /// Maps document control types to the WPF controls that display them. The WPF controls are
 /// views of the document only; they are rebuilt from it and never saved.
+/// Keep padding and alignment in step with WpfGenerator, so exported windows look the same.
 /// </summary>
 internal static class ControlFactory
 {

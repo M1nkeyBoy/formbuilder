@@ -116,3 +116,21 @@ Choices made during the prototype slices that affect later work.
   a real machine, along with the self-contained build running without .NET installed.
 - **Test isolation.** `UIB_RECOVERY_DIR` points recovery drafts at another folder, so UI
   tests that end the editor abruptly cannot affect each other or a user's drafts.
+
+## Slice 7 — WPF output generator
+
+- **First output target: WPF**, chosen after prototype review. It is the same stack as the
+  editor, so what the designer shows is what the generated app shows.
+- **Separate project.** `StandaloneUiBuilder.Output.Wpf` depends only on Core and produces
+  text, so it builds and is tested anywhere. Core stays free of any output target.
+- **Ownership of generated files.** Only `MainWindow.xaml` is regenerated. Project, App and
+  code-behind files are created once and then belong to the developer. A `MainWindow.xaml`
+  without the builder's marker comment is never overwritten.
+- **Stable namespace.** Re-exporting into a folder reuses the namespace found in its
+  `MainWindow.xaml.cs`, so renaming a project cannot break existing code-behind.
+- **Names.** C# keywords and names that clash with the generated window's members block
+  export with a message, rather than being silently renamed. Designer name rules are
+  unchanged, so existing project files stay valid.
+- **Visual parity.** The generator writes the same padding and alignment the designer's
+  `ControlFactory` sets. Both places carry a comment saying so, and Slice 8 adds a Windows test
+  that compares them.
