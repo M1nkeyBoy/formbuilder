@@ -17,7 +17,8 @@ namespace StandaloneUiBuilder.UiTests;
 public sealed partial class WpfOutputParityTests
 {
     // XamlReader cannot load x:Class or event handler attributes; those need compiled XAML.
-    [GeneratedRegex(@"\s+(x:Class|Click|TextChanged|SelectionChanged)=""[^""]*""")]
+    // An event attribute's value is its handler, named <Control>_<Event>.
+    [GeneratedRegex(@"\s+(x:Class=""[^""]*""|(\w+)=""\w+_\2"")")]
     private static partial Regex CompiledOnlyAttributes();
 
     private static ProjectDocument Sample() =>
