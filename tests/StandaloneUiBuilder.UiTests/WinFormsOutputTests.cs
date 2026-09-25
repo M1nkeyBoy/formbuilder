@@ -92,8 +92,22 @@ public sealed class WinFormsOutputTests
             var expected = placed.Bounds;
             var what = $"{control.Name} ({control.Anchor}, depth {placed.Depth}) at {width} × {height}";
 
-            // TableLayoutPanel rounds percentage cells its own way, so allow one pixel.
-            static bool Near(int a, int b) => Math.Abs(a - b) <= 1;
+            // TableLayoutPanel rounds each percentage row and column down and gives the leftover
+            // pixels to the last one (300 in three rows: 99, 99, 102), so inside a grid allow one
+            // pixel per row or column; elsewhere allow one pixel.
+            var tolerance = 1;
+            for (var parentId = placed.ParentId; parentId is { } id;)
+            {
+                var parent = ControlTree.Find(screen.Controls, id)!;
+                if (parent.Type == Core.ControlType.Grid)
+                {
+                    tolerance = Math.Max(tolerance, Math.Max(parent.Properties.Rows ?? 1, parent.Properties.Columns ?? 1));
+                }
+
+                parentId = ControlTree.ParentOf(screen.Controls, id)?.Id;
+            }
+
+            bool Near(int a, int b) => Math.Abs(a - b) <= tolerance;
             Assert.True(Near(expected.X, actual.X) && Near(expected.Y, actual.Y) && Near(expected.Width, actual.Width), $"{what}: form has {actual}, expected {expected}");
 
             // Single-line TextBox and ComboBox heights follow the font in WinForms.

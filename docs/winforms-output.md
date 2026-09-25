@@ -51,8 +51,9 @@ WinForms controls look and measure differently from WPF controls:
 - A single-line TextBox or ComboBox takes its height from its font, so a height set in the
   builder is not applied. Position, width and anchors are.
 - Fonts, padding and borders are WinForms' own, so text sits slightly differently.
-- `TableLayoutPanel` rounds percentage cells its own way, so grid cells can differ from the
-  design by a pixel. The Windows layout test allows for that.
+- `TableLayoutPanel` rounds each percentage row and column down and gives the leftover
+  pixels to the last one, so a 300-pixel grid with three rows gets 99, 99 and 102 rather than
+  100 each. The Windows layout test allows one pixel per row or column inside a grid.
 - The layout tests run at 96 DPI. At other DPI settings, fixed `TableLayoutPanel` row sizes
   depend on how the WinForms version scales them.
 
