@@ -83,11 +83,36 @@ internal sealed class EditorSession : IDisposable
     public ConditionFactory Find => automation.ConditionFactory;
 
     public AutomationElement ById(string automationId) =>
-        WaitFor(() => Window.FindFirstDescendant(Find.ByAutomationId(automationId)), $"element {automationId}");
+        Reveal(WaitFor(() => Window.FindFirstDescendant(Find.ByAutomationId(automationId)), $"element {automationId}"));
 
     /// <summary>Waits for a descendant of an element that matches a condition.</summary>
     public static AutomationElement Within(AutomationElement parent, ConditionBase condition, string what) =>
-        WaitFor(() => parent.FindFirstDescendant(condition), what);
+        Reveal(WaitFor(() => parent.FindFirstDescendant(condition), what));
+
+    /// <summary>
+    /// Scrolls an element into view if it is out of sight in a scrolling panel (the toolbox,
+    /// the inspector, a list), so clicks land on it: a list item scrolls itself; anything
+    /// else is focused, and the editor brings what has focus into view.
+    /// </summary>
+    private static AutomationElement Reveal(AutomationElement element)
+    {
+        if (element.Properties.IsOffscreen.ValueOrDefault)
+        {
+            if (element.Patterns.ScrollItem.TryGetPattern(out var scrollItem))
+            {
+                scrollItem.ScrollIntoView();
+            }
+            else if (element.Properties.IsKeyboardFocusable.ValueOrDefault)
+            {
+                element.Focus();
+            }
+
+            Wait.UntilInputIsProcessed();
+            Thread.Sleep(150);
+        }
+
+        return element;
+    }
 
     public TextBox Field(string automationId) => ById(automationId).AsTextBox();
 
@@ -101,11 +126,41 @@ internal sealed class EditorSession : IDisposable
         return string.IsNullOrEmpty(id) ? focused.Properties.ClassName.ValueOrDefault ?? "" : id;
     }
 
-    /// <summary>Screen point of a design coordinate, assuming 100% display scaling and zoom.</summary>
+    /// <summary>
+    /// Screen point of a design coordinate, assuming 100% display scaling and zoom. The canvas
+    /// is scrolled first if the point is out of sight, as on a small screen.
+    /// </summary>
     public Point Canvas(int x, int y)
     {
+        var scroller = ById("SurfaceScroller");
+        var view = scroller.BoundingRectangle;
         var surface = ById("Surface").BoundingRectangle;
-        return new Point(surface.Left + x, surface.Top + y);
+        var point = new Point(surface.Left + x, surface.Top + y);
+        const int ScrollBar = 20;
+        if ((point.X < view.Left || point.X > view.Right - ScrollBar || point.Y < view.Top || point.Y > view.Bottom - ScrollBar)
+            && scroller.Patterns.Scroll.TryGetPattern(out var scroll))
+        {
+            // Scroll so the point is in the middle of the view, where the canvas allows.
+            static double Percent(double size, double viewPercent, double wanted)
+            {
+                var extent = size / (viewPercent / 100);
+                return extent <= size ? -1 : Math.Clamp(wanted / (extent - size) * 100, 0, 100);
+            }
+
+            var horizontal = scroll.HorizontallyScrollable.Value
+                ? Percent(view.Width - ScrollBar, scroll.HorizontalViewSize.Value, x + 25 - (view.Width - ScrollBar) / 2.0)
+                : -1;
+            var vertical = scroll.VerticallyScrollable.Value
+                ? Percent(view.Height - ScrollBar, scroll.VerticalViewSize.Value, y + 25 - (view.Height - ScrollBar) / 2.0)
+                : -1;
+            scroll.SetScrollPercent(horizontal, vertical);
+            Wait.UntilInputIsProcessed();
+            Thread.Sleep(150);
+            surface = ById("Surface").BoundingRectangle;
+            point = new Point(surface.Left + x, surface.Top + y);
+        }
+
+        return point;
     }
 
     public void ClickCanvas(int x, int y)

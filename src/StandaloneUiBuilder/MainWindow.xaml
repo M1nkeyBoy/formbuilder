@@ -21,6 +21,9 @@
             <Style x:Key="FieldBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}" />
             <Style x:Key="ToolboxTile" TargetType="ListBoxItem" BasedOn="{StaticResource ToolTile}">
                 <Setter Property="AutomationProperties.Name" Value="{Binding Type}" />
+                <Setter Property="Width" Value="Auto" />
+                <Setter Property="Height" Value="34" />
+                <Setter Property="Margin" Value="2" />
             </Style>
             <Style x:Key="ScreenTabItem" TargetType="ListBoxItem" BasedOn="{StaticResource ScreenTab}">
                 <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
@@ -101,7 +104,8 @@
                 <Border Grid.Column="1" Margin="12,0,0,0" Padding="0,0,16,0" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0" VerticalAlignment="Center">
                     <StackPanel>
                         <TextBlock x:Name="ProjectNameText" Text="Untitled" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="260" />
-                        <TextBlock x:Name="ProjectSubtitleText" Text="Standalone UI Builder" Style="{StaticResource MutedText}" Margin="0,2,0,0" />
+                        <TextBlock x:Name="ProjectSubtitleText" Text="Standalone UI Builder" Style="{StaticResource MutedText}" Margin="0,2,0,0"
+                                   MaxWidth="260" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center">
@@ -259,7 +263,7 @@
                     <Button x:Name="ZoomOutButton" Content="−" Command="{x:Static local:EditorCommands.ZoomOut}" Style="{StaticResource IconButton}"
                             AutomationProperties.Name="Zoom out" ToolTip="Zoom out (Ctrl+-)" />
                     <TextBlock x:Name="ZoomText" Text="100%" MinWidth="44" TextAlignment="Center" VerticalAlignment="Center"
-                               Style="{StaticResource MutedText}" AutomationProperties.Name="Zoom" />
+                               Style="{StaticResource MutedText}" />
                     <Button x:Name="ZoomInButton" Content="+" Command="{x:Static local:EditorCommands.ZoomIn}" Style="{StaticResource IconButton}"
                             AutomationProperties.Name="Zoom in" ToolTip="Zoom in (Ctrl++)" />
                     <Button x:Name="ActualSizeButton" Content="100%" Command="{x:Static local:EditorCommands.ActualSize}"
@@ -306,7 +310,7 @@
                                         </GroupStyle.HeaderTemplate>
                                         <GroupStyle.Panel>
                                             <ItemsPanelTemplate>
-                                                <WrapPanel Orientation="Horizontal" />
+                                                <UniformGrid Columns="2" />
                                             </ItemsPanelTemplate>
                                         </GroupStyle.Panel>
                                     </GroupStyle>

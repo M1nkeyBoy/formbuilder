@@ -6,6 +6,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
 using StandaloneUiBuilder.Core;
+using StandaloneUiBuilder.Design;
 
 namespace StandaloneUiBuilder;
 
@@ -57,6 +58,15 @@ public partial class MainWindow
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
             throw new NotSupportedException();
+    }
+
+    /// <summary>Whatever takes keyboard focus scrolls into view, in the inspector or the toolbox.</summary>
+    private static void Window_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (e.NewFocus is FrameworkElement element and not DesignSurface)
+        {
+            element.BringIntoView();
+        }
     }
 
     private void ControlSearchBox_TextChanged(object sender, TextChangedEventArgs e) => toolboxView?.Refresh();

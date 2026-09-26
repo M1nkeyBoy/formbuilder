@@ -59,6 +59,7 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         SetUpToolbox();
+        AddHandler(Keyboard.GotKeyboardFocusEvent, new KeyboardFocusChangedEventHandler(Window_GotKeyboardFocus), handledEventsToo: true);
         Surface.ControlClicked += Surface_ControlClicked;
         Surface.ControlClickCompleted += Surface_ControlClickCompleted;
         Surface.BlankClicked += Surface_BlankClicked;
