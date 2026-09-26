@@ -19,6 +19,9 @@ internal sealed class EditorSession : IDisposable
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(15);
     private static readonly TimeSpan DialogTimeout = TimeSpan.FromSeconds(45);
 
+    // A cold start of the editor on a busy CI runner has taken over 15 seconds.
+    private static readonly TimeSpan LaunchTimeout = TimeSpan.FromSeconds(45);
+
     private readonly UIA3Automation automation = new();
     private Window? window;
 
@@ -236,5 +239,6 @@ internal sealed class EditorSession : IDisposable
             .FindAllChildren(Find.ByProcessId(App.ProcessId))
             .Select(e => e.AsWindow())
             .FirstOrDefault(w => w.Title.EndsWith(AppTitle, StringComparison.Ordinal) && w.Title != AppTitle),
-        "the main window");
+        "the main window",
+        LaunchTimeout);
 }
