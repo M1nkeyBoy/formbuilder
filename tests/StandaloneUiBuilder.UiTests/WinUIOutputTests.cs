@@ -46,9 +46,17 @@ public sealed class WinUIOutputTests
             Screenshot(window, "40-winui-main");
 
             // OK opens Settings in a window of its own; Close closes it.
-            EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("OkButton")), "OK button").Click();
+            // A click that arrives while the window is still settling can be lost; then press it through automation.
+            var ok = EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("OkButton")), "OK button");
+            ok.Click();
             var settings = document.Screens[1];
-            var second = EditorSession.WaitFor(() => app.GetAllTopLevelWindows(automation).FirstOrDefault(w => w.Title == settings.Name), "the Settings window");
+            FlaUI.Core.AutomationElements.Window? Settings() => app.GetAllTopLevelWindows(automation).FirstOrDefault(w => w.Title == settings.Name);
+            if (!FlaUI.Core.Tools.Retry.WhileFalse(() => Settings() is not null, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(250)).Result)
+            {
+                ok.AsButton().Invoke();
+            }
+
+            var second = EditorSession.WaitFor(Settings, "the Settings window");
             second.Patterns.Transform.Pattern.Move(0, 0);
             Thread.Sleep(500);
             AssertLayout(second, settings);
