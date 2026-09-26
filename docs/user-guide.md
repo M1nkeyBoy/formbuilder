@@ -11,12 +11,21 @@ build; neither needs .NET installed. The installer adds a Start menu shortcut an
 projects (in the install folder's `Samples`), and double-clicking a `.uibproj` file opens it.
 Open `layout-demo.uibproj` to see most features at work.
 
+## Choosing a platform
+
+A new project (File > New, or starting the editor without one) asks which platform it is
+for: **WPF**, **Windows Forms**, **WinUI 3**, **.NET MAUI** or **Blazor**. The platform decides
+what Export writes and which control libraries you can add. **Any platform** keeps the choice
+open: the project exports to all five, with the built-in controls only. The chip next to the
+project's name, or Project > Platform, changes it.
+
 ## The workspace
 
 ![The editor](screenshots/editor.png)
 
-- **Header:** the project's name and file, the menus (File, Edit, Format, Screen, Project,
-  View), **Save**, and **Export**, which lists the five targets.
+- **Header:** the project's name, platform and file, the menus (File, Edit, Format, Screen,
+  Project, View), **Save**, and **Export**: straight to the project's platform, or a list of
+  the five targets for any platform.
 - **Action bar:** **Design** and **Preview**; undo and redo; **Arrange** for the selected
   controls; **Tab order**; **Code** for the screen's view model code; **Grid** to show or
   hide the design grid; and zoom (−, +, 100%, Fit).

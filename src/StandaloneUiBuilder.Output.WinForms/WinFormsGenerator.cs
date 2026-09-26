@@ -66,6 +66,7 @@ public static class WinFormsGenerator
     public static IReadOnlyList<string> Check(ProjectDocument document)
     {
         var problems = CodeNames.CheckScreenClassNames(document, ClassSuffix, "form").ToList();
+        problems.InsertRange(0, CodeNames.CheckPlatform(document, ProjectPlatform.WinForms));
         foreach (var screen in document.Screens)
         {
             // With one screen, messages read as before; with several, they say which screen.

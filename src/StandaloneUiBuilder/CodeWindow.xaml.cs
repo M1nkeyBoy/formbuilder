@@ -24,7 +24,7 @@ public partial class CodeWindow : Window
         var properties = DataBindings.Properties(screen);
         var commands = DataBindings.Commands(screen);
         MembersText.Text = properties.Count + commands.Count == 0
-            ? "The screen has no bindings or commands yet; bind controls in the Properties panel to give the view model properties."
+            ? "The screen has no bindings or commands yet; bind controls in the inspector to give the view model properties."
             : "Properties: " + (properties.Count == 0 ? "none" : string.Join(", ", properties.Select(p => $"{p.Name} ({Describe(p.Kind)})")))
                 + ". Commands: " + (commands.Count == 0 ? "none" : string.Join(", ", commands.Select(c => $"{c.Name}()"))) + ".";
         RefreshHooks();

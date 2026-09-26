@@ -27,15 +27,16 @@ A complete example is in [`samples/customer-form.uibproj`](samples/customer-form
 | 15 | Adds `command` to Buttons. | None: older buttons run no command. |
 | 16 | Adds `enabledBinding` to Buttons. | None: older buttons are always enabled. |
 | 17 | Adds `code` to screens. | None: older screens have no code. |
+| 18 | Adds the project's `platform`. | None: older projects are for any platform, as before. |
 
-The builder reads versions 1 to 17 and always saves version 17. An older builder rejects a
+The builder reads versions 1 to 18 and always saves version 18. An older builder rejects a
 newer file with a clear message instead of silently dropping what it does not know.
 
-## Schema version 17
+## Schema version 18
 
 ```json
 {
-  "schemaVersion": 17,
+  "schemaVersion": 18,
   "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971",
   "name": "Customer form",
   "screens": [{
@@ -65,9 +66,10 @@ newer file with a clear message instead of silently dropping what it does not kn
 
 | Field | Type | Notes |
 |---|---|---|
-| `schemaVersion` | integer | Required. `17` when saved by this builder; `1` to `16` are still read. |
+| `schemaVersion` | integer | Required. `18` when saved by this builder; `1` to `17` are still read. |
 | `projectId` | GUID string | Required. Stable for the life of the project. |
 | `name` | string | Written as the file name (without extension) on save. |
+| `platform` | string | The platform the screens are for: `"Wpf"`, `"WinForms"`, `"WinUI"`, `"Maui"` or `"Blazor"`; `"Any"` (the default, not written) exports to all five. A project for one platform exports only to it. |
 | `theme` | string | `"Light"` (the default, not written), `"Dark"`, or `"System"` to follow the computer's or browser's setting. See each output's Theme section. |
 | `screens` | array | Required, at least one. In order: the first is the main screen, which a generated application opens with. Versions 1 to 5 had a single `screen` object instead. |
 

@@ -63,6 +63,7 @@ public static class MauiGenerator
     public static IReadOnlyList<string> Check(ProjectDocument document)
     {
         var problems = CodeNames.CheckScreenClassNames(document, ClassSuffix, "page").ToList();
+        problems.InsertRange(0, CodeNames.CheckPlatform(document, ProjectPlatform.Maui));
         foreach (var screen in document.Screens)
         {
             var prefix = document.Screens.Count > 1 ? $"Screen \"{screen.Name}\": " : "";

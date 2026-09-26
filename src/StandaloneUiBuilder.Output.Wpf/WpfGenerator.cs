@@ -62,6 +62,7 @@ public static class WpfGenerator
     public static IReadOnlyList<string> Check(ProjectDocument document)
     {
         var problems = CodeNames.CheckScreenClassNames(document, ClassSuffix, "window").ToList();
+        problems.InsertRange(0, CodeNames.CheckPlatform(document, ProjectPlatform.Wpf));
         foreach (var screen in document.Screens)
         {
             // With one screen, messages read as before; with several, they say which screen.

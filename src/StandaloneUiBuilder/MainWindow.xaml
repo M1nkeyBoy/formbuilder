@@ -46,11 +46,12 @@
         <CommandBinding Command="ApplicationCommands.Save" Executed="Save_Executed" />
         <CommandBinding Command="ApplicationCommands.SaveAs" Executed="SaveAs_Executed" />
         <CommandBinding Command="{x:Static local:EditorCommands.ImportWpf}" Executed="ImportWpf_Executed" />
-        <CommandBinding Command="{x:Static local:EditorCommands.ExportWpf}" Executed="ExportWpf_Executed" />
-        <CommandBinding Command="{x:Static local:EditorCommands.ExportWinForms}" Executed="ExportWinForms_Executed" />
-        <CommandBinding Command="{x:Static local:EditorCommands.ExportWinUI}" Executed="ExportWinUI_Executed" />
-        <CommandBinding Command="{x:Static local:EditorCommands.ExportMaui}" Executed="ExportMaui_Executed" />
-        <CommandBinding Command="{x:Static local:EditorCommands.ExportBlazor}" Executed="ExportBlazor_Executed" />
+        <CommandBinding Command="{x:Static local:EditorCommands.ExportWpf}" Executed="ExportWpf_Executed" CanExecute="Export_CanExecute" />
+        <CommandBinding Command="{x:Static local:EditorCommands.ExportWinForms}" Executed="ExportWinForms_Executed" CanExecute="Export_CanExecute" />
+        <CommandBinding Command="{x:Static local:EditorCommands.ExportWinUI}" Executed="ExportWinUI_Executed" CanExecute="Export_CanExecute" />
+        <CommandBinding Command="{x:Static local:EditorCommands.ExportMaui}" Executed="ExportMaui_Executed" CanExecute="Export_CanExecute" />
+        <CommandBinding Command="{x:Static local:EditorCommands.ExportBlazor}" Executed="ExportBlazor_Executed" CanExecute="Export_CanExecute" />
+        <CommandBinding Command="{x:Static local:EditorCommands.SetPlatform}" Executed="SetPlatform_Executed" CanExecute="Designing_CanExecute" />
         <CommandBinding Command="ApplicationCommands.Delete" Executed="Delete_Executed" CanExecute="HasSelection_CanExecute" />
         <CommandBinding Command="ApplicationCommands.Copy" Executed="Copy_Executed" CanExecute="HasSelection_CanExecute" />
         <CommandBinding Command="ApplicationCommands.Cut" Executed="Cut_Executed" CanExecute="HasSelection_CanExecute" />
@@ -103,7 +104,17 @@
                 </Border>
                 <Border Grid.Column="1" Margin="12,0,0,0" Padding="0,0,16,0" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0" VerticalAlignment="Center">
                     <StackPanel>
-                        <TextBlock x:Name="ProjectNameText" Text="Untitled" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="260" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="ProjectNameText" Text="Untitled" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="200"
+                                       VerticalAlignment="Center" />
+                            <Button x:Name="PlatformButton" Content="Any platform" Style="{StaticResource ChipButton}" Margin="8,0,0,0"
+                                    VerticalAlignment="Center" Click="PlatformButton_Click"
+                                    ToolTip="The platform the project is for. It decides what Export writes and which control libraries you can add.">
+                                <Button.ContextMenu>
+                                    <ContextMenu x:Name="PlatformMenu" />
+                                </Button.ContextMenu>
+                            </Button>
+                        </StackPanel>
                         <TextBlock x:Name="ProjectSubtitleText" Text="Standalone UI Builder" Style="{StaticResource MutedText}" Margin="0,2,0,0"
                                    MaxWidth="260" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
@@ -177,6 +188,7 @@
                     <MenuItem Command="{x:Static local:EditorCommands.NextScreen}" InputGestureText="Ctrl+PgDn" />
                 </MenuItem>
                 <MenuItem Header="_Project">
+                    <MenuItem x:Name="PlatformMenuItem" Header="_Platform" />
                     <MenuItem Header="_Theme">
                         <MenuItem x:Name="LightThemeMenuItem" Header="_Light" Command="{x:Static local:EditorCommands.SetTheme}" CommandParameter="Light" />
                         <MenuItem x:Name="DarkThemeMenuItem" Header="_Dark" Command="{x:Static local:EditorCommands.SetTheme}" CommandParameter="Dark" />

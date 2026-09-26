@@ -22,6 +22,16 @@ public static partial class CodeNames
     private static partial Regex NonAlphanumeric();
 
     /// <summary>Turns a project name into a C# namespace: "Customer form" becomes "CustomerForm".</summary>
+    /// <summary>A project for one platform exports only to that platform.</summary>
+    public static IEnumerable<string> CheckPlatform(ProjectDocument document, ProjectPlatform target)
+    {
+        if (!document.Platform.CanExportTo(target))
+        {
+            yield return $"The project is for {document.Platform.DisplayName()}, so it exports to {document.Platform.DisplayName()} only. "
+                + "Project > Platform changes it.";
+        }
+    }
+
     public static string ToNamespace(string projectName)
     {
         var words = NonAlphanumeric().Split(projectName).Where(w => w.Length > 0);

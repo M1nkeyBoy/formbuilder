@@ -729,3 +729,19 @@ Choices made during the prototype slices that affect later work.
 - **Checked in CI** by installing it silently, checking the files and the file association,
   starting the installed editor on a sample, and uninstalling it again.
 - **Not signed.** Windows may warn about an unknown publisher; signing needs a certificate.
+
+## Slice 38 — A platform for each project
+
+- **A new project asks which platform it is for** (File > New, and at startup without a
+  project): WPF, Windows Forms, WinUI 3, .NET MAUI, Blazor, or any platform. Most apps are
+  built for one platform from the start, and control libraries such as Syncfusion or Telerik
+  exist for one platform only, so a project needs to know its platform before it can use them.
+- **Any platform stays**, as the choice in the picker and for every older project (format
+  version 18 adds `platform`; a file without it is for any platform). It exports to all five
+  targets with the built-in controls, exactly as before.
+- **A project for one platform exports only to it**: the header's Export button exports
+  straight to it, the other Export commands are unavailable, and the exporters refuse other
+  targets with a message saying so. Project > Platform, or the platform chip in the header,
+  changes it, and Undo puts it back.
+- **Tests** start the editor with the test hook `UIB_START_PLATFORM` answering "any
+  platform"; one UI test answers the real question.

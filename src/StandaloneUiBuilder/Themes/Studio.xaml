@@ -142,6 +142,15 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <!-- A small pill, such as the project's platform in the header. -->
+    <Style x:Key="ChipButton" TargetType="Button" BasedOn="{StaticResource StudioButton}">
+        <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="8,1" />
+        <Setter Property="MinHeight" Value="20" />
+    </Style>
     <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource StudioButton}">
         <Setter Property="Padding" Value="8,2" />
         <Setter Property="FontSize" Value="16" />

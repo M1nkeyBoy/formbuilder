@@ -11,6 +11,9 @@ The editor has a three-panel workspace: controls and layers on the left, the scr
 design canvas in the middle, and the inspector on the right, under a header with the project,
 its menus, Save and Export. It follows Windows' light or dark app setting.
 
+- **Choose a platform.** A new project asks which platform it is for: WPF, Windows Forms,
+  WinUI 3, .NET MAUI, Blazor, or any platform. A project for one platform exports straight to
+  it; any platform exports to all five with the built-in controls.
 - **Find and arrange.** Search the toolbox, grouped into essentials, containers and more
   controls. The Layers tab lists the screen's controls, inside their containers; choosing one
   selects it on the canvas. The action bar switches Design and Preview, undoes and redoes,
@@ -82,7 +85,7 @@ its menus, Save and Export. It follows Windows' light or dark app setting.
 - **Undo and redo.** Ctrl+Z and Ctrl+Y cover adding, deleting, moving, resizing and property
   changes, and screen changes. A whole drag is one step. Undo shows the screen the change
   was on.
-- **Preview.** Switch to Preview (bottom left, or View > Preview) to try the controls. Type
+- **Preview.** Switch to Preview (in the action bar, or View > Preview) to try the controls. Type
   in text boxes, tick check boxes, pick ComboBox items and click buttons. Nothing you do in
   Preview changes the design.
 - **Save and open.** File > New, Open, Save (Ctrl+S) and Save As (Ctrl+Shift+S) work with

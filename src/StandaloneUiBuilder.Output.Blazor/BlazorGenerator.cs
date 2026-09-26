@@ -89,6 +89,7 @@ public static class BlazorGenerator
     public static IReadOnlyList<string> Check(ProjectDocument document)
     {
         var problems = CodeNames.CheckScreenClassNames(document, ClassSuffix, "page").ToList();
+        problems.InsertRange(0, CodeNames.CheckPlatform(document, ProjectPlatform.Blazor));
         foreach (var screen in document.Screens)
         {
             var prefix = document.Screens.Count > 1 ? $"Screen \"{screen.Name}\": " : "";

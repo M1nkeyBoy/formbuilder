@@ -62,7 +62,11 @@ internal sealed class EditorSession : IDisposable
     /// Starts the editor. Recovery drafts go to <paramref name="recoveryDirectory"/>, so a test
     /// that ends the editor abruptly cannot affect another test or the user's own drafts.
     /// </summary>
-    public static EditorSession Launch(string recoveryDirectory, string? projectPath = null)
+    /// <summary>
+    /// Starts the editor. Without a project it would ask which platform the new project is for;
+    /// unless <paramref name="askPlatform"/> is true, the test hook answers "any platform" instead.
+    /// </summary>
+    public static EditorSession Launch(string recoveryDirectory, string? projectPath = null, bool askPlatform = false)
     {
 #if RELEASE
         const string configuration = "Release";
@@ -72,6 +76,10 @@ internal sealed class EditorSession : IDisposable
         var exe = Path.Combine(RepositoryRoot, "src", "StandaloneUiBuilder", "bin", configuration, "net10.0-windows", "StandaloneUiBuilder.exe");
         var startInfo = new ProcessStartInfo(exe);
         startInfo.Environment["UIB_RECOVERY_DIR"] = recoveryDirectory;
+        if (!askPlatform)
+        {
+            startInfo.Environment["UIB_START_PLATFORM"] = "Any";
+        }
         if (projectPath is not null)
         {
             startInfo.ArgumentList.Add(projectPath);
@@ -257,6 +265,12 @@ internal sealed class EditorSession : IDisposable
         Window.Focus();
         Press(VirtualKeyShort.ALT, VirtualKeyShort.F4);
     }
+
+    /// <summary>Finds a menu item in any menu the editor has open, such as a button's drop-down menu.</summary>
+    public AutomationElement PopupMenuItem(string name) => WaitFor(() =>
+        automation.GetDesktop().FindAllChildren(Find.ByProcessId(App.ProcessId))
+            .Select(w => w.FindFirstDescendant(Find.ByName(name).And(Find.ByControlType(FlaUI.Core.Definitions.ControlType.MenuItem))))
+            .FirstOrDefault(i => i is not null), $"menu item \"{name}\"");
 
     /// <summary>Finds a button in any dialog the editor is showing.</summary>
     public Button DialogButton(string name) => WaitFor(() =>

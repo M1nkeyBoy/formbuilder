@@ -59,6 +59,7 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         SetUpToolbox();
+        SetUpPlatformMenus();
         AddHandler(Keyboard.GotKeyboardFocusEvent, new KeyboardFocusChangedEventHandler(Window_GotKeyboardFocus), handledEventsToo: true);
         Surface.ControlClicked += Surface_ControlClicked;
         Surface.ControlClickCompleted += Surface_ControlClickCompleted;
@@ -105,9 +106,25 @@ public partial class MainWindow : Window
             // A project path on the command line (for example from Explorer) is opened at
             // startup, unless the user chooses to recover unsaved work instead.
             var startupPath = Environment.GetCommandLineArgs().Skip(1).FirstOrDefault();
-            if (!OfferRecovery() && startupPath is not null)
+            if (OfferRecovery())
+            {
+                return;
+            }
+
+            if (startupPath is not null)
             {
                 OpenPath(startupPath);
+            }
+            else
+            {
+                // Starting without a project is starting a new one: ask what it is for.
+                Dispatcher.BeginInvoke(() =>
+                {
+                    if (AskPlatform(ProjectPlatform.Wpf) is { } platform)
+                    {
+                        editor.New(platform);
+                    }
+                }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             }
         };
     }
@@ -996,10 +1013,16 @@ public partial class MainWindow : Window
             return;
         }
 
+        var platform = AskPlatform(editor.Document.Platform is ProjectPlatform.Any ? ProjectPlatform.Wpf : editor.Document.Platform);
+        if (platform is null)
+        {
+            return;
+        }
+
         projectPath = null;
         selection.Clear();
-        editor.New();
-        StatusText.Text = "New design";
+        editor.New(platform.Value);
+        StatusText.Text = $"New {platform.Value.DisplayName()} design";
     }
 
     /// <summary>

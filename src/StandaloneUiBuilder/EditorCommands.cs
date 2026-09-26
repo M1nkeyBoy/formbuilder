@@ -97,6 +97,12 @@ public static class EditorCommands
         typeof(EditorCommands),
         [new KeyGesture(Key.F7)]);
 
+    /// <summary>Changes the platform the project is for; the parameter is a <see cref="Core.ProjectPlatform"/> name.</summary>
+    public static RoutedUICommand SetPlatform { get; } = new(
+        "Platform",
+        nameof(SetPlatform),
+        typeof(EditorCommands));
+
     /// <summary>Chooses the project's theme; the parameter is Light, Dark or System.</summary>
     public static RoutedUICommand SetTheme { get; } = new(
         "Theme",

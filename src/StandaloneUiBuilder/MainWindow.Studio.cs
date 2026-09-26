@@ -81,7 +81,15 @@ public partial class MainWindow
         ScreenSizeText.Text = $"{screen.Name}  /  {screen.Width} × {screen.Height}";
         var count = ControlTree.All(screen.Controls).Count();
         ControlCountText.Text = count == 1 ? "1 control" : $"{count} controls";
-        ScreenInfoText.Text = $"{ThemeName(editor.Document.Theme)} theme · {screen.Width} × {screen.Height} DIPs · {Math.Round(zoom * 100)}%";
+        var platform = editor.Document.Platform;
+        PlatformButton.Content = platform.DisplayName();
+        foreach (var item in PlatformMenuItem.Items.OfType<MenuItem>().Concat(PlatformMenu.Items.OfType<MenuItem>()))
+        {
+            item.IsChecked = (ProjectPlatform)item.Tag == platform;
+        }
+
+        ExportButton.Content = platform == ProjectPlatform.Any ? "Export ▾" : $"Export to {platform.DisplayName()}";
+        ScreenInfoText.Text = $"{platform.DisplayName()} · {ThemeName(editor.Document.Theme)} theme · {screen.Width} × {screen.Height} DIPs · {Math.Round(zoom * 100)}%";
         ShowGridBox.IsChecked = ShowGridMenuItem.IsChecked = Surface.ShowGrid;
         RefreshLayers();
     }
@@ -138,7 +146,74 @@ public partial class MainWindow
         }
     }
 
-    private void ExportButton_Click(object sender, RoutedEventArgs e) => OpenMenu(ExportButton, ExportMenu);
+    /// <summary>A project for one platform exports straight to it; one for any platform chooses from the menu.</summary>
+    private void ExportButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (ExportCommand(editor.Document.Platform) is { } command)
+        {
+            command.Execute(null, this);
+        }
+        else
+        {
+            OpenMenu(ExportButton, ExportMenu);
+        }
+    }
+
+    private static RoutedUICommand? ExportCommand(ProjectPlatform platform) => platform switch
+    {
+        ProjectPlatform.Wpf => EditorCommands.ExportWpf,
+        ProjectPlatform.WinForms => EditorCommands.ExportWinForms,
+        ProjectPlatform.WinUI => EditorCommands.ExportWinUI,
+        ProjectPlatform.Maui => EditorCommands.ExportMaui,
+        ProjectPlatform.Blazor => EditorCommands.ExportBlazor,
+        _ => null,
+    };
+
+    private void Export_CanExecute(object sender, CanExecuteRoutedEventArgs e) =>
+        e.CanExecute = editor.Document.Platform == ProjectPlatform.Any || ExportCommand(editor.Document.Platform) == e.Command;
+
+    /// <summary>The platform choices in Project > Platform and the header's platform menu.</summary>
+    private void SetUpPlatformMenus()
+    {
+        foreach (var menu in new ItemsControl[] { PlatformMenuItem, PlatformMenu })
+        {
+            foreach (var platform in ProjectPlatforms.All)
+            {
+                menu.Items.Add(new MenuItem
+                {
+                    Header = platform.DisplayName(),
+                    Command = EditorCommands.SetPlatform,
+                    CommandParameter = platform.ToString(),
+                    Tag = platform,
+                });
+            }
+        }
+    }
+
+    private void PlatformButton_Click(object sender, RoutedEventArgs e) => OpenMenu(PlatformButton, PlatformMenu);
+
+    private void SetPlatform_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        var platform = Enum.Parse<ProjectPlatform>((string)e.Parameter);
+        StatusText.Text = editor.SetPlatform(platform)
+            ? platform == ProjectPlatform.Any ? "Platform: any; the project exports to all five" : $"Platform: {platform.DisplayName()}"
+            : "That platform is already chosen";
+    }
+
+    /// <summary>
+    /// Asks which platform a new project is for; the test hook UIB_START_PLATFORM answers
+    /// instead, so tests start without the question.
+    /// </summary>
+    private ProjectPlatform? AskPlatform(ProjectPlatform initial)
+    {
+        if (Environment.GetEnvironmentVariable("UIB_START_PLATFORM") is { Length: > 0 } answer
+            && Enum.TryParse<ProjectPlatform>(answer, ignoreCase: true, out var platform))
+        {
+            return platform;
+        }
+
+        return NewProjectWindow.Choose(this, initial);
+    }
 
     private void ArrangeButton_Click(object sender, RoutedEventArgs e) => OpenMenu(ArrangeButton, ArrangeMenu);
 

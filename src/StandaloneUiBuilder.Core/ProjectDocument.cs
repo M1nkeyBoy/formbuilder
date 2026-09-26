@@ -11,10 +11,10 @@ public sealed record ProjectDocument
     /// <summary>
     /// The format version this builder writes. Older versions (1: no anchors, 2: no containers,
     /// 3: no grid spans, 4: no sized grid rows and columns, 5: one screen, 6: the first seven
-    /// control types only, 7: no button actions, 8: no fonts or colours, 9: no images, 10: no tab controls, 11: no tab order, 12: no theme, 13: no data binding, 14: no commands, 15: no enabled bindings, 16: no screen code) are still
+    /// control types only, 7: no button actions, 8: no fonts or colours, 9: no images, 10: no tab controls, 11: no tab order, 12: no theme, 13: no data binding, 14: no commands, 15: no enabled bindings, 16: no screen code, 17: no platform) are still
     /// read. See docs/project-format.md for the history.
     /// </summary>
-    public const int CurrentSchemaVersion = 17;
+    public const int CurrentSchemaVersion = 18;
 
     public const int OldestSupportedSchemaVersion = 1;
     public const string DefaultName = "Untitled";
@@ -24,6 +24,10 @@ public sealed record ProjectDocument
     public required Guid ProjectId { get; init; }
 
     public string Name { get; init; } = DefaultName;
+
+    /// <summary>The platform the screens are for; not stored when Any (every platform).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public ProjectPlatform Platform { get; init; }
 
     /// <summary>Light or dark colours for every screen's standard controls; not stored when Light.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -36,9 +40,10 @@ public sealed record ProjectDocument
     [JsonIgnore]
     public ScreenDocument MainScreen => Screens[0];
 
-    public static ProjectDocument CreateBlank() => new()
+    public static ProjectDocument CreateBlank(ProjectPlatform platform = ProjectPlatform.Any) => new()
     {
         ProjectId = Guid.NewGuid(),
+        Platform = platform,
         Screens = [new ScreenDocument()],
     };
 

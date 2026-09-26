@@ -49,7 +49,7 @@ public sealed partial class DesignEditor
     public bool IsDirty => !ReferenceEquals(Document, savedDocument);
 
     /// <summary>Starts a new blank document.</summary>
-    public void New() => Reset(ProjectDocument.CreateBlank());
+    public void New(ProjectPlatform platform = ProjectPlatform.Any) => Reset(ProjectDocument.CreateBlank(platform));
 
     /// <summary>Replaces the document, e.g. after opening a file, and clears undo history.</summary>
     public void Reset(ProjectDocument document, bool isDirty = false)
@@ -777,6 +777,18 @@ public sealed partial class DesignEditor
     }
 
     /// <summary>Chooses the project's theme; one undo step. Returns false if it was already chosen.</summary>
+    /// <summary>Changes the platform the project is for; false if it already is.</summary>
+    public bool SetPlatform(ProjectPlatform platform)
+    {
+        if (Document.Platform == platform)
+        {
+            return false;
+        }
+
+        Commit(Document with { Platform = platform });
+        return true;
+    }
+
     public bool SetTheme(ProjectTheme theme)
     {
         if (Document.Theme == theme)
