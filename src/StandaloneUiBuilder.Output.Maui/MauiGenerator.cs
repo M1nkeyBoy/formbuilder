@@ -221,7 +221,7 @@ public static class MauiGenerator
                 // box keeps its natural height, centred (squeezed smaller, MAUI does not draw it),
                 // and is 32 wide rather than the 120 Windows gives it, so the text follows it.
                 xaml.AppendLine($"{indent}<Grid {string.Join(" ", layout)} ColumnDefinitions=\"Auto,*\" ColumnSpacing=\"4\">");
-                xaml.AppendLine($"{indent}    <CheckBox x:Name=\"{control.Name}\" AutomationId=\"{control.Name}\" IsChecked=\"{Bool(properties.IsChecked)}\" WidthRequest=\"32\" MinimumWidthRequest=\"0\" VerticalOptions=\"Center\" CheckedChanged=\"{HandlerName(control)}\" />");
+                xaml.AppendLine($"{indent}    <CheckBox x:Name=\"{control.Name}\" AutomationId=\"{control.Name}\"{TabAttribute(screen, control)} IsChecked=\"{Bool(properties.IsChecked)}\" WidthRequest=\"32\" MinimumWidthRequest=\"0\" VerticalOptions=\"Center\" CheckedChanged=\"{HandlerName(control)}\" />");
                 xaml.AppendLine($"{indent}    <Label Grid.Column=\"1\" Text=\"{Attribute(properties.Text ?? "")}\" VerticalTextAlignment=\"Center\" LineBreakMode=\"NoWrap\"{string.Concat(StyleAttributes(control).Select(a => " " + a))} />");
                 xaml.AppendLine($"{indent}</Grid>");
                 return;
@@ -237,7 +237,7 @@ public static class MauiGenerator
             _ => control.Type.ToString(),
         };
         // MAUI takes UI Automation IDs from AutomationId, not x:Name; both are the control's name.
-        var attributes = new List<string> { $"x:Name=\"{control.Name}\" AutomationId=\"{control.Name}\"" };
+        var attributes = new List<string> { $"x:Name=\"{control.Name}\" AutomationId=\"{control.Name}\"{TabAttribute(screen, control)}" };
         attributes.AddRange(layout);
         switch (control.Type)
         {
@@ -399,6 +399,15 @@ public static class MauiGenerator
         xaml.AppendLine($"{indent}</Grid>");
     }
 
+    /// <summary>
+    /// With a tab order set on the screen, a control Tab visits gets its place in it as
+    /// TabIndex; MAUI orders Tab by TabIndex across the page. A TabControl's tabs share its place.
+    /// </summary>
+    private static string TabAttribute(ScreenDocument screen, ControlDocument control) =>
+        screen.TabOrder is not null && TabSequence.Indexes(screen).TryGetValue(control.Id, out var index)
+            ? $" TabIndex=\"{Number(index)}\""
+            : "";
+
     /// <summary>The colours of a chosen tab and of the others.</summary>
     private const string SelectedTabColor = "#FFFFFF";
     private const string TabColor = "#F0F0F0";
@@ -422,7 +431,7 @@ public static class MauiGenerator
             for (var i = 0; i < pages.Count; i++)
             {
                 var color = i == shown ? SelectedTabColor : TabColor;
-                xaml.AppendLine($"{indent}        <Button Text=\"{Attribute(pages[i].Properties.Text ?? "")}\" HeightRequest=\"28\" MinimumHeightRequest=\"0\" MinimumWidthRequest=\"0\" Padding=\"10,0\" CornerRadius=\"3\" BorderColor=\"#D5DFE5\" BorderWidth=\"1\" TextColor=\"Black\" BackgroundColor=\"{color}\" Clicked=\"{HandlerName(tabs)}\" />");
+                xaml.AppendLine($"{indent}        <Button Text=\"{Attribute(pages[i].Properties.Text ?? "")}\" HeightRequest=\"28\" MinimumHeightRequest=\"0\" MinimumWidthRequest=\"0\" Padding=\"10,0\" CornerRadius=\"3\" BorderColor=\"#D5DFE5\" BorderWidth=\"1\" TextColor=\"Black\" BackgroundColor=\"{color}\"{TabAttribute(screen, tabs)} Clicked=\"{HandlerName(tabs)}\" />");
             }
 
             xaml.AppendLine($"{indent}    </HorizontalStackLayout>");

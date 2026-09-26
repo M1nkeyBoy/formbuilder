@@ -261,6 +261,16 @@ public static class BlazorGenerator
 
         var common = $"id=\"{name}\" style=\"{string.Join(";", style)}\"";
 
+        // With a tab order set, each control Tab visits gets its place in it (from 1): on the
+        // element that takes focus, which for a check box or radio button is the input inside.
+        var tab = screen.TabOrder is not null && TabSequence.Indexes(screen).TryGetValue(control.Id, out var tabIndex)
+            ? $" tabindex=\"{Number(tabIndex + 1)}\""
+            : "";
+        if (control.Type is not (ControlType.CheckBox or ControlType.RadioButton or ControlType.TabControl))
+        {
+            common += tab;
+        }
+
         switch (control.Type)
         {
             case ControlType.Label:
@@ -278,10 +288,10 @@ public static class BlazorGenerator
                 markup.AppendLine($"{indent}<input {common} type=\"{inputType}\" class=\"uib-input\" @bind=\"{name}\" @bind:event=\"oninput\" @bind:after=\"{HandlerName(control)}\" />");
                 break;
             case ControlType.CheckBox:
-                markup.AppendLine($"{indent}<label {common} class=\"uib-check\"><input type=\"checkbox\" @bind=\"{name}\" @bind:after=\"{HandlerName(control)}\" /><span>{Text(properties.Text)}</span></label>");
+                markup.AppendLine($"{indent}<label {common} class=\"uib-check\"><input type=\"checkbox\"{tab} @bind=\"{name}\" @bind:after=\"{HandlerName(control)}\" /><span>{Text(properties.Text)}</span></label>");
                 break;
             case ControlType.RadioButton:
-                markup.AppendLine($"{indent}<label {common} class=\"uib-check\"><input type=\"radio\" name=\"{group}\" checked=\"@{name}\" @onchange=\"{HandlerName(control)}\" /><span>{Text(properties.Text)}</span></label>");
+                markup.AppendLine($"{indent}<label {common} class=\"uib-check\"><input type=\"radio\"{tab} name=\"{group}\" checked=\"@{name}\" @onchange=\"{HandlerName(control)}\" /><span>{Text(properties.Text)}</span></label>");
                 break;
             case ControlType.ComboBox:
             case ControlType.ListBox:
@@ -348,7 +358,7 @@ public static class BlazorGenerator
                 var pages = control.Children ?? [];
                 for (var i = 0; i < pages.Count; i++)
                 {
-                    markup.AppendLine($"{indent}        <button type=\"button\" class=\"uib-tab@({name} == {Number(i)} ? \" uib-tab-selected\" : \"\")\" @onclick=\"() => {HandlerName(control)}({Number(i)})\">{Text(pages[i].Properties.Text)}</button>");
+                    markup.AppendLine($"{indent}        <button type=\"button\"{tab} class=\"uib-tab@({name} == {Number(i)} ? \" uib-tab-selected\" : \"\")\" @onclick=\"() => {HandlerName(control)}({Number(i)})\">{Text(pages[i].Properties.Text)}</button>");
                 }
 
                 markup.AppendLine($"{indent}    </div>");

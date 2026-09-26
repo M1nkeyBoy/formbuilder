@@ -296,6 +296,7 @@ public static class WpfGenerator
         }
 
         attributes.AddRange(StyleAttributes(properties));
+        attributes.AddRange(TabAttributes(screen, control));
         if (EventFor(control.Type) is { } hook)
         {
             attributes.Add($"{hook.Event}=\"{HandlerName(control)}\"");
@@ -377,6 +378,26 @@ public static class WpfGenerator
         xaml.AppendLine($"{indent}<Grid {string.Join(" ", layout)}>");
         xaml.AppendLine($"{indent}    <Image x:Name=\"{control.Name}\"{source} Stretch=\"{properties.Stretch ?? ImageStretch.Uniform}\" />");
         xaml.AppendLine($"{indent}</Grid>");
+    }
+
+    /// <summary>
+    /// With a tab order set on the screen, each control Tab visits gets its place in it as
+    /// TabIndex; WPF orders Tab by TabIndex across the whole window. A control with parts of
+    /// its own to tab through (a DatePicker's text and button, a TabControl's tabs) keeps them
+    /// together as a local group.
+    /// </summary>
+    private static IEnumerable<string> TabAttributes(ScreenDocument screen, ControlDocument control)
+    {
+        if (screen.TabOrder is null || !TabSequence.Indexes(screen).TryGetValue(control.Id, out var index))
+        {
+            yield break;
+        }
+
+        yield return $"TabIndex=\"{Number(index)}\"";
+        if (control.Type is ControlType.DatePicker or ControlType.TabControl)
+        {
+            yield return "KeyboardNavigation.TabNavigation=\"Local\"";
+        }
     }
 
     /// <summary>A control's own text size, weight and colours, where the design sets them.</summary>
@@ -473,7 +494,8 @@ public static class WpfGenerator
         var shown = ContainerLayout.ShownTab(tabs);
         var (left, top, right, bottom) = ContainerLayout.TabControlInset;
         xaml.AppendLine($"{indent}<Grid {string.Join(" ", layout)}>");
-        var opening = $"{indent}    <TabControl x:Name=\"{tabs.Name}\" SelectedIndex=\"{Number(pages.Count > 0 ? shown : -1)}\" SelectionChanged=\"{HandlerName(tabs)}\"";
+        var tabAttributes = string.Concat(TabAttributes(screen, tabs).Select(a => " " + a));
+        var opening = $"{indent}    <TabControl x:Name=\"{tabs.Name}\" SelectedIndex=\"{Number(pages.Count > 0 ? shown : -1)}\"{tabAttributes} SelectionChanged=\"{HandlerName(tabs)}\"";
         if (pages.Count == 0)
         {
             xaml.AppendLine(opening + " />");

@@ -11,10 +11,10 @@ public sealed record ProjectDocument
     /// <summary>
     /// The format version this builder writes. Older versions (1: no anchors, 2: no containers,
     /// 3: no grid spans, 4: no sized grid rows and columns, 5: one screen, 6: the first seven
-    /// control types only, 7: no button actions, 8: no fonts or colours, 9: no images, 10: no tab controls) are still
+    /// control types only, 7: no button actions, 8: no fonts or colours, 9: no images, 10: no tab controls, 11: no tab order) are still
     /// read. See docs/project-format.md for the history.
     /// </summary>
-    public const int CurrentSchemaVersion = 11;
+    public const int CurrentSchemaVersion = 12;
 
     public const int OldestSupportedSchemaVersion = 1;
     public const string DefaultName = "Untitled";
@@ -76,6 +76,12 @@ public sealed record ScreenDocument
 
     /// <summary>Controls in draw order: later entries are drawn on top.</summary>
     public ImmutableList<ControlDocument> Controls { get; init; } = ImmutableList<ControlDocument>.Empty;
+
+    /// <summary>
+    /// The order Tab moves through the controls that take focus, by ID; null for the order the
+    /// controls are in. Controls not listed come after the listed ones. See <see cref="TabSequence"/>.
+    /// </summary>
+    public ImmutableList<Guid>? TabOrder { get; init; }
 }
 
 public sealed record ControlDocument

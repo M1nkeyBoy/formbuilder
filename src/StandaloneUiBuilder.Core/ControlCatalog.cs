@@ -58,6 +58,11 @@ public sealed record ControlDefinition(
     /// <summary>True for types that show a picture.</summary>
     public bool HasImage => Type == ControlType.Image;
 
+    /// <summary>True for types the user can reach with Tab: the ones that take input.</summary>
+    public bool IsTabStop => Type is ControlType.Button or ControlType.TextBox or ControlType.PasswordBox
+        or ControlType.CheckBox or ControlType.RadioButton or ControlType.ComboBox or ControlType.ListBox
+        or ControlType.Slider or ControlType.DatePicker or ControlType.TabControl;
+
     /// <summary>True for types that can open or close a screen when clicked.</summary>
     public bool HasAction => Type == ControlType.Button;
 

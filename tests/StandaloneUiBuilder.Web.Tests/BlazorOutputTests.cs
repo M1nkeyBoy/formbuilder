@@ -95,6 +95,40 @@ public sealed class BlazorOutputTests
         Assert.False(await page.Locator("#NotesTextBox").IsVisibleAsync());
     }
 
+    [WebFact]
+    public async Task TabFollowsTheDesignsTabOrder()
+    {
+        var document = Sample("layout-demo");
+        var screen = document.Screens[1];
+        using var app = await GeneratedApp.StartAsync(document, BlazorExporter.Export);
+        await using var browser = await LaunchAsync();
+        var page = await browser.NewPageAsync(new() { ViewportSize = new() { Width = screen.Width, Height = screen.Height } });
+        await page.GotoAsync(app.Url + "/settings");
+        await page.Locator("#ServerTextBox").WaitForAsync();
+
+        // Radio buttons are one stop for the group in a browser, and hidden pages have none.
+        var hidden = ContainerLayout.Flatten(screen).Where(p => p.IsHidden).Select(p => p.Control.Id).ToHashSet();
+        var expected = TabSequence.Resolve(screen)
+            .Where(c => c.Type != ControlType.RadioButton && !hidden.Contains(c.Id))
+            .Select(c => c.Name).ToList();
+        var names = expected.ToHashSet();
+
+        var visited = new List<string>();
+        for (var i = 0; i < expected.Count * 4 && visited.Count(names.Contains) < expected.Count + 1; i++)
+        {
+            await page.Keyboard.PressAsync("Tab");
+            var id = await page.EvaluateAsync<string?>("() => document.activeElement?.closest('[id]')?.id ?? null");
+            if (id is not null && names.Contains(id) && (visited.Count == 0 || visited[^1] != id))
+            {
+                visited.Add(id);
+            }
+        }
+
+        var start = visited.IndexOf(expected[0]);
+        Assert.True(start >= 0 && visited.Count >= start + expected.Count, $"Tab visited {string.Join(", ", visited)}");
+        Assert.Equal(expected, visited.Skip(start).Take(expected.Count));
+    }
+
     private static async Task AssertLayout(ProjectDocument document)
     {
         using var app = await GeneratedApp.StartAsync(document, BlazorExporter.Export);

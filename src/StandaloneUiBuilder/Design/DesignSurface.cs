@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -49,7 +50,10 @@ internal sealed class DesignSurface : Grid
 
     // Preview lays controls out the way the generated WPF window does (alignment and margins),
     // so resizing the preview shows how anchored controls move and stretch.
-    private readonly Grid previewLayer = new() { ClipToBounds = true };
+    // Its own tab scope: the Preview's tab order is among its controls, not the editor's.
+    private readonly Grid previewLayer = CreatePreviewLayer();
+
+    private readonly List<Border> tabBadges = [];
     private readonly Thumb resizeGrip = new()
     {
         Width = 14,
@@ -256,6 +260,8 @@ internal sealed class DesignSurface : Grid
                 hosts[control.Id] = host;
                 previewLayer.Children.Add(host);
             }
+
+            ApplyTabOrder(screen);
         }
         else
         {
@@ -277,6 +283,80 @@ internal sealed class DesignSurface : Grid
         }
 
         SetSelection(selection);
+    }
+
+    private static Grid CreatePreviewLayer()
+    {
+        var layer = new Grid { ClipToBounds = true };
+        KeyboardNavigation.SetTabNavigation(layer, KeyboardNavigationMode.Local);
+        return layer;
+    }
+
+    /// <summary>
+    /// With a tab order set on the screen, each Preview control Tab visits gets its place in it,
+    /// as in the generated WPF window.
+    /// </summary>
+    private void ApplyTabOrder(ScreenDocument screen)
+    {
+        if (screen.TabOrder is null)
+        {
+            return;
+        }
+
+        var sequence = TabSequence.Resolve(screen);
+        for (var i = 0; i < sequence.Count; i++)
+        {
+            if (LogicalTreeHelper.FindLogicalNode(previewLayer, sequence[i].Name) is DependencyObject element)
+            {
+                KeyboardNavigation.SetTabIndex(element, i);
+                if (sequence[i].Type is ControlType.DatePicker or ControlType.TabControl)
+                {
+                    KeyboardNavigation.SetTabNavigation(element, KeyboardNavigationMode.Local);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Numbers each control Tab visits with its place in the tab order, or removes the numbers
+    /// (null). Numbers up to <paramref name="assigned"/> are drawn as already set.
+    /// </summary>
+    public void ShowTabOrder(IReadOnlyList<Guid>? order, int assigned = 0)
+    {
+        foreach (var badge in tabBadges)
+        {
+            adornerLayer.Children.Remove(badge);
+        }
+
+        tabBadges.Clear();
+        if (order is null || isPreview)
+        {
+            return;
+        }
+
+        for (var i = 0; i < order.Count; i++)
+        {
+            // Controls on hidden tab pages are not drawn, so neither are their numbers.
+            if (!hosts.ContainsKey(order[i]) || !placed.TryGetValue(order[i], out var item))
+            {
+                continue;
+            }
+
+            var badge = new Border
+            {
+                Background = i < assigned ? new SolidColorBrush(Color.FromRgb(0x1B, 0x7F, 0x3B)) : new SolidColorBrush(Color.FromRgb(0x1E, 0x6F, 0xD9)),
+                CornerRadius = new CornerRadius(3),
+                Padding = new Thickness(4, 0, 4, 1),
+                IsHitTestVisible = false,
+                Child = new TextBlock { Text = (i + 1).ToString(System.Globalization.CultureInfo.CurrentCulture), Foreground = Brushes.White, FontSize = 11, FontWeight = FontWeights.Bold },
+                Tag = "TabBadge",
+            };
+            System.Windows.Automation.AutomationProperties.SetName(badge, $"Tab {i + 1}: {item.Control.Name}");
+            Canvas.SetLeft(badge, item.Bounds.X);
+            Canvas.SetTop(badge, item.Bounds.Y);
+            tabBadges.Add(badge);
+            adornerLayer.Children.Add(badge);
+        }
     }
 
     /// <summary>Shows a selection. With one control, it also gets resize handles and anchor lines.</summary>

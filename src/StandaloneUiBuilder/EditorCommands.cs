@@ -55,6 +55,23 @@ public static class EditorCommands
         typeof(EditorCommands),
         [new KeyGesture(Key.OemOpenBrackets, ModifierKeys.Control)]);
 
+    /// <summary>Turns on (or off) setting the tab order by clicking controls in turn.</summary>
+    public static RoutedUICommand SetTabOrder { get; } = new(
+        "Set _Tab Order",
+        nameof(SetTabOrder),
+        typeof(EditorCommands),
+        [new KeyGesture(Key.T, ModifierKeys.Control)]);
+
+    public static RoutedUICommand TabOrderByPosition { get; } = new(
+        "Tab Order by _Position",
+        nameof(TabOrderByPosition),
+        typeof(EditorCommands));
+
+    public static RoutedUICommand ResetTabOrder { get; } = new(
+        "R_eset Tab Order",
+        nameof(ResetTabOrder),
+        typeof(EditorCommands));
+
     /// <summary>
     /// Lines up, sizes or spaces the selected controls; the parameter says how (Lefts,
     /// Centers, Rights, Tops, Middles, Bottoms, Width, Height, Both, Horizontally, Vertically).

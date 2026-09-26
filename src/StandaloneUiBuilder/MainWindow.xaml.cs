@@ -35,6 +35,9 @@ public partial class MainWindow : Window
     private string? projectPath;
     private string? lastExportFolder;
     private bool isPreview;
+
+    // While the tab order is being set by clicking: the place the next control clicked gets.
+    private int? tabOrderNext;
     private string? shownScreenId;
 
     // Screens opened by buttons in Preview, most recent last, so a closing button goes back.
@@ -124,6 +127,7 @@ public partial class MainWindow : Window
             // previous screen's fields no longer applies.
             shownScreenId = editor.Screen.Id;
             selection.Clear();
+            tabOrderNext = null;
             SetFieldError(ScreenNameBox, null);
             SetFieldError(ScreenWidthBox, null);
             SetFieldError(ScreenHeightBox, null);
@@ -133,6 +137,13 @@ public partial class MainWindow : Window
         RefreshScreenTabs();
         selection.RemoveAll(id => editor.FindControl(id) is null);
         Surface.Render(editor.Screen, selection, isPreview, PreviewButton_Clicked);
+        if (isPreview)
+        {
+            tabOrderNext = null;
+        }
+
+        Surface.ShowTabOrder(tabOrderNext is null ? null : TabSequence.Resolve(editor.Screen).Select(c => c.Id).ToList(), tabOrderNext ?? 0);
+        SetTabOrderMenuItem.IsChecked = tabOrderNext is not null;
         RefreshInspector();
         Title = $"{ProjectDisplayName}{(editor.IsDirty ? " ●" : "")} — {AppTitle}";
         CommandManager.InvalidateRequerySuggested();
@@ -158,6 +169,24 @@ public partial class MainWindow : Window
 
     private void Surface_ControlClicked(object? sender, ControlClickEventArgs e)
     {
+        // Setting the tab order: the control clicked is visited next.
+        if (tabOrderNext is { } next)
+        {
+            if (editor.FindControl(e.Id) is { } clicked && TabSequence.IsTabStop(clicked))
+            {
+                editor.PutInTabOrder(clicked.Id, next);
+                tabOrderNext = next + 1;
+                RefreshAll();
+                StatusText.Text = $"{clicked.Name} is number {next + 1} in the tab order. Click the next control, or press Esc to finish.";
+            }
+            else
+            {
+                StatusText.Text = "Tab does not visit that control. Click a control that takes input, or press Esc to finish.";
+            }
+
+            return;
+        }
+
         // With a toolbox item chosen, a click places it: into a container if one is clicked.
         if (ArmedToolboxItem is { } armed)
         {
@@ -1232,6 +1261,43 @@ public partial class MainWindow : Window
         StatusText.Text = message;
     }
 
+    private void SetTabOrder_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        if (tabOrderNext is not null)
+        {
+            EndTabOrder();
+            return;
+        }
+
+        CommitFocusedField();
+        Select(null);
+        tabOrderNext = 0;
+        RefreshAll();
+        StatusText.Text = "Click the controls in the order Tab should visit them. Press Esc or Ctrl+T to finish.";
+    }
+
+    private void EndTabOrder()
+    {
+        tabOrderNext = null;
+        RefreshAll();
+        StatusText.Text = "Tab order set";
+    }
+
+    private void TabOrderByPosition_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        var changed = editor.SetTabOrderByPosition();
+        StatusText.Text = changed ? "Tab now goes top to bottom, left to right" : "Tab already goes top to bottom, left to right";
+    }
+
+    private void ResetTabOrder_CanExecute(object sender, CanExecuteRoutedEventArgs e) =>
+        e.CanExecute = !isPreview && editor.Screen.TabOrder is not null;
+
+    private void ResetTabOrder_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        editor.ResetTabOrder();
+        StatusText.Text = "Tab follows the order the controls are in";
+    }
+
     /// <summary>Keeps the screen tabs in step with the document and the screen being shown.</summary>
     private void RefreshScreenTabs()
     {
@@ -1274,6 +1340,13 @@ public partial class MainWindow : Window
     /// </summary>
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
+        if (tabOrderNext is not null && e.Key == Key.Escape)
+        {
+            EndTabOrder();
+            e.Handled = true;
+            return;
+        }
+
         if (Keyboard.Modifiers == ModifierKeys.Control && e.Key is Key.PageUp or Key.PageDown)
         {
             var command = e.Key == Key.PageUp ? EditorCommands.PreviousScreen : EditorCommands.NextScreen;

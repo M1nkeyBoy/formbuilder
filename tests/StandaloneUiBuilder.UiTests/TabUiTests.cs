@@ -1,5 +1,6 @@
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Input;
+using FlaUI.Core.WindowsAPI;
 
 namespace StandaloneUiBuilder.UiTests;
 
@@ -41,5 +42,35 @@ public sealed class TabUiTests : IDisposable
         EditorSession.WaitUntil(() => session.ById("ShownTabBox").AsComboBox().SelectedItem?.Text == "3. Tab 3",
             () => $"Shown tab: {session.ById("ShownTabBox").AsComboBox().SelectedItem?.Text}");
         session.Screenshot("29-tab-control");
+    }
+
+    /// <summary>
+    /// The sample's Settings screen has a tab order of its own; Preview (built like the generated
+    /// WPF window) follows it. Setting the order by clicking numbers the controls.
+    /// </summary>
+    [UiWalkthroughFact]
+    public void PreviewFollowsTheTabOrderAndClicksSetIt()
+    {
+        var sample = Path.Combine(AppContext.BaseDirectory, "samples", "layout-demo.uibproj");
+        var document = Core.ProjectFile.Load(sample);
+        using var session = EditorSession.Launch(recoveryDirectory, sample);
+        _ = session.Window;
+        EditorSession.Press(VirtualKeyShort.CONTROL, VirtualKeyShort.NEXT);
+        EditorSession.WaitUntil(() => session.Field("ScreenNameBox").Text == "Settings", () => $"Screen: {session.Field("ScreenNameBox").Text}");
+
+        session.ById("PreviewModeButton").Click();
+        session.ById("ServerTextBox").Focus();
+        using var automation = new FlaUI.UIA3.UIA3Automation();
+        TabOrderCheck.AssertTabOrder(automation, session.ById("SurfaceScroller"), document.Screens[1], focusWindow: false);
+
+        // Back in Design, Ctrl+T numbers the controls; clicking the slider makes it first.
+        session.ById("DesignModeButton").Click();
+        EditorSession.Press(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_T);
+        EditorSession.WaitUntil(() => session.Status.StartsWith("Click the controls", StringComparison.Ordinal), () => $"Status: {session.Status}");
+        session.ClickCanvas(450, 147);
+        EditorSession.WaitUntil(() => session.Status.StartsWith("LevelSlider is number 1", StringComparison.Ordinal), () => $"Status: {session.Status}");
+        session.Screenshot("30-tab-order");
+        EditorSession.Press(VirtualKeyShort.ESCAPE);
+        EditorSession.WaitUntil(() => session.Status == "Tab order set", () => $"Status: {session.Status}");
     }
 }

@@ -37,6 +37,10 @@ choices are recorded in `docs/decisions.md`.
   direction and spacing, a grid's rows and columns and their sizes (fixed DIPs like `100`,
   or shares of the rest like `*` and `2*`), and a control's order, or its cell and how many
   rows and columns it spans.
+- **Tab order.** Format > Set Tab Order (Ctrl+T) numbers the controls Tab visits; click them
+  in the order Tab should go, and press Esc when done. Tab Order by Position orders them top to
+  bottom and left to right; Reset Tab Order goes back to the controls' own order. Preview and
+  every export follow it.
 - **Work with several controls.** Ctrl+click, or drag a box across empty canvas, to select
   several controls; drag, nudge (arrow keys, Shift for a grid step), copy, cut, paste,
   duplicate (Ctrl+D) or delete them together. Ctrl+A selects all. The Format menu aligns

@@ -185,7 +185,33 @@ public static partial class WpfImporter
             });
         }
 
-        return screen with { Controls = [.. controls] };
+        screen = screen with { Controls = [.. controls] };
+        return screen with { TabOrder = TabOrder(content, screen) };
+    }
+
+    /// <summary>
+    /// A tab order from TabIndex: controls with one come first, lowest first, as in WPF; the
+    /// rest follow in the order they are in. Null when no control has one.
+    /// </summary>
+    private static ImmutableList<Guid>? TabOrder(XElement content, ScreenDocument screen)
+    {
+        var indexes = content.DescendantsAndSelf()
+            .Select(e => (Name: (string?)e.Attribute(Xaml + "Name"), Index: Number(e, "TabIndex")))
+            .Where(e => e.Name is not null && e.Index is not null)
+            .GroupBy(e => e.Name!)
+            .ToDictionary(g => g.Key, g => g.First().Index!.Value);
+        if (indexes.Count == 0)
+        {
+            return null;
+        }
+
+        var stops = TabSequence.Resolve(screen with { TabOrder = null });
+        var order = stops.Select((control, position) => (control, position))
+            .OrderBy(s => indexes.TryGetValue(s.control.Name, out var index) ? index : double.MaxValue)
+            .ThenBy(s => s.position)
+            .Select(s => s.control.Id)
+            .ToImmutableList();
+        return TabSequence.Tidy(screen with { TabOrder = order }).TabOrder;
     }
 
     private static (int Width, int Height) ScreenSize(XElement window, XElement? content, Context context)

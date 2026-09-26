@@ -50,6 +50,12 @@ some control follows the right or bottom edge). The differences come from WinUI 
 Hooks work as in the WPF output: implement `partial void OnSaveButtonClick(RoutedEventArgs e)`
 in the window's `.xaml.cs` file.
 
+## Tab order
+
+WinUI orders Tab within each panel, so, as in WinForms, with a tab order set on the screen every
+control and container gets `TabIndex` with its place among the controls beside it, and a
+container's controls are visited together. In a TabControl, the tabs come before the page.
+
 ## Checks
 
 - Unit tests parse every generated window as XAML, check the layout attributes and the

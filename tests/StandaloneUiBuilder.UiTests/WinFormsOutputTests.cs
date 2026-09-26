@@ -90,6 +90,7 @@ public sealed class WinFormsOutputTests
                         ?? window.FindFirstChild(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Window).And(cf.ByName(secondScreen.Name)))?.AsWindow(),
                     $"the {secondScreen.Name} form");
                 AssertLayout(second, secondScreen, secondScreen.Width, secondScreen.Height);
+                TabOrderCheck.AssertTabOrder(automation, second, secondScreen);
 
                 EditorSession.WaitFor(() => second.FindFirstDescendant(cf => cf.ByAutomationId("CloseSettingsButton")), "Close button").Click();
                 EditorSession.WaitUntil(

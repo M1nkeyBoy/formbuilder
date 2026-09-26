@@ -58,6 +58,9 @@
         <CommandBinding Command="{x:Static local:EditorCommands.BringToFront}" Executed="BringToFront_Executed" CanExecute="HasSelection_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.SendToBack}" Executed="SendToBack_Executed" CanExecute="HasSelection_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.Arrange}" Executed="Arrange_Executed" CanExecute="Arrange_CanExecute" />
+        <CommandBinding Command="{x:Static local:EditorCommands.SetTabOrder}" Executed="SetTabOrder_Executed" CanExecute="Designing_CanExecute" />
+        <CommandBinding Command="{x:Static local:EditorCommands.TabOrderByPosition}" Executed="TabOrderByPosition_Executed" CanExecute="Designing_CanExecute" />
+        <CommandBinding Command="{x:Static local:EditorCommands.ResetTabOrder}" Executed="ResetTabOrder_Executed" CanExecute="ResetTabOrder_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.AddScreen}" Executed="AddScreen_Executed" CanExecute="Designing_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.DuplicateScreen}" Executed="DuplicateScreen_Executed" CanExecute="Designing_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.DeleteScreen}" Executed="DeleteScreen_Executed" CanExecute="DeleteScreen_CanExecute" />
@@ -119,6 +122,10 @@
                 <MenuItem Header="Distribute _Down" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Vertically" />
                 <Separator />
                 <MenuItem Header="The last control selected is the one the others follow." IsEnabled="False" />
+                <Separator />
+                <MenuItem x:Name="SetTabOrderMenuItem" Command="{x:Static local:EditorCommands.SetTabOrder}" IsCheckable="False" />
+                <MenuItem Command="{x:Static local:EditorCommands.TabOrderByPosition}" />
+                <MenuItem Command="{x:Static local:EditorCommands.ResetTabOrder}" />
             </MenuItem>
             <MenuItem Header="_Screen">
                 <MenuItem Command="{x:Static local:EditorCommands.AddScreen}" InputGestureText="Ctrl+Shift+N" />

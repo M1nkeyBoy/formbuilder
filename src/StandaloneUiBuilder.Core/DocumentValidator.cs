@@ -148,6 +148,20 @@ public static partial class DocumentValidator
                 ValidateControl(screen, control, parent: null, ids, screenErrors);
             }
 
+            if (screen.TabOrder is { } tabOrder)
+            {
+                var stops = ControlTree.All(screen.Controls).Where(TabSequence.IsTabStop).Select(c => c.Id).ToHashSet();
+                if (tabOrder.Distinct().Count() != tabOrder.Count)
+                {
+                    screenErrors.Add("The tab order lists a control more than once.");
+                }
+
+                if (tabOrder.FirstOrDefault(id => !stops.Contains(id)) is var stray && stray != Guid.Empty)
+                {
+                    screenErrors.Add($"The tab order lists {stray}, which is not a control on the screen that takes input.");
+                }
+            }
+
             foreach (var button in ControlTree.All(screen.Controls).Where(c => c.Properties.OpensScreen is not null || c.Properties.ClosesScreen == true))
             {
                 if (button.Properties.OpensScreen is { } target && document.FindScreen(target) is null)

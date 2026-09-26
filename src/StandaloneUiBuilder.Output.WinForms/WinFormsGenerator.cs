@@ -315,6 +315,14 @@ public static class WinFormsGenerator
         return $"System.Drawing.Color.FromArgb({Number(red)}, {Number(green)}, {Number(blue)})";
     }
 
+    /// <summary>
+    /// A control's TabIndex: its place among the controls beside it. WinForms orders Tab within
+    /// each container, so with a tab order set on the screen, a container's controls are
+    /// visited together, where the first of them comes (see <see cref="TabSequence.SiblingRanks"/>).
+    /// </summary>
+    private static int TabRank(ScreenDocument screen, ControlDocument control, int index) =>
+        screen.TabOrder is not null && TabSequence.SiblingRanks(screen).TryGetValue(control.Id, out var rank) ? rank : index;
+
     /// <summary>The TableLayoutPanel inside a GroupBox that lines up its children.</summary>
     public static string LayoutPanelName(ControlDocument group) => group.Name + "Layout";
 
@@ -507,7 +515,8 @@ public static class WinFormsGenerator
             Set("Size", $"new System.Drawing.Size({Number(control.Width)}, {Number(control.Height)})");
         }
 
-        Set("TabIndex", Number(index));
+        // A tab page comes after its TabControl's tabs, which have TabIndex 0 in the host panel.
+        Set("TabIndex", Number(parent?.Type == ControlType.TabControl ? index + 1 : TabRank(screen, control, index)));
 
         switch (control.Type)
         {
@@ -582,7 +591,7 @@ public static class WinFormsGenerator
 
         code.AppendLine($"        this.{host}.Controls.Add(this.{name});");
         Host("Name", Literal(host));
-        Host("TabIndex", Number(index));
+        Host("TabIndex", Number(TabRank(screen, tabs, index)));
 
         code.AppendLine("        // ");
         code.AppendLine($"        // {name}");
@@ -599,7 +608,7 @@ public static class WinFormsGenerator
         }
 
         Set("Name", Literal(name));
-        Set("TabIndex", Number(pages.Count));
+        Set("TabIndex", "0");
         code.AppendLine($"        this.{name}.{EventFor(tabs.Type)} += this.{HandlerName(tabs)};");
 
         for (var i = 0; i < pages.Count; i++)

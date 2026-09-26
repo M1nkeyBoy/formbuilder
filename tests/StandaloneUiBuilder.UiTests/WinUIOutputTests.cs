@@ -53,6 +53,9 @@ public sealed class WinUIOutputTests
             AssertLayout(second, settings);
             Screenshot(second, "41-winui-settings");
 
+            // The drawn TabControl's tabs have no automation ID of their own.
+            TabOrderCheck.AssertTabOrder(automation, second, settings, c => c.Type == Core.ControlType.TabControl);
+
             EditorSession.WaitFor(() => second.FindFirstDescendant(cf => cf.ByAutomationId("CloseSettingsButton")), "Close button").Click();
             EditorSession.WaitUntil(() => app.GetAllTopLevelWindows(automation).All(w => w.Title != settings.Name), () => "The Settings window did not close.");
         }

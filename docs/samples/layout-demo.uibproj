@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 11,
+  "schemaVersion": 12,
   "projectId": "5b7c2f4e-8d1a-4e6b-9f3c-2a7d8e9b0c11",
   "name": "Layout demo",
   "screens": [
@@ -815,6 +815,23 @@
             "bottom"
           ]
         }
+      ],
+      "tabOrder": [
+        "ac29ec4f-d408-5117-b373-3d6ce1b5b3dc",
+        "31712b14-e62b-52e2-be20-3d363cce6b87",
+        "8103e8ef-3d25-5e23-b5ea-ea36bff0314d",
+        "c2eaaf00-2aeb-5fdf-b385-ff6a9beaf70b",
+        "7b75b6d0-15f8-5d47-9fca-48c57d9d95e4",
+        "2ac8c444-ccf7-5769-9dcb-281a67b2a6e0",
+        "82df297a-7a94-5bb2-9f52-726d39d89d77",
+        "877a380c-1312-5772-bc3e-1a8a970b6745",
+        "ed497447-c515-5ce3-a782-f3b348a7f43d",
+        "483c0f81-f992-5a1c-8c75-9217235de6e6",
+        "914db90a-bba7-5d89-840f-b99a583dcd93",
+        "2a538e6d-49fa-552b-a559-9e0683deb28d",
+        "239ab7b6-3266-5d28-a2cc-a15a518e7475",
+        "a6bf0ca1-2503-5704-90e9-24b45ffe6393",
+        "76c0444f-1558-5642-954c-287ff9221c35"
       ]
     }
   ]

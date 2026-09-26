@@ -692,11 +692,16 @@ public sealed partial class DesignEditor
     public ScreenDocument DuplicateScreen()
     {
         var current = Screen;
+        var controls = current.Controls.ConvertAll(ControlTree.WithNewIds);
+
+        // The copy's tab order names the copied controls.
+        var newIds = ControlTree.All(current.Controls).Zip(ControlTree.All(controls)).ToDictionary(p => p.First.Id, p => p.Second.Id);
         var copy = current with
         {
             Id = Guid.NewGuid().ToString("N"),
             Name = NextScreenName(current.Name),
-            Controls = current.Controls.ConvertAll(ControlTree.WithNewIds),
+            Controls = controls,
+            TabOrder = current.TabOrder?.Where(newIds.ContainsKey).Select(id => newIds[id]).ToImmutableList(),
         };
         InsertScreen(copy);
         return copy;
@@ -1056,7 +1061,9 @@ public sealed partial class DesignEditor
         var after = screenId ?? before;
         undoStack.Push(new HistoryEntry(Document, before, after));
         redoStack.Clear();
-        Document = next;
+
+        // Removed controls leave the tab order.
+        Document = next with { Screens = next.Screens.ConvertAll(TabSequence.Tidy) };
         activeScreenId = after;
         OnChanged();
     }

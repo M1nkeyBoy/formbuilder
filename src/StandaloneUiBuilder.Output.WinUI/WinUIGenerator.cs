@@ -194,6 +194,14 @@ public static class WinUIGenerator
     /// </summary>
     private static void AppendElement(StringBuilder xaml, ScreenDocument screen, ControlDocument control, List<string> layout, int depth)
     {
+        // WinUI orders Tab within each panel, so with a tab order set on the screen, every
+        // control and container gets its place among the controls beside it. A container's
+        // controls are visited together, where the first of them comes.
+        if (screen.TabOrder is not null && TabSequence.SiblingRanks(screen).TryGetValue(control.Id, out var rank))
+        {
+            layout = [.. layout, $"TabIndex=\"{Number(rank)}\""];
+        }
+
         if (control.Type == ControlType.GroupBox)
         {
             AppendGroupBox(xaml, screen, control, layout, depth);
@@ -428,7 +436,8 @@ public static class WinUIGenerator
         xaml.AppendLine($"{indent}    <Border Margin=\"0,28,0,0\" BorderBrush=\"{{ThemeResource CardStrokeColorDefaultBrush}}\" BorderThickness=\"1\" CornerRadius=\"4\" />");
         if (pages.Count > 0)
         {
-            xaml.AppendLine($"{indent}    <StackPanel Orientation=\"Horizontal\" Spacing=\"2\" VerticalAlignment=\"Top\" Height=\"28\">");
+            var stripIndex = screen.TabOrder is not null ? " TabIndex=\"0\"" : "";
+            xaml.AppendLine($"{indent}    <StackPanel Orientation=\"Horizontal\" Spacing=\"2\" VerticalAlignment=\"Top\" Height=\"28\"{stripIndex}>");
             for (var i = 0; i < pages.Count; i++)
             {
                 xaml.AppendLine($"{indent}        <ToggleButton Content=\"{Attribute(pages[i].Properties.Text ?? "")}\" IsChecked=\"{(i == shown ? "True" : "False")}\" Height=\"28\" MinWidth=\"0\" MinHeight=\"0\" Padding=\"10,0\" Click=\"{HandlerName(tabs)}\" />");
@@ -445,7 +454,9 @@ public static class WinUIGenerator
             var orientation = properties.Orientation == StackOrientation.Horizontal ? "Horizontal" : "Vertical";
             var visibility = i == shown ? "" : " Visibility=\"Collapsed\"";
             var style = string.Concat(StyleAttributes(properties).Select(a => " " + a));
-            var opening = $"{indent}    <StackPanel x:Name=\"{page.Name}\" Margin=\"{margin}\" Orientation=\"{orientation}\"{visibility}{style}";
+            // The page comes after the tabs.
+            var pageIndex = screen.TabOrder is not null ? $" TabIndex=\"{Number(i + 1)}\"" : "";
+            var opening = $"{indent}    <StackPanel x:Name=\"{page.Name}\" Margin=\"{margin}\" Orientation=\"{orientation}\"{visibility}{pageIndex}{style}";
             if (page.Children is not { Count: > 0 })
             {
                 xaml.AppendLine(opening + " />");

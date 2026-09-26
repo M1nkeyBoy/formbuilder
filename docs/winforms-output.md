@@ -98,6 +98,14 @@ WinForms controls look and measure differently from WPF controls:
 - The layout tests run at 96 DPI. At other DPI settings, fixed `TableLayoutPanel` row sizes
   depend on how the WinForms version scales them.
 
+## Tab order
+
+Every control has a `TabIndex`: its place among the controls beside it, since WinForms orders
+Tab within each container. When the screen has a tab order of its own, a container's place is
+where the first of its controls comes, so its controls are visited together; an order that
+goes into a container, out and back in again cannot be kept. Within a TabControl's host panel,
+the tabs come first and then the page.
+
 ## Responding to controls
 
 As in WPF output, each control you can interact with has a hook: a partial method you can

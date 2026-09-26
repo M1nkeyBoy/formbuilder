@@ -62,6 +62,12 @@ other screen is named after itself, with its name in lower case as its address.
 | DatePicker | `<input type="date">` |
 | Image | `<img>` with `object-fit: contain` (or `fill`), its picture in `wwwroot/Assets/<screen>/` |
 
+## Tab order
+
+When the screen has a tab order of its own, each element Tab visits gets `tabindex` with its
+place (from 1): the input inside a check box's or radio button's label, and every tab button of
+a TabControl. Browsers stop once in a group of radio buttons.
+
 ## Control values and hooks
 
 Each control that holds a value has a field named after it in the page, starting from the

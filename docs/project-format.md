@@ -21,15 +21,16 @@ A complete example is in [`samples/customer-form.uibproj`](samples/customer-form
 | 9 | Adds `fontSize`, `isBold`, `foreground` and `background`. | None: older controls use the standard font and colours. |
 | 10 | Adds the `Image` type, with `imageData` and `stretch`. | None: older files have no images. |
 | 11 | Adds the container `TabControl`, with `selectedTab`, and its pages, `TabPage`. | None: older files have no tabs. |
+| 12 | Adds `tabOrder` to screens. | None: Tab follows the order controls are in, as before. |
 
-The builder reads versions 1 to 11 and always saves version 11. An older builder rejects a
+The builder reads versions 1 to 12 and always saves version 12. An older builder rejects a
 newer file with a clear message instead of silently dropping what it does not know.
 
-## Schema version 11
+## Schema version 12
 
 ```json
 {
-  "schemaVersion": 11,
+  "schemaVersion": 12,
   "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971",
   "name": "Customer form",
   "screens": [{
@@ -73,6 +74,7 @@ newer file with a clear message instead of silently dropping what it does not kn
 | `width`, `height` | integer | 800, 600 | Design size in DIPs; must be positive. |
 | `gridSize` | integer | 10 | Grid spacing in DIPs; must be positive. |
 | `controls` | array | empty | Draw order: later controls are drawn on top. |
+| `tabOrder` | array of control IDs | omitted | The order Tab visits the controls that take input (Button, TextBox, PasswordBox, CheckBox, RadioButton, ComboBox, ListBox, Slider, DatePicker, TabControl), each once. Controls it does not list follow in their usual order: `controls` order, with a container's controls in its place. Omitted when it would be that usual order anyway. |
 
 ### Control
 

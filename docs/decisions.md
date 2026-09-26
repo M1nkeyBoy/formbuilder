@@ -562,3 +562,22 @@ Choices made during the prototype slices that affect later work.
 - **Hidden pages in the layout rules.** Every page is laid out, but those behind the chosen
   tab (and what they hold) are marked hidden, so the editor, the layout tests and the import
   check all agree on what is on screen.
+
+## Slice 30 — Tab order
+
+- **Keyboard users need a sensible order.** By default Tab follows the order controls are in,
+  which is the order they were added; a screen can now store its own order (`tabOrder`, format
+  version 12), set by clicking controls in turn (Ctrl+T, as in Visual Studio's designer) or by
+  position, top to bottom and left to right.
+- **One screen-wide list** of the controls that take input. Controls not in it (added later)
+  come after it, and the file omits it when it matches the default, so designs without one
+  export exactly as before.
+- **Each target in its own terms.** WPF, MAUI and browsers compare tab indexes across the
+  whole window or page, so they get each control's place in the list. WinForms and WinUI
+  compare them within each container, so they get each control's rank among its neighbours,
+  a container ranking by the first of its controls; there, a container's controls are always
+  visited together. The editor's Preview uses WPF's rules inside its own tab scope.
+- **Checked by pressing Tab.** The CI tests press Tab through the generated WinForms, WinUI and
+  MAUI Settings screens, the Blazor page and the editor's Preview, and compare the focused
+  controls with the design. Radio buttons are left out of that comparison, since some targets
+  stop only at the chosen one of a group.

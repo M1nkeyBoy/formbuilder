@@ -48,6 +48,11 @@ screen's page as a modal page, which fills the window, so its anchored controls 
 stretch to the window's size; one that closes its screen pops it (or closes the window if it
 is the first screen).
 
+## Tab order
+
+When the screen has a tab order of its own, each control Tab visits gets its place in it as
+`TabIndex`, which MAUI compares across the page. A TabControl's tab buttons share its place.
+
 ## Checks
 
 Unit tests check the XAML and code everywhere. On Windows, CI installs the MAUI workload,

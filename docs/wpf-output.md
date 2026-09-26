@@ -110,6 +110,14 @@ Example (`docs/samples/customer-form.uibproj`):
 </Grid>
 ```
 
+## Tab order
+
+When the screen has a tab order of its own, each control Tab visits gets its place in it as
+`TabIndex`, which WPF compares across the whole window. A DatePicker or TabControl also gets
+`KeyboardNavigation.TabNavigation="Local"`, so Tab goes through its own parts (the date text
+and calendar button, the tabs) before moving on. Without a tab order, nothing is numbered and
+Tab follows the order of the XAML, which is the design's order.
+
 ## Responding to controls
 
 Every control you can interact with is wired to one event, and each has a *hook*: a partial
