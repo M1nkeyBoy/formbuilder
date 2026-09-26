@@ -133,6 +133,40 @@ jobs:
           if ($app.HasExited) { throw "The published editor exited during startup (exit code $($app.ExitCode))." }
           Stop-Process -Id $app.Id
 
+      # The Windows installer (installer/StandaloneUiBuilder.wxs), installed, started and
+      # removed again, as a user would.
+      - name: Build the installer
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 5.0.2
+          wix build installer/StandaloneUiBuilder.wxs -arch x64 `
+            -d PublishDir=artifacts/publish -d SamplesDir=docs/samples -d Version=1.0.${{ github.run_number }} `
+            -o artifacts/installer/StandaloneUiBuilder.msi
+          if ($LASTEXITCODE -ne 0) { throw "The installer did not build." }
+
+      - name: Check the installer installs, starts and uninstalls
+        shell: pwsh
+        run: |
+          $msi = (Resolve-Path "artifacts/installer/StandaloneUiBuilder.msi").Path
+          $installed = Join-Path $env:LOCALAPPDATA "Programs\Standalone UI Builder"
+          $install = Start-Process msiexec -ArgumentList "/i `"$msi`" /qn /l*v artifacts/installer/install.log" -Wait -PassThru
+          if ($install.ExitCode -ne 0) { Get-Content artifacts/installer/install.log -Tail 60; throw "Install failed ($($install.ExitCode))." }
+          $exe = Get-ChildItem $installed, (Join-Path $env:ProgramFiles "Standalone UI Builder") -Filter StandaloneUiBuilder.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($null -eq $exe) { throw "The editor was not installed." }
+          Write-Output "Installed at $($exe.FullName)"
+          if (-not (Test-Path (Join-Path $exe.DirectoryName "Samples\layout-demo.uibproj"))) { throw "The samples were not installed." }
+          $association = (Get-ItemProperty "HKCU:\Software\Classes\.uibproj" -ErrorAction SilentlyContinue).'(default)'
+          if ($association -ne "StandaloneUiBuilder.Project") { throw "Project files are not associated with the editor ($association)." }
+
+          $app = Start-Process -FilePath $exe.FullName -ArgumentList "`"$(Join-Path $exe.DirectoryName 'Samples\layout-demo.uibproj')`"" -PassThru
+          Start-Sleep -Seconds 10
+          if ($app.HasExited) { throw "The installed editor exited during startup (exit code $($app.ExitCode))." }
+          Stop-Process -Id $app.Id
+
+          $uninstall = Start-Process msiexec -ArgumentList "/x `"$msi`" /qn" -Wait -PassThru
+          if ($uninstall.ExitCode -ne 0) { throw "Uninstall failed ($($uninstall.ExitCode))." }
+          if (Test-Path $exe.FullName) { throw "The editor was left behind after uninstalling." }
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -148,3 +182,8 @@ jobs:
           path: |
             artifacts/publish/StandaloneUiBuilder.exe
             docs/samples/customer-form.uibproj
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: StandaloneUiBuilder-installer
+          path: artifacts/installer/StandaloneUiBuilder.msi

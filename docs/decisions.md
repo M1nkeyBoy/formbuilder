@@ -716,3 +716,16 @@ Choices made during the prototype slices that affect later work.
 - **Checked by** the existing UI tests, which drive every part of the editor, and new ones for
   search, Layers, clicking at 125% zoom, and the dark editor (Windows' setting changed for the
   test and put back).
+
+## Slice 37 — Windows installer
+
+- **An MSI built with WiX v5**, pinned as a .NET tool, from the self-contained editor CI
+  already publishes. WiX is the standard, text-based way to make MSIs and runs in CI with no
+  other setup; the source is one short file, `installer/StandaloneUiBuilder.wxs`.
+- **Per user, no administrator rights**: it installs under `%LOCALAPPDATA%\Programs`, like
+  most modern desktop apps a person installs for themselves, with a Start menu shortcut, the
+  sample projects, and `.uibproj` files opening in the editor. Major upgrades replace older
+  versions; the version is `1.0.<CI run number>`.
+- **Checked in CI** by installing it silently, checking the files and the file association,
+  starting the installed editor on a sample, and uninstalling it again.
+- **Not signed.** Windows may warn about an unknown publisher; signing needs a certificate.

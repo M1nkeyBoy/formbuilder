@@ -149,6 +149,20 @@ publish\StandaloneUiBuilder.exe
 CI builds the same thing on every push. Download it from the run's
 `StandaloneUiBuilder-win-x64` artifact on the repository's Actions page.
 
+### Installer
+
+CI also builds a Windows installer, `StandaloneUiBuilder.msi` (the run's
+`StandaloneUiBuilder-installer` artifact), from `installer/StandaloneUiBuilder.wxs` with the
+WiX toolset. It installs for the current user, with no administrator rights needed, into
+`%LOCALAPPDATA%\Programs\Standalone UI Builder`: the editor, the sample projects, a Start menu
+shortcut, and `.uibproj` files opening in the editor. A newer version replaces an older one;
+Settings > Apps removes it. To build it yourself after publishing as above:
+
+```powershell
+dotnet tool install --global wix --version 5.0.2
+wix build installer/StandaloneUiBuilder.wxs -arch x64 -d PublishDir=publish -d SamplesDir=docs/samples -d Version=1.0.0 -o StandaloneUiBuilder.msi
+```
+
 ## Tests
 
 ```powershell

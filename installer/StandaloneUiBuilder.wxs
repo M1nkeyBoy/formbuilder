@@ -1,0 +1,63 @@
+<!--
+    The Windows installer (WiX v5): the self-contained editor, for the current user (no
+    administrator rights needed), with a Start menu shortcut, the sample projects, and .uibproj
+    files opening in the editor. Built by CI from the published editor:
+        wix build installer/StandaloneUiBuilder.wxs -d PublishDir=artifacts/publish
+            -d SamplesDir=docs/samples -d Version=1.0.0 -o StandaloneUiBuilder.msi
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+    <Package Name="Standalone UI Builder"
+             Manufacturer="Standalone UI Builder"
+             Version="$(Version)"
+             UpgradeCode="5d87ceab-d95b-4900-a873-8bcf4638c0ed"
+             Scope="perUser"
+             Compressed="yes">
+
+        <!-- A newer version replaces an older one; an older one does not replace a newer. -->
+        <MajorUpgrade DowngradeErrorMessage="A newer version of Standalone UI Builder is already installed." />
+        <MediaTemplate EmbedCab="yes" />
+
+        <StandardDirectory Id="ProgramFiles6432Folder">
+            <Directory Id="INSTALLFOLDER" Name="Standalone UI Builder">
+                <Directory Id="SamplesFolder" Name="Samples" />
+            </Directory>
+        </StandardDirectory>
+
+        <Feature Id="Main" Title="Standalone UI Builder">
+            <ComponentGroupRef Id="Editor" />
+            <ComponentGroupRef Id="Samples" />
+            <ComponentRef Id="StartMenuShortcut" />
+        </Feature>
+
+        <ComponentGroup Id="Editor" Directory="INSTALLFOLDER">
+            <Component Id="EditorExe">
+                <File Id="EditorExeFile" Source="$(PublishDir)\StandaloneUiBuilder.exe" KeyPath="yes" />
+
+                <!-- Project files open in the editor. -->
+                <ProgId Id="StandaloneUiBuilder.Project" Description="Standalone UI Builder project" Icon="EditorExeFile">
+                    <Extension Id="uibproj" ContentType="application/json">
+                        <Verb Id="open" Command="Open" TargetFile="EditorExeFile" Argument="&quot;%1&quot;" />
+                    </Extension>
+                </ProgId>
+            </Component>
+        </ComponentGroup>
+
+        <ComponentGroup Id="Samples" Directory="SamplesFolder">
+            <Component Id="CustomerFormSample">
+                <File Source="$(SamplesDir)\customer-form.uibproj" KeyPath="yes" />
+            </Component>
+            <Component Id="LayoutDemoSample">
+                <File Source="$(SamplesDir)\layout-demo.uibproj" KeyPath="yes" />
+            </Component>
+        </ComponentGroup>
+
+        <!-- A per-user shortcut needs a per-user registry value to mark it installed. -->
+        <StandardDirectory Id="ProgramMenuFolder">
+            <Component Id="StartMenuShortcut">
+                <Shortcut Id="EditorShortcut" Name="Standalone UI Builder" Description="Design desktop and web screens"
+                          Target="[#EditorExeFile]" WorkingDirectory="INSTALLFOLDER" />
+                <RegistryValue Root="HKCU" Key="Software\StandaloneUiBuilder" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+            </Component>
+        </StandardDirectory>
+    </Package>
+</Wix>
