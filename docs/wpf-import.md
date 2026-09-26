@@ -23,8 +23,10 @@ them; everything else is left out and listed when the import finishes.
   `AcceptsReturn`), PasswordBox, CheckBox, RadioButton, ComboBox and ListBox with their items,
   Slider and ProgressBar with their range, DatePicker, and Image with its picture file.
 - **Containers:** StackPanel (the gap before each child becomes the spacing), Grid with its
-  rows, columns and spans (`Auto` sizes become equal shares), and GroupBox holding a
-  StackPanel.
+  rows, columns and spans (`Auto` sizes become equal shares), GroupBox holding a
+  StackPanel, and TabControl: each `TabItem` becomes a page with its `Header`, and its content
+  the page's controls (a StackPanel's children, or the one control). `SelectedIndex` is kept.
+  The builder's own exported TabControls read back exactly.
 - **Text and style:** content and text (with WPF's `_` access-key markers removed), checked
   states, `FontSize`, bold weights, and `#RRGGBB` or opaque `#AARRGGBB` colours.
 - **Names:** each `x:Name`; controls without one get the builder's usual names.

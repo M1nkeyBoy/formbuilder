@@ -80,7 +80,7 @@ public sealed class WinUIOutputTests
         foreach (var placed in ContainerLayout.Flatten(screen))
         {
             var control = placed.Control;
-            if (ControlCatalog.Get(control.Type).IsContainer || control.Type == Core.ControlType.Label)
+            if (placed.IsHidden || ControlCatalog.Get(control.Type).IsContainer || control.Type == Core.ControlType.Label)
             {
                 continue;
             }

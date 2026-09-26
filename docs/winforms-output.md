@@ -68,6 +68,13 @@ overwritten. The namespace of an earlier export is kept, as for WPF.
 - A GroupBox holds a `TableLayoutPanel` called `<Name>Layout`, set 8 pixels in from its
   sides and bottom and 20 from its top and anchored to all four sides. The panel lines up the
   children like a StackPanel's. A control named like that panel blocks the export.
+- A TabControl is a `Panel` called `<Name>Host` in its place, holding the real `TabControl`
+  (docked to fill it, with an empty `TabPage` per page) and, on top, each page as a
+  `TableLayoutPanel` named after it, 8 pixels in from the sides and bottom and 36 from the top,
+  anchored to all four sides. Only the chosen page is `Visible`; the `SelectedIndexChanged`
+  handler shows the page whose tab is chosen, then calls the hook. Pages without a background
+  of their own are white, like the TabControl under them. A control named like the host panel
+  blocks the export.
 - RadioButtons group by their parent, as in the design.
 - An **Image** is a `PictureBox` (`SizeMode` `Zoom`, or `StretchImage` for Fill) that loads
   its picture from `Assets/<screen>/<control>.png` next to the application. The project file

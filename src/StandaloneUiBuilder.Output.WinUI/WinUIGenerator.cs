@@ -14,7 +14,8 @@ namespace StandaloneUiBuilder.Output.WinUI;
 /// Layout follows the WPF output, since WinUI XAML has the same panels, alignment and margins.
 /// WinUI has no Label or GroupBox: a Label is a ContentControl, which centres its text the same
 /// way, and a GroupBox is a Grid drawing a frame and title around a StackPanel at the fixed
-/// inset. WinUI controls have minimum sizes in their default styles, so every control resets
+/// inset. Its TabView is a document-tab control, so a TabControl is drawn the same way: a row of
+/// toggle buttons over a frame, with each page at the fixed inset. WinUI controls have minimum sizes in their default styles, so every control resets
 /// them to keep its designed size.
 /// </remarks>
 public static class WinUIGenerator
@@ -45,6 +46,7 @@ public static class WinUIGenerator
         ControlType.ComboBox or ControlType.ListBox => ("SelectionChanged", "object", "SelectionChangedEventArgs"),
         ControlType.Slider => ("ValueChanged", "object", "RangeBaseValueChangedEventArgs"),
         ControlType.DatePicker => ("DateChanged", "CalendarDatePicker", "CalendarDatePickerDateChangedEventArgs"),
+        ControlType.TabControl => ("SelectionChanged", "object", "RoutedEventArgs"),
         _ => null,
     };
 
@@ -201,6 +203,12 @@ public static class WinUIGenerator
         if (control.Type == ControlType.Image)
         {
             AppendImage(xaml, screen, control, layout, depth);
+            return;
+        }
+
+        if (control.Type == ControlType.TabControl)
+        {
+            AppendTabControl(xaml, screen, control, layout, depth);
             return;
         }
 
@@ -405,6 +413,54 @@ public static class WinUIGenerator
     }
 
     /// <summary>
+    /// A TabControl, drawn like the GroupBox: a named Grid in its place holding a frame under a
+    /// row of toggle buttons, one per tab, and each page as a StackPanel at the fixed
+    /// <see cref="ContainerLayout.TabControlInset"/>. Clicking a tab runs the generated handler,
+    /// which shows its page.
+    /// </summary>
+    private static void AppendTabControl(StringBuilder xaml, ScreenDocument screen, ControlDocument tabs, List<string> layout, int depth)
+    {
+        var indent = new string(' ', depth * 4);
+        var pages = tabs.Children ?? [];
+        var shown = ContainerLayout.ShownTab(tabs);
+        var (left, top, right, bottom) = ContainerLayout.TabControlInset;
+        xaml.AppendLine($"{indent}<Grid x:Name=\"{tabs.Name}\" {string.Join(" ", layout)}>");
+        xaml.AppendLine($"{indent}    <Border Margin=\"0,28,0,0\" BorderBrush=\"{{ThemeResource CardStrokeColorDefaultBrush}}\" BorderThickness=\"1\" CornerRadius=\"4\" />");
+        if (pages.Count > 0)
+        {
+            xaml.AppendLine($"{indent}    <StackPanel Orientation=\"Horizontal\" Spacing=\"2\" VerticalAlignment=\"Top\" Height=\"28\">");
+            for (var i = 0; i < pages.Count; i++)
+            {
+                xaml.AppendLine($"{indent}        <ToggleButton Content=\"{Attribute(pages[i].Properties.Text ?? "")}\" IsChecked=\"{(i == shown ? "True" : "False")}\" Height=\"28\" MinWidth=\"0\" MinHeight=\"0\" Padding=\"10,0\" Click=\"{HandlerName(tabs)}\" />");
+            }
+
+            xaml.AppendLine($"{indent}    </StackPanel>");
+        }
+
+        var margin = string.Join(",", new[] { left, top, right, bottom }.Select(Number));
+        for (var i = 0; i < pages.Count; i++)
+        {
+            var page = pages[i];
+            var properties = page.Properties;
+            var orientation = properties.Orientation == StackOrientation.Horizontal ? "Horizontal" : "Vertical";
+            var visibility = i == shown ? "" : " Visibility=\"Collapsed\"";
+            var style = string.Concat(StyleAttributes(properties).Select(a => " " + a));
+            var opening = $"{indent}    <StackPanel x:Name=\"{page.Name}\" Margin=\"{margin}\" Orientation=\"{orientation}\"{visibility}{style}";
+            if (page.Children is not { Count: > 0 })
+            {
+                xaml.AppendLine(opening + " />");
+                continue;
+            }
+
+            xaml.AppendLine(opening + ">");
+            AppendStackChildren(xaml, screen, page, depth + 2);
+            xaml.AppendLine($"{indent}    </StackPanel>");
+        }
+
+        xaml.AppendLine($"{indent}</Grid>");
+    }
+
+    /// <summary>
     /// An Image, in a Grid that has its designed box. An Image that keeps its picture's shape
     /// shrinks to the picture, so on its own it would follow its anchors to one edge; in the
     /// Grid it is centred in the box, as the other targets show it.
@@ -503,7 +559,28 @@ public static class WinUIGenerator
                 ? $"new {ClassName(document, target)}().Activate();"
                 : control.Properties.ClosesScreen == true ? "Close();"
                 : null;
-            if (action is null)
+            if (control.Type == ControlType.TabControl)
+            {
+                // The clicked tab is the only one checked, and its page the only one shown.
+                code.AppendLine($"    private void {HandlerName(control)}({e.Sender} sender, {e.Args} e)");
+                code.AppendLine("    {");
+                code.AppendLine("        var tabs = (Panel)((FrameworkElement)sender).Parent;");
+                code.AppendLine("        var index = tabs.Children.IndexOf((UIElement)sender);");
+                code.AppendLine("        for (var i = 0; i < tabs.Children.Count; i++)");
+                code.AppendLine("        {");
+                code.AppendLine("            ((ToggleButton)tabs.Children[i]).IsChecked = i == index;");
+                code.AppendLine("        }");
+                code.AppendLine();
+                var pages = control.Children ?? [];
+                for (var i = 0; i < pages.Count; i++)
+                {
+                    code.AppendLine($"        {pages[i].Name}.Visibility = index == {Number(i)} ? Visibility.Visible : Visibility.Collapsed;");
+                }
+
+                code.AppendLine($"        {HookName(control)}(e);");
+                code.AppendLine("    }");
+            }
+            else if (action is null)
             {
                 code.AppendLine($"    private void {HandlerName(control)}({e.Sender} sender, {e.Args} e) => {HookName(control)}(e);");
             }

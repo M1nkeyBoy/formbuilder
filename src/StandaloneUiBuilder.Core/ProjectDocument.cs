@@ -11,10 +11,10 @@ public sealed record ProjectDocument
     /// <summary>
     /// The format version this builder writes. Older versions (1: no anchors, 2: no containers,
     /// 3: no grid spans, 4: no sized grid rows and columns, 5: one screen, 6: the first seven
-    /// control types only, 7: no button actions, 8: no fonts or colours, 9: no images) are still
+    /// control types only, 7: no button actions, 8: no fonts or colours, 9: no images, 10: no tab controls) are still
     /// read. See docs/project-format.md for the history.
     /// </summary>
-    public const int CurrentSchemaVersion = 10;
+    public const int CurrentSchemaVersion = 11;
 
     public const int OldestSupportedSchemaVersion = 1;
     public const string DefaultName = "Untitled";
@@ -176,10 +176,13 @@ public sealed record ControlProperties
     /// <summary>Slider and ProgressBar: the current value, from Minimum to Maximum.</summary>
     public int? Value { get; init; }
 
-    /// <summary>StackPanel and GroupBox: the direction children are lined up.</summary>
+    /// <summary>TabControl: the index of the page shown, in the designer and when the screen opens.</summary>
+    public int? SelectedTab { get; init; }
+
+    /// <summary>StackPanel, GroupBox and TabPage: the direction children are lined up.</summary>
     public StackOrientation? Orientation { get; init; }
 
-    /// <summary>StackPanel and GroupBox: the gap between children, in DIPs.</summary>
+    /// <summary>StackPanel, GroupBox and TabPage: the gap between children, in DIPs.</summary>
     public int? Spacing { get; init; }
 
     /// <summary>Grid: the number of rows.</summary>

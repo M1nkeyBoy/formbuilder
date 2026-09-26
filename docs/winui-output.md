@@ -33,6 +33,10 @@ some control follows the right or bottom edge). The differences come from WinUI 
 - WinUI has no **Label**; a Label is a `ContentControl`, which centres its text the same way.
 - WinUI has no **GroupBox**; a GroupBox is a `Grid`, named after the design, drawing a rounded
   frame and the title, with a `StackPanel` for the children at the fixed inset.
+- WinUI's `TabView` is for documents (closable tabs, an add button), so a **TabControl** is
+  drawn like the GroupBox: a `Grid`, named after the design, with a frame under a row of
+  `ToggleButton` tabs and each page as a `StackPanel` at the fixed inset (8, 36, 8, 8). The
+  tabs' `Click` handler checks the clicked tab only, shows its page and calls the hook.
 - A **DatePicker** is a `CalendarDatePicker`, the text box with a drop-down calendar that
   matches the other outputs; its hook is `DateChanged`.
 - WinUI's default styles give many controls a minimum width and height (a CheckBox is at

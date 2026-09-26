@@ -80,7 +80,7 @@ public sealed class MauiOutputTests
         foreach (var placed in ContainerLayout.Flatten(screen, width, height))
         {
             var control = placed.Control;
-            if (ControlCatalog.Get(control.Type).IsContainer || control.Type is Core.ControlType.Label or Core.ControlType.CheckBox)
+            if (placed.IsHidden || ControlCatalog.Get(control.Type).IsContainer || control.Type is Core.ControlType.Label or Core.ControlType.CheckBox)
             {
                 continue;
             }

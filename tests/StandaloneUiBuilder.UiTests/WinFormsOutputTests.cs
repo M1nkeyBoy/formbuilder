@@ -113,6 +113,12 @@ public sealed class WinFormsOutputTests
         var client = ClientRect(window);
         foreach (var placed in ContainerLayout.Flatten(screen, width, height))
         {
+            // Pages behind the chosen tab are not shown, so have no automation element.
+            if (placed.IsHidden)
+            {
+                continue;
+            }
+
             var control = placed.Control;
             var element = window.FindFirstDescendant(cf => cf.ByAutomationId(control.Name))
                 ?? throw new InvalidOperationException($"{control.Name} is not in the generated form.");

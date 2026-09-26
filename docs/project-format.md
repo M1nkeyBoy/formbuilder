@@ -20,15 +20,16 @@ A complete example is in [`samples/customer-form.uibproj`](samples/customer-form
 | 8 | Adds `opensScreen` and `closesScreen` to Buttons. | None: older buttons do nothing but call their hook. |
 | 9 | Adds `fontSize`, `isBold`, `foreground` and `background`. | None: older controls use the standard font and colours. |
 | 10 | Adds the `Image` type, with `imageData` and `stretch`. | None: older files have no images. |
+| 11 | Adds the container `TabControl`, with `selectedTab`, and its pages, `TabPage`. | None: older files have no tabs. |
 
-The builder reads versions 1 to 10 and always saves version 10. An older builder rejects a
+The builder reads versions 1 to 11 and always saves version 11. An older builder rejects a
 newer file with a clear message instead of silently dropping what it does not know.
 
-## Schema version 10
+## Schema version 11
 
 ```json
 {
-  "schemaVersion": 10,
+  "schemaVersion": 11,
   "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971",
   "name": "Customer form",
   "screens": [{
@@ -78,7 +79,7 @@ newer file with a clear message instead of silently dropping what it does not kn
 | Field | Type | Notes |
 |---|---|---|
 | `id` | GUID string | Required, unique within the project, never empty. |
-| `type` | string | Required. One of `Label`, `Button`, `TextBox`, `PasswordBox`, `CheckBox`, `RadioButton`, `ComboBox`, `ListBox`, `Slider`, `ProgressBar`, `DatePicker`, `Image`, or the containers `StackPanel`, `Grid` and `GroupBox`. |
+| `type` | string | Required. One of `Label`, `Button`, `TextBox`, `PasswordBox`, `CheckBox`, `RadioButton`, `ComboBox`, `ListBox`, `Slider`, `ProgressBar`, `DatePicker`, `Image`, or the containers `StackPanel`, `Grid`, `GroupBox`, `TabControl` and `TabPage`. |
 | `name` | string | Required. Letter or underscore first, then letters, digits or underscores. Unique within its screen, ignoring case; other screens may reuse it. |
 | `x`, `y` | integer | DIPs from the screen's top-left corner; not negative. |
 | `width`, `height` | integer | DIPs; at least the type's minimum size. The control must fit inside the screen. |
@@ -90,7 +91,8 @@ newer file with a clear message instead of silently dropping what it does not kn
 
 Minimum sizes: Label 20 × 16, Button 30 × 20, TextBox and PasswordBox 30 × 20, CheckBox and
 RadioButton 20 × 16, ComboBox 40 × 20, ListBox 40 × 30, Slider 40 × 20, ProgressBar 20 × 8,
-DatePicker 80 × 20, Image 8 × 8, StackPanel and Grid 20 × 20, GroupBox 40 × 40.
+DatePicker 80 × 20, Image 8 × 8, StackPanel, Grid and TabPage 20 × 20, GroupBox 40 × 40,
+TabControl 60 × 60.
 
 ### Containers
 
@@ -103,6 +105,13 @@ A control inside a container has no position of its own; the container places it
 - **GroupBox** is a frame with its `text` as a title. It lines up its children exactly like a
   StackPanel, inside an area 8 DIPs in from its left, right and bottom edges and 20 DIPs
   down from its top, which leaves room for the frame and title.
+- **TabControl** holds only TabPages, and a TabPage is only ever in a TabControl. Every page
+  fills the same area, 8 DIPs in from the TabControl's left, right and bottom edges and 36
+  DIPs down from its top, which leaves room for the row of tabs. Only the page at
+  `selectedTab` (counted from 0) is shown, in the editor and when the screen opens; the
+  others, and everything on them, are hidden until their tab is chosen.
+- **TabPage** has its `text` on its tab, and lines up its children exactly like a StackPanel.
+  Its own `x`, `y`, `width` and `height` are ignored.
 - **Grid** divides itself into `rows` × `columns` cells. Fixed rows and columns get their size;
   the rest share the remaining space by weight (equally by default). If the fixed sizes do
   not fit, the shared ones get nothing and the overflow is clipped. Each child fills the cell
@@ -133,6 +142,7 @@ Anchors describe what happens when a generated window is made larger than the de
 | ComboBox | | | ✓ (in display order) |
 | ListBox | | | ✓ (in display order) |
 | GroupBox | ✓ (the title) | | |
+| TabPage | ✓ (on its tab) | | |
 
 PasswordBox and DatePicker have no type-specific properties: a password is never stored, and
 a DatePicker starts with no date chosen. RadioButtons in the same container (or directly on
@@ -145,7 +155,7 @@ file stays self-contained.
 
 Controls that show text (Label, Button, TextBox, PasswordBox, CheckBox, RadioButton, ComboBox,
 ListBox, DatePicker and GroupBox) may have `fontSize` (6 to 72 DIPs; 12 when omitted),
-`isBold: true` and `foreground`, the text colour. Any control but an Image may have `background`. Colours
+`isBold: true` and `foreground`, the text colour. Any control but an Image or TabControl may have `background`. Colours
 are written `#RRGGBB` in upper case. All four are omitted when not set. A GroupBox's font and
 text colour apply to its title only.
 
@@ -161,8 +171,11 @@ than the maximum, the value lies between them, and all are within ±1,000,000.
 
 | Type | `orientation` | `spacing` | `rows` | `columns` |
 |---|---|---|---|---|
-| StackPanel, GroupBox | `Vertical` or `Horizontal` | 0 to 200 DIPs | | |
+| StackPanel, GroupBox, TabPage | `Vertical` or `Horizontal` | 0 to 200 DIPs | | |
 | Grid | | | 1 to 20 | 1 to 20 |
+
+A TabControl has `selectedTab`, the index of the page shown: from 0 to the number of pages
+less one (0 when it has none).
 
 A Grid may also have `rowSizes` and `columnSizes`: one string per row or column, in WPF's
 notation. `"100"` is a fixed size in DIPs (1 to 10000). `"*"` or `"2*"` is a share of the space

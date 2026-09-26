@@ -202,7 +202,7 @@ public static partial class ProjectFile
         // sized grid rows and columns; older files have none of them, so need nothing else.
         // Version 6 allows several screens; older files are read as having one. Version 7 adds
         // control types and properties that older files do not use, version 8 button actions,
-        // version 9 fonts and colours, and version 10 images.
+        // version 9 fonts and colours, version 10 images, and version 11 tab controls.
         return version;
     }
 

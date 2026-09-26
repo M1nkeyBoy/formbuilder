@@ -41,6 +41,18 @@ public enum ControlType
     /// (<see cref="ContainerLayout.GroupBoxInset"/>) that leaves room for the frame and title.
     /// </summary>
     GroupBox,
+
+    /// <summary>
+    /// Pages on top of each other with a row of tabs to choose which one shows. It holds only
+    /// TabPages, each filling its content area (<see cref="ContainerLayout.TabControlInset"/>).
+    /// </summary>
+    TabControl,
+
+    /// <summary>
+    /// One page of a TabControl: its tab shows the page's text, and the page lines its
+    /// children up like a StackPanel. It exists only inside a TabControl.
+    /// </summary>
+    TabPage,
 }
 
 /// <summary>How an Image fills its box.</summary>

@@ -55,13 +55,14 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        ToolboxList.ItemsSource = ControlCatalog.All;
+        ToolboxList.ItemsSource = ControlCatalog.All.Where(d => d.InToolbox).ToList();
         Surface.ControlClicked += Surface_ControlClicked;
         Surface.ControlClickCompleted += Surface_ControlClickCompleted;
         Surface.BlankClicked += Surface_BlankClicked;
         Surface.BandSelected += Surface_BandSelected;
         Surface.MoveCommitted += (_, e) => MoveSelection(e.Ids, e.Dx, e.Dy);
         Surface.ReparentRequested += Surface_ReparentRequested;
+        Surface.TabClicked += Surface_TabClicked;
         Surface.NudgeRequested += (_, e) => MoveSelection(e.Ids, e.Dx, e.Dy);
         Surface.ControlDropped += (_, e) => AddControl(e.Type, e.X, e.Y);
         Surface.BoundsChanging += (_, e) => ShowBounds(e.Id, e.Bounds);
@@ -215,7 +216,7 @@ public partial class MainWindow : Window
     /// <summary>Adds a control at a point: into the innermost container there, or onto the screen.</summary>
     private void AddControl(ControlType type, double x, double y)
     {
-        var container = ContainerLayout.ContainerAt(editor.Screen, x, y);
+        var container = ContainerLayout.ContainerAt(editor.Screen, x, y, type: type);
         var control = (container is not null ? editor.AddControlTo(type, container.Control.Id, x, y) : null)
             ?? editor.AddControl(type, x, y);
         ToolboxList.SelectedItem = null;
@@ -302,13 +303,14 @@ public partial class MainWindow : Window
         // Inside a container, the container decides placement: show only what still applies.
         var parent = editor.ParentOf(control.Id);
         var inStack = parent is not null && ControlCatalog.Get(parent.Type).IsStack;
+        var isPage = parent?.Type == ControlType.TabControl;
         var verticalStack = inStack && parent!.Properties.Orientation != StackOrientation.Horizontal;
         XRow.Visibility = YRow.Visibility = AnchorRow.Visibility = Show(parent is null);
         WidthRow.Visibility = Show(parent is null || (inStack && !verticalStack));
         HeightRow.Visibility = Show(parent is null || verticalStack);
         CellRow.Visibility = SpanRow.Visibility = Show(parent?.Type == ControlType.Grid);
-        OrderRow.Visibility = Show(inStack);
-        if (inStack)
+        OrderRow.Visibility = Show(inStack || isPage);
+        if (inStack || isPage)
         {
             var index = parent!.Children!.FindIndex(c => c.Id == control.Id);
             EarlierButton.IsEnabled = index > 0;
@@ -357,6 +359,16 @@ public partial class MainWindow : Window
             refreshingInspector = true;
             ActionBox.ItemsSource = actions;
             ActionBox.SelectedIndex = actions.FindIndex(a => a.OpensScreen == properties.OpensScreen && a.ClosesScreen == (properties.ClosesScreen == true));
+            refreshingInspector = false;
+        }
+
+        var tabs = editor.TabControlOf(control.Id);
+        TabsRow.Visibility = Show(tabs is not null);
+        if (tabs is not null)
+        {
+            refreshingInspector = true;
+            ShownTabBox.ItemsSource = tabs.Children!.Select((page, i) => $"{i + 1}. {page.Properties.Text}").ToList();
+            ShownTabBox.SelectedIndex = tabs.Children!.Count > 0 ? ContainerLayout.ShownTab(tabs) : -1;
             refreshingInspector = false;
         }
 
@@ -641,6 +653,43 @@ public partial class MainWindow : Window
             UpdateInspectorErrors();
         }
     }
+
+    private void ShownTabBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!refreshingInspector && inspectedId is { } id && ShownTabBox.SelectedIndex >= 0)
+        {
+            ShowTab(id, ShownTabBox.SelectedIndex);
+        }
+    }
+
+    /// <summary>
+    /// Shows a tab of the TabControl that is, or holds, a control. With a page selected, the
+    /// page now shown is selected instead, since the old one is hidden.
+    /// </summary>
+    private void ShowTab(Guid id, int index)
+    {
+        if (editor.TabControlOf(id) is not { } tabs)
+        {
+            return;
+        }
+
+        editor.SetSelectedTab(tabs.Id, index);
+        if (editor.FindControl(id)?.Type == ControlType.TabPage && tabs.Children!.Count > index)
+        {
+            Select(tabs.Children[index].Id);
+        }
+    }
+
+    private void AddTabButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (inspectedId is { } id && editor.AddTab(id) is { } page)
+        {
+            Select(page.Id);
+            StatusText.Text = $"Added {page.Name}";
+        }
+    }
+
+    private void Surface_TabClicked(object? sender, TabClickEventArgs e) => ShowTab(e.TabControlId, e.Index);
 
     /// <summary>A choice in the Properties panel's "On click" list.</summary>
     private sealed record ButtonAction(string Label, string? OpensScreen, bool ClosesScreen);

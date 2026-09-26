@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 10,
+  "schemaVersion": 11,
   "projectId": "5b7c2f4e-8d1a-4e6b-9f3c-2a7d8e9b0c11",
   "name": "Layout demo",
   "screens": [
@@ -317,10 +317,10 @@
               "height": 30,
               "properties": {
                 "text": "OK",
-                "opensScreen": "settings",
+                "isBold": true,
                 "foreground": "#FFFFFF",
                 "background": "#1E6FD9",
-                "isBold": true
+                "opensScreen": "settings"
               },
               "anchor": [
                 "left",
@@ -374,7 +374,7 @@
           "width": 160,
           "height": 120,
           "properties": {
-            "imageData": "iVBORw0KGgoAAAANSUhEUgAAAGAAAABACAYAAADlNHIOAAACA0lEQVR42u3c11JUQRSF4XkSAyoOYQJvoSNBTGBCRSUIvhIYkSDBnDACRjICj7Oc+9k94ezuXUivXfXdMHfrr+LudCrF4/H+4ztwdxdcoWSUHexXe27sg8PbiJ396EN/QbLAw2+BquN1+EN3NkHJeBh/A6STfPzBdZAfNY9/eGAN5FeNAVZBflU/fv8KKIyK49f1LYPCqhDgDyis8gFu/waF5Rz/SPFHsiEHuPULZEMOcPMnyIYjwA+QDTHA0d7vIBtygBtLIBuOAIsgG2KAY9cXQDYcAb6BbMgBrn0F2RAD1Pd8AdlwBPgMsiEHuPoJGjGddisxwPErH6ER02m3cgSYh0ZcAXRbyQEuf4BGVAGUW5WMny7+USum87FXaYRL76ERVQDlVuK/oPTFd9CIKoByK0eAt9CIK4BuKzFAQ/cbaMR02q3kAF2vQTYcAV6BbIgBGi+8BNlwBHgBsiEHOP8cZEMM0HTuGciGI8AcyIYc4OwsyIYYoPnMDMiGI8A0yIYcoPMpyIYYIFP8gWw4P9LInJ4ChVX2E6VMxyQorAoBJkBhVfxUNds+Dgqj6o+1s21PQH7V9FRBtm0M5FfND3bkWh+D/Ej8ZE2u9RFIR/1oU+7UQ1AyXp8uyxcegKoT9PG+fOE+SGb+hGX+5D3Ebs895tpyYhT7Fd9FLok9wlF4ye8fOsbkD8004EgAAAAASUVORK5CYII=",
+            "imageData": "iVBORw0KGgoAAAANSUhEUgAAAGAAAABACAYAAADlNHIOAAACA0lEQVR42u3c11JUQRSF4XkSAyoOYQJvoSNBTGBCRSUIvhIYkSDBnDACRjICj7Oc\u002B9k94ezuXUivXfXdMHfrr\u002BLudCrF4/H\u002B4ztwdxdcoWSUHexXe27sg8PbiJ396EN/QbLAw2\u002BBquN1\u002BEN3NkHJeBh/A6STfPzBdZAfNY9/eGAN5FeNAVZBflU/fv8KKIyK49f1LYPCqhDgDyis8gFu/waF5Rz/SPFHsiEHuPULZEMOcPMnyIYjwA\u002BQDTHA0d7vIBtygBtLIBuOAIsgG2KAY9cXQDYcAb6BbMgBrn0F2RAD1Pd8AdlwBPgMsiEHuPoJGjGddisxwPErH6ER02m3cgSYh0ZcAXRbyQEuf4BGVAGUW5WMny7\u002BUSum87FXaYRL76ERVQDlVuK/oPTFd9CIKoByK0eAt9CIK4BuKzFAQ/cbaMR02q3kAF2vQTYcAV6BbIgBGi\u002B8BNlwBHgBsiEHOP8cZEMM0HTuGciGI8AcyIYc4OwsyIYYoPnMDMiGI8A0yIYcoPMpyIYYIFP8gWw4P9LInJ4ChVX2E6VMxyQorAoBJkBhVfxUNds\u002BDgqj6o\u002B1s21PQH7V9FRBtm0M5FfND3bkWh\u002BD/Ej8ZE2u9RFIR/1oU\u002B7UQ1AyXp8uyxcegKoT9PG\u002BfOE\u002BSGb\u002BhGX\u002B5D3Ebs895tpyYhT7Fd9FLok9wlF4ye8fOsbkD8004EgAAAAASUVORK5CYII=",
             "stretch": "Uniform"
           },
           "anchor": [
@@ -388,7 +388,7 @@
       "id": "settings",
       "name": "Settings",
       "width": 640,
-      "height": 440,
+      "height": 540,
       "gridSize": 10,
       "controls": [
         {
@@ -419,13 +419,13 @@
           "width": 290,
           "height": 150,
           "properties": {
+            "background": "#F3F6FA",
             "rows": 3,
             "columns": 2,
             "columnSizes": [
               "100",
               "*"
-            ],
-            "background": "#F3F6FA"
+            ]
           },
           "anchor": [
             "left",
@@ -443,6 +443,10 @@
               "properties": {
                 "text": "Server"
               },
+              "anchor": [
+                "left",
+                "top"
+              ],
               "row": 0,
               "column": 0
             },
@@ -457,6 +461,10 @@
               "properties": {
                 "text": "localhost"
               },
+              "anchor": [
+                "left",
+                "top"
+              ],
               "row": 0,
               "column": 1
             },
@@ -471,6 +479,10 @@
               "properties": {
                 "text": "Port"
               },
+              "anchor": [
+                "left",
+                "top"
+              ],
               "row": 1,
               "column": 0
             },
@@ -485,6 +497,10 @@
               "properties": {
                 "text": "8080"
               },
+              "anchor": [
+                "left",
+                "top"
+              ],
               "row": 1,
               "column": 1
             },
@@ -500,6 +516,10 @@
                 "text": "Use a secure connection",
                 "isChecked": true
               },
+              "anchor": [
+                "left",
+                "top"
+              ],
               "row": 2,
               "column": 0,
               "columnSpan": 2
@@ -516,9 +536,9 @@
           "height": 150,
           "properties": {
             "text": "Mode",
+            "isBold": true,
             "orientation": "Vertical",
-            "spacing": 6,
-            "isBold": true
+            "spacing": 6
           },
           "anchor": [
             "left",
@@ -537,7 +557,11 @@
               "properties": {
                 "text": "Fast",
                 "isChecked": true
-              }
+              },
+              "anchor": [
+                "left",
+                "top"
+              ]
             },
             {
               "id": "2a538e6d-49fa-552b-a559-9e0683deb28d",
@@ -550,7 +574,11 @@
               "properties": {
                 "text": "Safe",
                 "isChecked": false
-              }
+              },
+              "anchor": [
+                "left",
+                "top"
+              ]
             },
             {
               "id": "239ab7b6-3266-5d28-a2cc-a15a518e7475",
@@ -564,7 +592,11 @@
                 "minimum": 0,
                 "maximum": 10,
                 "value": 3
-              }
+              },
+              "anchor": [
+                "left",
+                "top"
+              ]
             },
             {
               "id": "9df2f6cd-600f-55e5-8f65-006c0c72eeab",
@@ -578,7 +610,11 @@
                 "minimum": 0,
                 "maximum": 100,
                 "value": 40
-              }
+              },
+              "anchor": [
+                "left",
+                "top"
+              ]
             }
           ]
         },
@@ -617,7 +653,7 @@
           "x": 20,
           "y": 280,
           "width": 160,
-          "height": 100,
+          "height": 200,
           "properties": {
             "items": [
               "Primary",
@@ -632,22 +668,118 @@
           ]
         },
         {
-          "id": "877a380c-1312-5772-bc3e-1a8a970b6745",
-          "type": "TextBox",
-          "name": "NotesTextBox",
+          "id": "82df297a-7a94-5bb2-9f52-726d39d89d77",
+          "type": "TabControl",
+          "name": "DetailsTabs",
           "x": 200,
           "y": 280,
           "width": 420,
-          "height": 100,
+          "height": 200,
           "properties": {
-            "text": "Notes wrap onto several lines.",
-            "isMultiline": true
+            "selectedTab": 0
           },
           "anchor": [
             "left",
             "top",
             "right",
             "bottom"
+          ],
+          "children": [
+            {
+              "id": "f5894a96-adae-5192-a038-935795372737",
+              "type": "TabPage",
+              "name": "NotesPage",
+              "x": 0,
+              "y": 0,
+              "width": 200,
+              "height": 150,
+              "properties": {
+                "text": "Notes",
+                "orientation": "Vertical",
+                "spacing": 6
+              },
+              "anchor": [
+                "left",
+                "top"
+              ],
+              "children": [
+                {
+                  "id": "877a380c-1312-5772-bc3e-1a8a970b6745",
+                  "type": "TextBox",
+                  "name": "NotesTextBox",
+                  "x": 0,
+                  "y": 0,
+                  "width": 420,
+                  "height": 100,
+                  "properties": {
+                    "text": "Notes wrap onto several lines.",
+                    "isMultiline": true
+                  },
+                  "anchor": [
+                    "left",
+                    "top"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "dbcffee6-a606-5819-9ec2-370c59ece20e",
+              "type": "TabPage",
+              "name": "AdvancedPage",
+              "x": 0,
+              "y": 0,
+              "width": 200,
+              "height": 150,
+              "properties": {
+                "text": "Advanced",
+                "background": "#F3F6FA",
+                "orientation": "Vertical",
+                "spacing": 6
+              },
+              "anchor": [
+                "left",
+                "top"
+              ],
+              "children": [
+                {
+                  "id": "ed497447-c515-5ce3-a782-f3b348a7f43d",
+                  "type": "CheckBox",
+                  "name": "VerboseCheckBox",
+                  "x": 0,
+                  "y": 0,
+                  "width": 100,
+                  "height": 20,
+                  "properties": {
+                    "text": "Verbose logging",
+                    "isChecked": false
+                  },
+                  "anchor": [
+                    "left",
+                    "top"
+                  ]
+                },
+                {
+                  "id": "483c0f81-f992-5a1c-8c75-9217235de6e6",
+                  "type": "ComboBox",
+                  "name": "LogLevelComboBox",
+                  "x": 0,
+                  "y": 0,
+                  "width": 120,
+                  "height": 30,
+                  "properties": {
+                    "items": [
+                      "Errors",
+                      "Warnings",
+                      "Everything"
+                    ]
+                  },
+                  "anchor": [
+                    "left",
+                    "top"
+                  ]
+                }
+              ]
+            }
           ]
         },
         {
@@ -655,7 +787,7 @@
           "type": "Button",
           "name": "SaveSettingsButton",
           "x": 420,
-          "y": 400,
+          "y": 500,
           "width": 100,
           "height": 30,
           "properties": {
@@ -671,7 +803,7 @@
           "type": "Button",
           "name": "CloseSettingsButton",
           "x": 530,
-          "y": 400,
+          "y": 500,
           "width": 90,
           "height": 30,
           "properties": {

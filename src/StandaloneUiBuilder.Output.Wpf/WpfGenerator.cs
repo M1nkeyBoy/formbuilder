@@ -44,6 +44,7 @@ public static class WpfGenerator
         ControlType.Slider => ("ValueChanged", "RoutedPropertyChangedEventArgs<double>"),
         ControlType.DatePicker => ("SelectedDateChanged", "SelectionChangedEventArgs"),
         ControlType.PasswordBox => ("PasswordChanged", "RoutedEventArgs"),
+        ControlType.TabControl => ("SelectionChanged", "SelectionChangedEventArgs"),
         _ => null,
     };
 
@@ -215,6 +216,12 @@ public static class WpfGenerator
         if (control.Type == ControlType.Image)
         {
             AppendImage(xaml, screen, control, layout, depth);
+            return;
+        }
+
+        if (control.Type == ControlType.TabControl)
+        {
+            AppendTabControl(xaml, screen, control, layout, depth);
             return;
         }
 
@@ -453,6 +460,59 @@ public static class WpfGenerator
     }
 
     /// <summary>
+    /// A TabControl: a Grid in its place holding the real TabControl, with an empty TabItem for
+    /// each page's tab, and on top of it each page as a StackPanel inset by
+    /// <see cref="ContainerLayout.TabControlInset"/>, only the selected one visible. As with a
+    /// GroupBox, the fixed inset puts pages exactly where the design has them; the generated
+    /// SelectionChanged handler shows the page whose tab is chosen.
+    /// </summary>
+    private static void AppendTabControl(StringBuilder xaml, ScreenDocument screen, ControlDocument tabs, List<string> layout, int depth)
+    {
+        var indent = new string(' ', depth * 4);
+        var pages = tabs.Children ?? [];
+        var shown = ContainerLayout.ShownTab(tabs);
+        var (left, top, right, bottom) = ContainerLayout.TabControlInset;
+        xaml.AppendLine($"{indent}<Grid {string.Join(" ", layout)}>");
+        var opening = $"{indent}    <TabControl x:Name=\"{tabs.Name}\" SelectedIndex=\"{Number(pages.Count > 0 ? shown : -1)}\" SelectionChanged=\"{HandlerName(tabs)}\"";
+        if (pages.Count == 0)
+        {
+            xaml.AppendLine(opening + " />");
+        }
+        else
+        {
+            xaml.AppendLine(opening + ">");
+            foreach (var page in pages)
+            {
+                xaml.AppendLine($"{indent}        <TabItem Header=\"{Attribute(LiteralAccessText(page.Properties.Text))}\" />");
+            }
+
+            xaml.AppendLine($"{indent}    </TabControl>");
+        }
+
+        var margin = string.Join(",", new[] { left, top, right, bottom }.Select(Number));
+        for (var i = 0; i < pages.Count; i++)
+        {
+            var page = pages[i];
+            var properties = page.Properties;
+            var orientation = properties.Orientation == StackOrientation.Horizontal ? "Horizontal" : "Vertical";
+            var visibility = i == shown ? "" : " Visibility=\"Collapsed\"";
+            var style = string.Concat(StyleAttributes(properties).Select(a => " " + a));
+            var pageOpening = $"{indent}    <StackPanel x:Name=\"{page.Name}\" Margin=\"{margin}\" Orientation=\"{orientation}\" ClipToBounds=\"True\"{visibility}{style}";
+            if (page.Children is not { Count: > 0 })
+            {
+                xaml.AppendLine(pageOpening + " />");
+                continue;
+            }
+
+            xaml.AppendLine(pageOpening + ">");
+            AppendStackChildren(xaml, screen, page, depth + 2);
+            xaml.AppendLine($"{indent}    </StackPanel>");
+        }
+
+        xaml.AppendLine($"{indent}</Grid>");
+    }
+
+    /// <summary>
     /// The regenerated half of the event wiring: a private handler for each control that the
     /// XAML refers to, which calls a partial method the developer may implement. Unimplemented
     /// hooks compile away, so adding or removing controls never breaks the build.
@@ -492,7 +552,30 @@ public static class WpfGenerator
             }
 
             first = false;
-            if (ActionStatement(document, control) is { } action)
+            if (control.Type == ControlType.TabControl)
+            {
+                // The pages are beside the TabControl, not in it, so the handler shows the one
+                // whose tab is chosen. It also runs while the window loads, before the pages exist.
+                var pages = control.Children ?? [];
+                code.AppendLine($"    private void {HandlerName(control)}(object sender, {e.Args} e)");
+                code.AppendLine("    {");
+                if (pages.Count > 0)
+                {
+                    code.AppendLine($"        if ({pages[^1].Name} is not null)");
+                    code.AppendLine("        {");
+                    for (var i = 0; i < pages.Count; i++)
+                    {
+                        code.AppendLine($"            {pages[i].Name}.Visibility = {control.Name}.SelectedIndex == {i} ? Visibility.Visible : Visibility.Collapsed;");
+                    }
+
+                    code.AppendLine("        }");
+                    code.AppendLine();
+                }
+
+                code.AppendLine($"        {HookName(control)}(e);");
+                code.AppendLine("    }");
+            }
+            else if (ActionStatement(document, control) is { } action)
             {
                 // The hook runs first, then the button's action from the design.
                 code.AppendLine($"    private void {HandlerName(control)}(object sender, {e.Args} e)");

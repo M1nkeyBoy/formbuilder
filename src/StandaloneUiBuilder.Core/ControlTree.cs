@@ -62,6 +62,32 @@ public static class ControlTree
         });
     }
 
+    /// <summary>
+    /// Keeps every TabControl's SelectedTab on one of its pages after pages were removed. Returns
+    /// the same list when nothing needed changing.
+    /// </summary>
+    public static ImmutableList<ControlDocument> KeepShownTabs(ImmutableList<ControlDocument> roots)
+    {
+        var changed = false;
+        var result = roots.ConvertAll(control =>
+        {
+            var kept = control;
+            if (control.Type == ControlType.TabControl && control.Properties.SelectedTab != ContainerLayout.ShownTab(control))
+            {
+                kept = kept with { Properties = kept.Properties with { SelectedTab = ContainerLayout.ShownTab(control) } };
+            }
+
+            if (kept.Children is { } children && KeepShownTabs(children) is var keptChildren && !ReferenceEquals(keptChildren, children))
+            {
+                kept = kept with { Children = keptChildren };
+            }
+
+            changed |= !ReferenceEquals(kept, control);
+            return kept;
+        });
+        return changed ? result : roots;
+    }
+
     /// <summary>Gives a control and everything inside it new IDs.</summary>
     public static ControlDocument WithNewIds(ControlDocument control) => control with
     {

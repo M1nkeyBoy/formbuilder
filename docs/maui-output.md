@@ -36,6 +36,7 @@ Layout follows the other XAML outputs: a root `Grid` whose children have
 | ComboBox | `Picker` with its items |
 | ListBox | `CollectionView` with its items, single selection |
 | GroupBox | A `Grid` drawing a frame and title, with a stack layout at the fixed inset |
+| TabControl | A `Grid` drawing a frame under a row of `Button` tabs, with each page a stack layout at the fixed inset (8, 36, 8, 8); clicking a tab shows its page and colours it as chosen |
 
 Each control's name is both its `x:Name` and its `AutomationId`. Text size, bold and colours
 become `FontSize`, `FontAttributes` and `TextColor`/`BackgroundColor`.

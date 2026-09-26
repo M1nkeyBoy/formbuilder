@@ -14,7 +14,8 @@ namespace StandaloneUiBuilder.Output.Maui;
 /// <remarks>
 /// Layout follows the WPF output: a root Grid whose children have alignment (layout options)
 /// and margins from their anchors, stack layouts and Grids for containers. MAUI names some
-/// controls differently (Entry, Editor, Picker, CollectionView) and has no GroupBox; a CheckBox
+/// controls differently (Entry, Editor, Picker, CollectionView) and has no GroupBox or
+/// TabControl, which are drawn as frames holding stacks at their fixed insets; a CheckBox
 /// has no text of its own, so it sits beside a Label in a small Grid that takes its place.
 /// </remarks>
 public static class MauiGenerator
@@ -39,6 +40,7 @@ public static class MauiGenerator
         ControlType.ListBox => ("SelectionChanged", "SelectionChangedEventArgs"),
         ControlType.Slider => ("ValueChanged", "ValueChangedEventArgs"),
         ControlType.DatePicker => ("DateSelected", "DateChangedEventArgs"),
+        ControlType.TabControl => ("SelectionChanged", "EventArgs"),
         _ => null,
     };
 
@@ -201,6 +203,9 @@ public static class MauiGenerator
         {
             case ControlType.GroupBox:
                 AppendGroupBox(xaml, screen, control, layout, depth);
+                return;
+            case ControlType.TabControl:
+                AppendTabControl(xaml, screen, control, layout, depth);
                 return;
             case ControlType.Image:
                 // Given only a size request, MAUI shows a picture at its natural size in a corner
@@ -394,6 +399,58 @@ public static class MauiGenerator
         xaml.AppendLine($"{indent}</Grid>");
     }
 
+    /// <summary>The colours of a chosen tab and of the others.</summary>
+    private const string SelectedTabColor = "#FFFFFF";
+    private const string TabColor = "#F0F0F0";
+
+    /// <summary>
+    /// A TabControl, which MAUI does not have within a page: a frame under a row of buttons,
+    /// one per tab, and each page as a stack at the fixed <see cref="ContainerLayout.TabControlInset"/>.
+    /// Clicking a tab runs the generated handler, which shows its page.
+    /// </summary>
+    private static void AppendTabControl(StringBuilder xaml, ScreenDocument screen, ControlDocument tabs, List<string> layout, int depth)
+    {
+        var indent = new string(' ', depth * 4);
+        var pages = tabs.Children ?? [];
+        var shown = ContainerLayout.ShownTab(tabs);
+        var (left, top, right, bottom) = ContainerLayout.TabControlInset;
+        xaml.AppendLine($"{indent}<Grid x:Name=\"{tabs.Name}\" {string.Join(" ", layout)}>");
+        xaml.AppendLine($"{indent}    <Border Margin=\"0,28,0,0\" Stroke=\"#D5DFE5\" StrokeThickness=\"1\" StrokeShape=\"RoundRectangle 4\" />");
+        if (pages.Count > 0)
+        {
+            xaml.AppendLine($"{indent}    <HorizontalStackLayout Spacing=\"2\" VerticalOptions=\"Start\" HeightRequest=\"28\">");
+            for (var i = 0; i < pages.Count; i++)
+            {
+                var color = i == shown ? SelectedTabColor : TabColor;
+                xaml.AppendLine($"{indent}        <Button Text=\"{Attribute(pages[i].Properties.Text ?? "")}\" HeightRequest=\"28\" MinimumHeightRequest=\"0\" MinimumWidthRequest=\"0\" Padding=\"10,0\" CornerRadius=\"3\" BorderColor=\"#D5DFE5\" BorderWidth=\"1\" TextColor=\"Black\" BackgroundColor=\"{color}\" Clicked=\"{HandlerName(tabs)}\" />");
+            }
+
+            xaml.AppendLine($"{indent}    </HorizontalStackLayout>");
+        }
+
+        var margin = string.Join(",", new[] { left, top, right, bottom }.Select(Number));
+        for (var i = 0; i < pages.Count; i++)
+        {
+            var page = pages[i];
+            var properties = page.Properties;
+            var stack = properties.Orientation == StackOrientation.Horizontal ? "HorizontalStackLayout" : "VerticalStackLayout";
+            var visible = i == shown ? "" : " IsVisible=\"False\"";
+            var style = string.Concat(StyleAttributes(page).Select(a => " " + a));
+            var opening = $"{indent}    <{stack} x:Name=\"{page.Name}\" Margin=\"{margin}\" Spacing=\"{Number(properties.Spacing ?? 0)}\"{visible}{style}";
+            if (page.Children is not { Count: > 0 })
+            {
+                xaml.AppendLine(opening + " />");
+                continue;
+            }
+
+            xaml.AppendLine(opening + ">");
+            AppendStackChildren(xaml, screen, page, depth + 2);
+            xaml.AppendLine($"{indent}    </{stack}>");
+        }
+
+        xaml.AppendLine($"{indent}</Grid>");
+    }
+
     private static IEnumerable<string> StyleAttributes(ControlDocument control, bool background = true)
     {
         var properties = control.Properties;
@@ -455,7 +512,28 @@ public static class MauiGenerator
                 ? $"await Navigation.PushModalAsync(new {ClassName(document, target)}());"
                 : control.Properties.ClosesScreen == true ? "await CloseAsync();"
                 : null;
-            if (action is null)
+            if (control.Type == ControlType.TabControl)
+            {
+                // The clicked tab is drawn as chosen, and its page is the only one shown.
+                code.AppendLine($"    private void {HandlerName(control)}(object? sender, {e.Args} e)");
+                code.AppendLine("    {");
+                code.AppendLine("        var tabs = (Layout)((Element)sender!).Parent;");
+                code.AppendLine("        var index = tabs.Children.IndexOf((IView)sender!);");
+                code.AppendLine("        for (var i = 0; i < tabs.Children.Count; i++)");
+                code.AppendLine("        {");
+                code.AppendLine($"            ((Button)tabs.Children[i]).BackgroundColor = Color.FromArgb(i == index ? \"{SelectedTabColor}\" : \"{TabColor}\");");
+                code.AppendLine("        }");
+                code.AppendLine();
+                var pages = control.Children ?? [];
+                for (var i = 0; i < pages.Count; i++)
+                {
+                    code.AppendLine($"        {pages[i].Name}.IsVisible = index == {Number(i)};");
+                }
+
+                code.AppendLine($"        {HookName(control)}(e);");
+                code.AppendLine("    }");
+            }
+            else if (action is null)
             {
                 code.AppendLine($"    private void {HandlerName(control)}(object? sender, {e.Args} e) => {HookName(control)}(e);");
             }

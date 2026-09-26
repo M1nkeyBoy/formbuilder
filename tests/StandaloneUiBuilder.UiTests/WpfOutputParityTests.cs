@@ -146,7 +146,8 @@ public sealed partial class WpfOutputParityTests
             preview.Height = height;
             Arrange(preview, width, height);
 
-            foreach (var expected in ContainerLayout.Flatten(screen, width, height))
+            // Pages behind the chosen tab are collapsed, in the window and the preview alike.
+            foreach (var expected in ContainerLayout.Flatten(screen, width, height).Where(p => !p.IsHidden))
             {
                 var name = expected.Control.Name;
                 var what = $"{name} ({expected.Control.Anchor}, depth {expected.Depth}) at {width} × {height}";

@@ -18,7 +18,8 @@ public sealed record ControlDefinition(
     bool IsStack = false,
     bool IsGrid = false,
     bool HasRange = false,
-    bool HasMultiline = false)
+    bool HasMultiline = false,
+    bool IsTabs = false)
 {
     public const int MaxSpacing = 200;
     public const int MaxRowsOrColumns = 20;
@@ -27,7 +28,17 @@ public sealed record ControlDefinition(
     public const int MaxRangeValue = 1_000_000;
 
     /// <summary>True for types that hold child controls.</summary>
-    public bool IsContainer => IsStack || IsGrid;
+    public bool IsContainer => IsStack || IsGrid || IsTabs;
+
+    /// <summary>
+    /// False for types that are not placed from the toolbox: a TabPage comes with its
+    /// TabControl, or from its Add tab command.
+    /// </summary>
+    public bool InToolbox => Type != ControlType.TabPage;
+
+    /// <summary>True if a container of this type can hold a control of the given type.</summary>
+    public bool CanHold(ControlType child) =>
+        IsContainer && (Type == ControlType.TabControl) == (child == ControlType.TabPage);
 
     /// <summary>True for types that show text, and so have a font and a text colour.</summary>
     public bool HasFont => Type is ControlType.Label or ControlType.Button or ControlType.TextBox or ControlType.PasswordBox
@@ -41,8 +52,8 @@ public sealed record ControlDefinition(
 
     public const int MaxFontSize = 72;
 
-    /// <summary>True for types that can have a background colour: all but Image.</summary>
-    public bool HasBackground => Type != ControlType.Image;
+    /// <summary>True for types that can have a background colour: all but Image and TabControl (colour its pages instead).</summary>
+    public bool HasBackground => Type is not (ControlType.Image or ControlType.TabControl);
 
     /// <summary>True for types that show a picture.</summary>
     public bool HasImage => Type == ControlType.Image;
@@ -61,6 +72,8 @@ public sealed record ControlDefinition(
         ControlType.StackPanel => new ControlProperties { Orientation = StackOrientation.Vertical, Spacing = 6 },
         ControlType.GroupBox => new ControlProperties { Text = name, Orientation = StackOrientation.Vertical, Spacing = 6 },
         ControlType.Grid => new ControlProperties { Rows = 2, Columns = 2 },
+        ControlType.TabControl => new ControlProperties { SelectedTab = 0 },
+        ControlType.TabPage => new ControlProperties { Text = name, Orientation = StackOrientation.Vertical, Spacing = 6 },
         _ => new ControlProperties { Text = name },
     };
 
@@ -79,6 +92,7 @@ public sealed record ControlDefinition(
         Columns = IsGrid ? properties.Columns ?? 1 : null,
         RowSizes = IsGrid ? properties.RowSizes : null,
         ColumnSizes = IsGrid ? properties.ColumnSizes : null,
+        SelectedTab = IsTabs ? properties.SelectedTab ?? 0 : null,
 
         ImageData = HasImage ? properties.ImageData : null,
         Stretch = HasImage ? properties.Stretch ?? ImageStretch.Uniform : null,
@@ -117,6 +131,8 @@ public static class ControlCatalog
         new(ControlType.StackPanel, 200, 150, 20, 20, HasText: false, HasIsChecked: false, HasItems: false, IsStack: true),
         new(ControlType.Grid, 240, 160, 20, 20, HasText: false, HasIsChecked: false, HasItems: false, IsGrid: true),
         new(ControlType.GroupBox, 220, 160, 40, 40, HasText: true, HasIsChecked: false, HasItems: false, IsStack: true),
+        new(ControlType.TabControl, 300, 200, 60, 60, HasText: false, HasIsChecked: false, HasItems: false, IsTabs: true),
+        new(ControlType.TabPage, 200, 150, 20, 20, HasText: true, HasIsChecked: false, HasItems: false, IsStack: true),
     ];
 
     public static bool TryGet(ControlType type, out ControlDefinition definition)

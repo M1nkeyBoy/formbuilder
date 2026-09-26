@@ -52,6 +52,7 @@ public static class WinFormsGenerator
         ControlType.Slider => "ValueChanged",
         ControlType.DatePicker => "ValueChanged",
         ControlType.PasswordBox => "TextChanged",
+        ControlType.TabControl => "SelectedIndexChanged",
         _ => null,
     };
 
@@ -102,6 +103,15 @@ public static class WinFormsGenerator
             if (names.Contains(LayoutPanelName(group)))
             {
                 problems.Add($"\"{LayoutPanelName(group)}\" clashes with the layout panel generated for GroupBox \"{group.Name}\". Rename one of them.");
+            }
+        }
+
+        // A TabControl and its pages sit in a generated panel named after it.
+        foreach (var tabs in all.Where(c => c.Type == ControlType.TabControl))
+        {
+            if (names.Contains(HostPanelName(tabs)))
+            {
+                problems.Add($"\"{HostPanelName(tabs)}\" clashes with the panel generated for TabControl \"{tabs.Name}\". Rename one of them.");
             }
         }
 
@@ -187,6 +197,10 @@ public static class WinFormsGenerator
             {
                 code.AppendLine($"        this.{LayoutPanelName(control)} = new System.Windows.Forms.TableLayoutPanel();");
             }
+            else if (control.Type == ControlType.TabControl)
+            {
+                code.AppendLine($"        this.{HostPanelName(control)} = new System.Windows.Forms.Panel();");
+            }
         }
 
         foreach (var container in containers)
@@ -195,6 +209,10 @@ public static class WinFormsGenerator
             if (container.Type == ControlType.GroupBox)
             {
                 code.AppendLine($"        this.{LayoutPanelName(container)}.SuspendLayout();");
+            }
+            else if (container.Type == ControlType.TabControl)
+            {
+                code.AppendLine($"        this.{HostPanelName(container)}.SuspendLayout();");
             }
         }
 
@@ -217,7 +235,7 @@ public static class WinFormsGenerator
         // WinForms puts the first control added on top, so add them in reverse draw order.
         for (var i = controls.Count - 1; i >= 0; i--)
         {
-            code.AppendLine($"        this.Controls.Add(this.{controls[i].Name});");
+            code.AppendLine($"        this.Controls.Add(this.{OuterName(controls[i])});");
         }
 
         if (resizable)
@@ -242,6 +260,10 @@ public static class WinFormsGenerator
             }
 
             code.AppendLine($"        this.{containers[i].Name}.ResumeLayout(false);");
+            if (containers[i].Type == ControlType.TabControl)
+            {
+                code.AppendLine($"        this.{HostPanelName(containers[i])}.ResumeLayout(false);");
+            }
         }
 
         code.AppendLine("        this.ResumeLayout(false);");
@@ -263,6 +285,10 @@ public static class WinFormsGenerator
             {
                 code.AppendLine($"    private System.Windows.Forms.TableLayoutPanel {LayoutPanelName(control)};");
             }
+            else if (control.Type == ControlType.TabControl)
+            {
+                code.AppendLine($"    private System.Windows.Forms.Panel {HostPanelName(control)};");
+            }
         }
 
         code.AppendLine("}");
@@ -275,7 +301,7 @@ public static class WinFormsGenerator
     /// </summary>
     private static string WinFormsType(ControlType type) => type switch
     {
-        ControlType.StackPanel or ControlType.Grid => "TableLayoutPanel",
+        ControlType.StackPanel or ControlType.Grid or ControlType.TabPage => "TableLayoutPanel",
         ControlType.Slider => "TrackBar",
         ControlType.DatePicker => "DateTimePicker",
         ControlType.PasswordBox => "TextBox",
@@ -292,6 +318,13 @@ public static class WinFormsGenerator
     /// <summary>The TableLayoutPanel inside a GroupBox that lines up its children.</summary>
     public static string LayoutPanelName(ControlDocument group) => group.Name + "Layout";
 
+    /// <summary>The Panel in a TabControl's place that holds the TabControl and, on top, its pages.</summary>
+    public static string HostPanelName(ControlDocument tabs) => tabs.Name + "Host";
+
+    /// <summary>The control a container adds: the host panel for a TabControl, otherwise the control.</summary>
+    private static string OuterName(ControlDocument control) =>
+        control.Type == ControlType.TabControl ? HostPanelName(control) : control.Name;
+
     /// <summary>
     /// Writes one control's settings, then its children's. A control on the form has a location,
     /// size and anchor; one in a container fills its table cell (Dock = Fill), and a stack's
@@ -299,6 +332,12 @@ public static class WinFormsGenerator
     /// </summary>
     private static void AppendControl(StringBuilder code, ScreenDocument screen, ControlDocument control, ControlDocument? parent, int index)
     {
+        if (control.Type == ControlType.TabControl)
+        {
+            AppendTabControl(code, screen, control, parent, index);
+            return;
+        }
+
         var name = control.Name;
         var properties = control.Properties;
         void Set(string property, string value) => code.AppendLine($"        this.{name}.{property} = {value};");
@@ -309,6 +348,20 @@ public static class WinFormsGenerator
         if (parent is null)
         {
             Set("Anchor", AnchorStyles(control.Anchor));
+        }
+        else if (parent.Type == ControlType.TabControl)
+        {
+            // A page lies over the TabControl, anchored at the fixed inset in its host panel;
+            // only the page whose tab is chosen is visible.
+            var (left, top, right, bottom) = ContainerLayout.TabControlInset;
+            Set("Anchor", AnchorStyles(AnchorEdges.Left | AnchorEdges.Top | AnchorEdges.Right | AnchorEdges.Bottom));
+            Set("Location", $"new System.Drawing.Point({Number(left)}, {Number(top)})");
+            Set("Size", $"new System.Drawing.Size({Number(parent.Width - left - right)}, {Number(parent.Height - top - bottom)})");
+            Set("Visible", index == ContainerLayout.ShownTab(parent) ? "true" : "false");
+            if (properties.Background is null)
+            {
+                Set("BackColor", "System.Drawing.SystemColors.Window");
+            }
         }
         else
         {
@@ -487,6 +540,74 @@ public static class WinFormsGenerator
         }
     }
 
+    /// <summary>
+    /// A TabControl: a Panel in its place holding the real TabControl, which fills it and has an
+    /// empty TabPage for each page's tab, and on top each page as a TableLayoutPanel at the
+    /// fixed <see cref="ContainerLayout.TabControlInset"/>. The generated handler shows the
+    /// page whose tab is chosen.
+    /// </summary>
+    private static void AppendTabControl(StringBuilder code, ScreenDocument screen, ControlDocument tabs, ControlDocument? parent, int index)
+    {
+        var name = tabs.Name;
+        var host = HostPanelName(tabs);
+        var pages = tabs.Children ?? [];
+        void Host(string property, string value) => code.AppendLine($"        this.{host}.{property} = {value};");
+        void Set(string property, string value) => code.AppendLine($"        this.{name}.{property} = {value};");
+
+        code.AppendLine("        // ");
+        code.AppendLine($"        // {host}");
+        code.AppendLine("        // ");
+        if (parent is null)
+        {
+            Host("Anchor", AnchorStyles(tabs.Anchor));
+            Host("Location", $"new System.Drawing.Point({Number(tabs.X)}, {Number(tabs.Y)})");
+        }
+        else
+        {
+            var gap = ControlCatalog.Get(parent.Type).IsStack && index > 0 ? parent.Properties.Spacing ?? 0 : 0;
+            var vertical = parent.Properties.Orientation != StackOrientation.Horizontal;
+            Host("Dock", "System.Windows.Forms.DockStyle.Fill");
+            Host("Margin", gap == 0 ? "new System.Windows.Forms.Padding(0)"
+                : vertical ? $"new System.Windows.Forms.Padding(0, {Number(gap)}, 0, 0)"
+                : $"new System.Windows.Forms.Padding({Number(gap)}, 0, 0, 0)");
+        }
+
+        // The panel has its design size before the pages are anchored inside it. WinForms puts
+        // the first control added on top, so the pages go in before the TabControl.
+        Host("Size", $"new System.Drawing.Size({Number(tabs.Width)}, {Number(tabs.Height)})");
+        foreach (var page in pages)
+        {
+            code.AppendLine($"        this.{host}.Controls.Add(this.{page.Name});");
+        }
+
+        code.AppendLine($"        this.{host}.Controls.Add(this.{name});");
+        Host("Name", Literal(host));
+        Host("TabIndex", Number(index));
+
+        code.AppendLine("        // ");
+        code.AppendLine($"        // {name}");
+        code.AppendLine("        // ");
+        Set("Dock", "System.Windows.Forms.DockStyle.Fill");
+        foreach (var page in pages)
+        {
+            code.AppendLine($"        this.{name}.TabPages.Add({Literal(page.Properties.Text ?? "")});");
+        }
+
+        if (pages.Count > 0)
+        {
+            Set("SelectedIndex", Number(ContainerLayout.ShownTab(tabs)));
+        }
+
+        Set("Name", Literal(name));
+        Set("TabIndex", Number(pages.Count));
+        code.AppendLine($"        this.{name}.{EventFor(tabs.Type)} += this.{HandlerName(tabs)};");
+
+        for (var i = 0; i < pages.Count; i++)
+        {
+            AppendControl(code, screen, pages[i], tabs, i);
+        }
+    }
+
     private static void AppendTable(StringBuilder code, string name, ControlDocument container, IReadOnlyList<ControlDocument> children)
     {
         var properties = container.Properties;
@@ -513,7 +634,7 @@ public static class WinFormsGenerator
             Line($"{along}Styles.Add(new System.Windows.Forms.{along}Style(System.Windows.Forms.SizeType.Percent, 100F));");
             for (var i = 0; i < children.Count; i++)
             {
-                Line(vertical ? $"Controls.Add(this.{children[i].Name}, 0, {Number(i)});" : $"Controls.Add(this.{children[i].Name}, {Number(i)}, 0);");
+                Line(vertical ? $"Controls.Add(this.{OuterName(children[i])}, 0, {Number(i)});" : $"Controls.Add(this.{OuterName(children[i])}, {Number(i)}, 0);");
             }
 
             return;
@@ -536,15 +657,15 @@ public static class WinFormsGenerator
 
         foreach (var child in children)
         {
-            Line($"Controls.Add(this.{child.Name}, {Number(child.Column ?? 0)}, {Number(child.Row ?? 0)});");
+            Line($"Controls.Add(this.{OuterName(child)}, {Number(child.Column ?? 0)}, {Number(child.Row ?? 0)});");
             if (child.RowSpan is > 1)
             {
-                Line($"SetRowSpan(this.{child.Name}, {Number(child.RowSpan.Value)});");
+                Line($"SetRowSpan(this.{OuterName(child)}, {Number(child.RowSpan.Value)});");
             }
 
             if (child.ColumnSpan is > 1)
             {
-                Line($"SetColumnSpan(this.{child.Name}, {Number(child.ColumnSpan.Value)});");
+                Line($"SetColumnSpan(this.{OuterName(child)}, {Number(child.ColumnSpan.Value)});");
             }
         }
     }
@@ -593,7 +714,21 @@ public static class WinFormsGenerator
             }
 
             first = false;
-            if (control.Properties.OpensScreen is { } id && document.FindScreen(id) is { } target)
+            if (control.Type == ControlType.TabControl)
+            {
+                // The pages lie over the TabControl, not in it: show the one whose tab is chosen.
+                code.AppendLine($"    private void {HandlerName(control)}(object? sender, System.EventArgs e)");
+                code.AppendLine("    {");
+                var pages = control.Children ?? [];
+                for (var i = 0; i < pages.Count; i++)
+                {
+                    code.AppendLine($"        this.{pages[i].Name}.Visible = this.{control.Name}.SelectedIndex == {Number(i)};");
+                }
+
+                code.AppendLine($"        {HookName(control)}(e);");
+                code.AppendLine("    }");
+            }
+            else if (control.Properties.OpensScreen is { } id && document.FindScreen(id) is { } target)
             {
                 // The hook runs first, then the button's action from the design.
                 code.AppendLine($"    private void {HandlerName(control)}(object? sender, System.EventArgs e)");

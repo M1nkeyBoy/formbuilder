@@ -360,6 +360,14 @@
                             <ComboBox x:Name="ActionBox" AutomationProperties.Name="On click"
                                       DisplayMemberPath="Label" SelectionChanged="ActionBox_SelectionChanged" />
                         </DockPanel>
+                        <DockPanel x:Name="TabsRow" Style="{StaticResource FieldRow}"
+                                   ToolTip="The tab shown on the canvas and when the screen opens. Click a tab on the canvas to show it too.">
+                            <Label Content="Shown tab" Target="{Binding ElementName=ShownTabBox}" Style="{StaticResource FieldLabel}" />
+                            <Button x:Name="AddTabButton" DockPanel.Dock="Right" Content="Add tab" Margin="6,0,0,0" Padding="6,0"
+                                    Click="AddTabButton_Click" />
+                            <ComboBox x:Name="ShownTabBox" AutomationProperties.Name="Shown tab"
+                                      SelectionChanged="ShownTabBox_SelectionChanged" />
+                        </DockPanel>
                         <DockPanel x:Name="MultilineRow" Style="{StaticResource FieldRow}"
                                    ToolTip="Several lines of text that wrap, with a scroll bar when needed.">
                             <Label Content="Lines" Style="{StaticResource FieldLabel}" />

@@ -26,7 +26,9 @@ choices are recorded in `docs/decisions.md`.
   edge, anchored to Left and Right it stretches. Dashed lines show the anchors of the
   selected control. In Preview, drag the corner grip to try them.
 - **Containers.** StackPanel lines controls up vertically or horizontally with a gap;
-  GroupBox does the same inside a titled frame; Grid
+  GroupBox does the same inside a titled frame; TabControl holds pages, each a stack, and
+  shows one at a time (click a tab on the canvas, or choose the shown tab and add tabs in the
+  Properties panel); Grid
   divides itself into equal rows and columns with one control per cell. Drag or click a
   toolbox item into a container, or drag a control in or out; the target container is
   outlined in green. Inside a stack a control keeps its height (or width) and stretches

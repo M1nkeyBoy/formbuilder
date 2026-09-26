@@ -65,6 +65,13 @@ existing code-behind.
   text as `Header`) and, over it, a `StackPanel` with `Margin="8,20,8,8"` for the children.
   The fixed margin puts children exactly where the design has them, whatever the theme's
   frame looks like.
+- A **TabControl** becomes a `Grid` holding a WPF `TabControl` (named after the design, with an
+  empty `TabItem` per page and `SelectedIndex` from the design) and, over it, each page as a
+  `StackPanel` named after it with `Margin="8,36,8,8"`, all but the chosen one `Collapsed`.
+  Its `SelectionChanged` handler in `.Events.g.cs` shows the page whose tab is chosen, then
+  calls the hook (`OnDetailsTabsSelectionChanged`). The pages sit beside the TabControl rather
+  than in it so they are exactly where the design has them, whatever height the theme gives
+  the tabs.
 - Containers nest in the XAML exactly as in the design.
 - If any control is anchored to the right or bottom edge, the window can be resized
   (`ResizeMode="CanResize"`) and the Grid has the design size as its minimum. Otherwise the

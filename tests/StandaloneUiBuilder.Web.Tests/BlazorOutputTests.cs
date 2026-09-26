@@ -72,6 +72,29 @@ public sealed class BlazorOutputTests
         Assert.False(await fast.IsCheckedAsync());
     }
 
+    [WebFact]
+    public async Task ChoosingATabShowsItsPage()
+    {
+        var document = Sample("layout-demo");
+        var screen = document.Screens[1];
+        using var app = await GeneratedApp.StartAsync(document, BlazorExporter.Export);
+        await using var browser = await LaunchAsync();
+        var page = await browser.NewPageAsync(new() { ViewportSize = new() { Width = screen.Width, Height = screen.Height } });
+        await page.GotoAsync(app.Url + "/settings");
+
+        await ClickUntilAsync(page, "#DetailsTabs .uib-tab:nth-child(2)", async () => await page.Locator("#AdvancedPage").IsVisibleAsync());
+        await Screenshot(page, "31-blazor-LayoutDemo-Settings-advanced-tab");
+
+        // Now laid out as if the design showed the second tab.
+        var tabs = ControlTree.All(screen.Controls).Single(c => c.Name == "DetailsTabs");
+        var shown = screen with
+        {
+            Controls = ControlTree.Replace(screen.Controls, tabs.Id, t => t with { Properties = t.Properties with { SelectedTab = 1 } }),
+        };
+        await AssertPlacedAsync(page, shown, screen.Width, screen.Height);
+        Assert.False(await page.Locator("#NotesTextBox").IsVisibleAsync());
+    }
+
     private static async Task AssertLayout(ProjectDocument document)
     {
         using var app = await GeneratedApp.StartAsync(document, BlazorExporter.Export);
@@ -90,23 +113,38 @@ public sealed class BlazorOutputTests
                 await page.GotoAsync(app.Url + BlazorGenerator.Route(document, screen));
                 await Screenshot(page, $"31-blazor-{CodeName(document)}-{screen.Name}-{width}x{height}");
 
-                var placedControls = ContainerLayout.Flatten(screen, width, height);
-                var boxes = await BoxesAsync(page, placedControls.Select(p => p.Control.Name).ToArray());
-                for (var i = 0; i < placedControls.Count; i++)
-                {
-                    var placed = placedControls[i];
-                    var actual = boxes[i] ?? throw new InvalidOperationException($"{placed.Control.Name} is not on the {screen.Name} page.");
-                    var expected = placed.Bounds;
-
-                    // Browsers lay out shared grid tracks in fractions of a pixel; allow one.
-                    bool Near(int a, int b) => Math.Abs(a - b) <= 1;
-                    Assert.True(
-                        Near(expected.X, actual.X) && Near(expected.Y, actual.Y) && Near(expected.Width, actual.Width) && Near(expected.Height, actual.Height),
-                        $"{screen.Name}: {placed.Control.Name} ({placed.Control.Type}, depth {placed.Depth}) at {width} × {height}: page has {actual}, expected {expected}");
-                }
-
+                await AssertPlacedAsync(page, screen, width, height);
                 await page.CloseAsync();
             }
+        }
+    }
+
+    /// <summary>
+    /// Every control shown is where the Core layout puts it; controls on tab pages that are not
+    /// shown take no space.
+    /// </summary>
+    private static async Task AssertPlacedAsync(IPage page, ScreenDocument screen, int width, int height)
+    {
+        var placedControls = ContainerLayout.Flatten(screen, width, height);
+        var boxes = await BoxesAsync(page, placedControls.Select(p => p.Control.Name).ToArray());
+        for (var i = 0; i < placedControls.Count; i++)
+        {
+            var placed = placedControls[i];
+            var actual = boxes[i] ?? throw new InvalidOperationException($"{placed.Control.Name} is not on the {screen.Name} page.");
+            var what = $"{screen.Name}: {placed.Control.Name} ({placed.Control.Type}, depth {placed.Depth}) at {width} × {height}";
+            if (placed.IsHidden)
+            {
+                Assert.True(actual.Width == 0 && actual.Height == 0, $"{what} is on a hidden tab page but has {actual}");
+                continue;
+            }
+
+            var expected = placed.Bounds;
+
+            // Browsers lay out shared grid tracks in fractions of a pixel; allow one.
+            bool Near(int a, int b) => Math.Abs(a - b) <= 1;
+            Assert.True(
+                Near(expected.X, actual.X) && Near(expected.Y, actual.Y) && Near(expected.Width, actual.Width) && Near(expected.Height, actual.Height),
+                $"{what}: page has {actual}, expected {expected}");
         }
     }
 

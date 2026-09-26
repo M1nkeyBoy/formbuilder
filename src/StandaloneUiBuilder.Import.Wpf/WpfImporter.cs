@@ -302,6 +302,23 @@ public static partial class WpfImporter
             return GroupBox(frame, inner, context);
         }
 
+        // The builder's own TabControl: a Grid holding a TabControl with empty tabs, and a
+        // StackPanel for each tab's page.
+        if (kind == "Grid" && Children(element).ToList() is [{ Name.LocalName: "TabControl" } strip, .. var pagePanels]
+            && pagePanels.All(p => p.Name.LocalName == "StackPanel")
+            && Children(strip).ToList() is var tabItems && tabItems.Count == pagePanels.Count
+            && tabItems.All(t => t.Name.LocalName == "TabItem" && !Children(t).Any()))
+        {
+            return TabControl(strip, tabItems.Zip(pagePanels, (tab, page) => (tab, (XElement?)page)).ToList(), context);
+        }
+
+        // Any other TabControl: each TabItem's content is its page.
+        if (kind == "TabControl")
+        {
+            return TabControl(element, Children(element).Where(t => t.Name.LocalName == "TabItem")
+                .Select(t => (t, Children(t).FirstOrDefault())).ToList(), context);
+        }
+
         // The builder's own Image: a Grid with the designed box, holding the picture.
         if (kind == "Grid" && !HasTracks(element) && element.Attribute(Xaml + "Name") is null
             && Children(element).ToList() is [{ Name.LocalName: "Image" } picture])
@@ -405,6 +422,58 @@ public static partial class WpfImporter
             Children = [],
         }.WithBounds(new ControlBounds(0, 0, definition.DefaultWidth, definition.DefaultHeight));
         return content is null ? group : Stack(group, content, context);
+    }
+
+    /// <summary>
+    /// A TabControl and its pages. A page's content that is a StackPanel lines up the page's
+    /// controls; any other single control becomes the page's only control.
+    /// </summary>
+    private static ControlDocument TabControl(XElement strip, List<(XElement Tab, XElement? Content)> tabs, Context context)
+    {
+        var name = Name(strip, ControlType.TabControl, context);
+        var definition = ControlCatalog.Get(ControlType.TabControl);
+        var pageDefinition = ControlCatalog.Get(ControlType.TabPage);
+        var pages = new List<ControlDocument>();
+        foreach (var (tab, content) in tabs)
+        {
+            var named = content is { Name.LocalName: "StackPanel" } && content.Attribute(Xaml + "Name") is not null ? content : tab;
+            var pageName = Name(named, ControlType.TabPage, context);
+            var properties = pageDefinition.CreateDefaultProperties(pageName) with
+            {
+                Text = Text(tab, "Header") ?? "",
+                Orientation = content is { Name.LocalName: "StackPanel" } && Text(content, "Orientation") == "Horizontal"
+                    ? StackOrientation.Horizontal
+                    : StackOrientation.Vertical,
+            };
+            var page = new ControlDocument
+            {
+                Id = Guid.NewGuid(),
+                Type = ControlType.TabPage,
+                Name = pageName,
+                Properties = content is { Name.LocalName: "StackPanel" } ? Style(content, properties, pageDefinition, pageName, context) : properties,
+                Children = [],
+            }.WithBounds(new ControlBounds(0, 0, pageDefinition.DefaultWidth, pageDefinition.DefaultHeight));
+            if (content is { Name.LocalName: "StackPanel" })
+            {
+                page = Stack(page, content, context);
+            }
+            else if (content is not null && ReadControl(content, context) is { } only)
+            {
+                page = page with { Children = [FitMinimum(only)] };
+            }
+
+            pages.Add(page);
+        }
+
+        var selected = Number(strip, "SelectedIndex") is { } index ? (int)index : 0;
+        return new ControlDocument
+        {
+            Id = Guid.NewGuid(),
+            Type = ControlType.TabControl,
+            Name = name,
+            Properties = definition.CreateDefaultProperties(name) with { SelectedTab = Math.Clamp(selected, 0, Math.Max(0, pages.Count - 1)) },
+            Children = [.. pages],
+        }.WithBounds(new ControlBounds(0, 0, definition.DefaultWidth, definition.DefaultHeight));
     }
 
     /// <summary>

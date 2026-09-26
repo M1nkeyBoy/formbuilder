@@ -14,7 +14,9 @@ namespace StandaloneUiBuilder.Output.Blazor;
 /// Layout follows the Core rules with plain CSS: controls on the screen are absolutely
 /// positioned from their anchors (left/right/top/bottom plus width/height), a StackPanel is a
 /// flex box, a Grid is a CSS grid with the same fixed and shared (<c>fr</c>) tracks, and a
-/// GroupBox is a framed box whose children sit in a flex box at the fixed inset.
+/// GroupBox is a framed box whose children sit in a flex box at the fixed inset. A TabControl
+/// is a row of tab buttons over a frame, with each page a flex box at its fixed inset, hidden
+/// unless its tab is chosen.
 /// </remarks>
 public static class BlazorGenerator
 {
@@ -54,6 +56,7 @@ public static class BlazorGenerator
         ControlType.ComboBox or ControlType.ListBox => "SelectionChanged",
         ControlType.Slider => "ValueChanged",
         ControlType.DatePicker => "SelectedDateChanged",
+        ControlType.TabControl => "SelectionChanged",
         _ => null,
     };
 
@@ -77,6 +80,7 @@ public static class BlazorGenerator
             ControlType.CheckBox or ControlType.RadioButton => ("bool", properties.IsChecked == true ? "true" : "false"),
             ControlType.Slider or ControlType.ProgressBar => ("int", Number(properties.Value ?? 0)),
             ControlType.DatePicker => ("DateOnly?", "null"),
+            ControlType.TabControl => ("int", Number(ContainerLayout.ShownTab(control))),
             _ => null,
         };
     }
@@ -226,7 +230,8 @@ public static class BlazorGenerator
     /// children with theirs. <paramref name="group"/> names the radio button group: the
     /// container a RadioButton is in, or the screen.
     /// </summary>
-    private static void AppendElement(StringBuilder markup, ScreenDocument screen, ControlDocument control, List<string> style, string group, int depth)
+    /// <param name="hiddenUnless">For a tab page, the C# condition under which it is hidden.</param>
+    private static void AppendElement(StringBuilder markup, ScreenDocument screen, ControlDocument control, List<string> style, string group, int depth, string hiddenUnless = "false")
     {
         var indent = new string(' ', depth * 4);
         var properties = control.Properties;
@@ -240,7 +245,7 @@ public static class BlazorGenerator
         }
 
         // A container's own layout goes in the same style attribute as its placement.
-        if (control.Type == ControlType.StackPanel)
+        if (control.Type is ControlType.StackPanel or ControlType.TabPage)
         {
             style = [.. style, StackStyle(properties)];
         }
@@ -333,6 +338,33 @@ public static class BlazorGenerator
                 markup.AppendLine($"{indent}    <div class=\"uib-content\" style=\"left:{Px(left)};top:{Px(top)};right:{Px(right)};bottom:{Px(bottom)};{StackStyle(properties)}\">");
                 AppendStackChildren(markup, screen, control, depth + 2);
                 markup.AppendLine($"{indent}    </div>");
+                markup.AppendLine($"{indent}</div>");
+                break;
+            case ControlType.TabControl:
+                // A row of tabs over a frame, and each page at the fixed inset; the field named
+                // after the TabControl is the index of the page shown.
+                markup.AppendLine($"{indent}<div {common} class=\"uib-tabs\">");
+                markup.AppendLine($"{indent}    <div class=\"uib-tabstrip\">");
+                var pages = control.Children ?? [];
+                for (var i = 0; i < pages.Count; i++)
+                {
+                    markup.AppendLine($"{indent}        <button type=\"button\" class=\"uib-tab@({name} == {Number(i)} ? \" uib-tab-selected\" : \"\")\" @onclick=\"() => {HandlerName(control)}({Number(i)})\">{Text(pages[i].Properties.Text)}</button>");
+                }
+
+                markup.AppendLine($"{indent}    </div>");
+                markup.AppendLine($"{indent}    <div class=\"uib-tabframe\"></div>");
+                var (tabLeft, tabTop, tabRight, tabBottom) = ContainerLayout.TabControlInset;
+                for (var i = 0; i < pages.Count; i++)
+                {
+                    var pageStyle = new List<string> { $"left:{Px(tabLeft)}", $"top:{Px(tabTop)}", $"right:{Px(tabRight)}", $"bottom:{Px(tabBottom)}" };
+                    AppendElement(markup, screen, pages[i], pageStyle, pages[i].Name, depth + 1, hiddenUnless: $"{name} != {Number(i)}");
+                }
+
+                markup.AppendLine($"{indent}</div>");
+                break;
+            case ControlType.TabPage:
+                markup.AppendLine($"{indent}<div {common} class=\"uib-content\" hidden=\"@({hiddenUnless})\">");
+                AppendStackChildren(markup, screen, control, depth + 1);
                 markup.AppendLine($"{indent}</div>");
                 break;
             case ControlType.Grid:
@@ -451,6 +483,17 @@ public static class BlazorGenerator
         foreach (var control in all.Where(c => EventFor(c.Type) is not null))
         {
             code.AppendLine();
+            if (control.Type == ControlType.TabControl)
+            {
+                // Choosing a tab shows its page.
+                code.AppendLine($"    private void {HandlerName(control)}(int index)");
+                code.AppendLine("    {");
+                code.AppendLine($"        {control.Name} = index;");
+                code.AppendLine($"        {HookName(control)}();");
+                code.AppendLine("    }");
+                continue;
+            }
+
             code.AppendLine($"    private void {HandlerName(control)}()");
             code.AppendLine("    {");
 
@@ -622,6 +665,12 @@ public static class BlazorGenerator
         .uib-frame { position: absolute; left: 0; right: 0; top: 8px; bottom: 0; border: 1px solid #d5dfe5; border-radius: 3px; }
         .uib-title { position: absolute; left: 6px; top: 0; padding: 0 3px; line-height: 16px; background: #fff; white-space: nowrap; }
         .uib-content { position: absolute; }
+        .uib-content[hidden] { display: none; }
+        .uib-tabs { position: relative; }
+        .uib-tabstrip { position: absolute; left: 0; right: 0; top: 0; height: 28px; display: flex; gap: 2px; overflow: hidden; }
+        .uib-tab { flex: none; height: 28px; padding: 0 10px; border: 1px solid #d5dfe5; border-bottom: none; border-radius: 3px 3px 0 0; background: #f0f0f0; white-space: nowrap; cursor: pointer; }
+        .uib-tab-selected { background: #fff; }
+        .uib-tabframe { position: absolute; left: 0; right: 0; top: 28px; bottom: 0; border: 1px solid #d5dfe5; background: #fff; }
 
         """;
 

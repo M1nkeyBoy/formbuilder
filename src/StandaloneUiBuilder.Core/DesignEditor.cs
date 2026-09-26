@@ -75,10 +75,13 @@ public sealed partial class DesignEditor
     public ControlDocument AddControl(ControlType type, double x, double y)
     {
         var definition = ControlCatalog.Get(type);
-        var screen = Screen;
-        var name = NextDefaultName(screen, type);
+        if (!definition.InToolbox)
+        {
+            throw new ArgumentException($"A {type} cannot be placed on the screen.", nameof(type));
+        }
 
-        var control = NewControl(type, name).WithBounds(DesignGeometry.Place(screen, definition, x, y));
+        var screen = Screen;
+        var control = NewControl(screen, type).WithBounds(DesignGeometry.Place(screen, definition, x, y));
 
         Commit(Document.WithScreen(screen with { Controls = screen.Controls.Add(control) }));
         return control;
@@ -86,17 +89,18 @@ public sealed partial class DesignEditor
 
     /// <summary>
     /// Adds a new control inside a container, where a screen point falls: at that position in
-    /// a StackPanel, or in that cell of a Grid. Returns null if the container does not exist.
+    /// a StackPanel, or in that cell of a Grid. Returns null if the container does not exist or
+    /// cannot hold the type (see <see cref="ControlDefinition.CanHold"/>).
     /// </summary>
     public ControlDocument? AddControlTo(ControlType type, Guid containerId, double x, double y)
     {
         var screen = Screen;
-        if (Placed(containerId) is not { } container)
+        if (Placed(containerId) is not { } container || !ControlCatalog.Get(container.Control.Type).CanHold(type))
         {
             return null;
         }
 
-        var control = NewControl(type, NextDefaultName(screen, type));
+        var control = NewControl(screen, type);
         var (index, row, column) = DropPosition(container, x, y, ignore: null);
         control = control with { Row = row, Column = column };
         Commit(Document.WithScreen(screen with { Controls = ControlTree.Insert(screen.Controls, containerId, index, control) }));
@@ -120,6 +124,13 @@ public sealed partial class DesignEditor
             return "A container cannot go inside itself.";
         }
 
+        if (!ControlCatalog.Get(container.Control.Type).CanHold(control.Type))
+        {
+            return control.Type == ControlType.TabPage
+                ? "A tab page can only go into a TabControl."
+                : $"A TabControl holds only tab pages; put \"{control.Name}\" on one of its pages.";
+        }
+
         var (index, row, column) = DropPosition(container, x, y, ignore: id);
         // Moving to another cell of the same grid keeps the span when it still fits there.
         var keepSpan = ParentOf(id)?.Id == containerId && row is { } r && column is { } c
@@ -136,6 +147,14 @@ public sealed partial class DesignEditor
             ColumnSpan = keepSpan ? control.ColumnSpan : null,
         };
         var controls = ControlTree.Insert(ControlTree.Remove(screen.Controls, [id]), containerId, index, moved);
+        if (moved.Type == ControlType.TabPage)
+        {
+            // The moved page is the one shown in its new TabControl.
+            controls = ControlTree.Replace(controls, containerId, tabs =>
+                tabs with { Properties = tabs.Properties with { SelectedTab = tabs.Children!.FindIndex(c => c.Id == id) } });
+        }
+
+        controls = ControlTree.KeepShownTabs(controls);
         if (!ControlTree.All(controls).SequenceEqual(ControlTree.All(screen.Controls)))
         {
             Commit(Document.WithScreen(screen with { Controls = controls }));
@@ -161,9 +180,14 @@ public sealed partial class DesignEditor
             return null;
         }
 
+        if (control.Type == ControlType.TabPage)
+        {
+            return "A tab page stays in a TabControl. Drag it onto another TabControl, or delete it.";
+        }
+
         var size = new ControlDefinition(control.Type, Math.Min(control.Width, screen.Width), Math.Min(control.Height, screen.Height), 0, 0, false, false, false);
         var moved = control.WithBounds(DesignGeometry.Place(screen, size, x, y)) with { Row = null, Column = null, RowSpan = null, ColumnSpan = null };
-        var controls = ControlTree.Remove(screen.Controls, [id]).Add(moved);
+        var controls = ControlTree.KeepShownTabs(ControlTree.Remove(screen.Controls, [id])).Add(moved);
         Commit(Document.WithScreen(screen with { Controls = controls }));
         return null;
     }
@@ -184,7 +208,15 @@ public sealed partial class DesignEditor
         }
 
         var reordered = children.RemoveAt(index).Insert(target, children[index]);
-        Replace(parent, parent with { Children = reordered });
+        var properties = parent.Properties;
+        if (parent.Type == ControlType.TabControl)
+        {
+            // The page that was showing still is.
+            var shown = children[ContainerLayout.ShownTab(parent)].Id;
+            properties = properties with { SelectedTab = reordered.FindIndex(c => c.Id == shown) };
+        }
+
+        Replace(parent, parent with { Children = reordered, Properties = properties });
         return true;
     }
 
@@ -769,7 +801,7 @@ public sealed partial class DesignEditor
         var removed = ControlTree.All(screen.Controls).Count(c => ids.Contains(c.Id));
         if (removed > 0)
         {
-            Commit(Document.WithScreen(screen with { Controls = ControlTree.Remove(screen.Controls, ids) }));
+            Commit(Document.WithScreen(screen with { Controls = ControlTree.KeepShownTabs(ControlTree.Remove(screen.Controls, ids)) }));
         }
 
         return removed;
@@ -795,7 +827,9 @@ public sealed partial class DesignEditor
         foreach (var copy in copies)
         {
             // Skip anything that cannot fit (a copy from a larger screen).
-            if (!ControlCatalog.TryGet(copy.Type, out _) || copy.Width > screen.Width || copy.Height > screen.Height)
+            // A tab page cannot stand on its own on the screen.
+            if (!ControlCatalog.TryGet(copy.Type, out var definition) || !definition.InToolbox
+                || copy.Width > screen.Width || copy.Height > screen.Height)
             {
                 continue;
             }
@@ -877,6 +911,33 @@ public sealed partial class DesignEditor
         return control with { Name = name, Children = control.Children?.ConvertAll(child => Renamed(child, taken)) };
     }
 
+    /// <summary>
+    /// A new control with the lowest free default name. A new TabControl comes with two pages,
+    /// "Tab 1" and "Tab 2".
+    /// </summary>
+    private static ControlDocument NewControl(ScreenDocument screen, ControlType type)
+    {
+        var control = NewControl(type, NextDefaultName(screen, type));
+        if (type == ControlType.TabControl)
+        {
+            var withTabs = screen with { Controls = screen.Controls.Add(control) };
+            for (var i = 1; i <= 2; i++)
+            {
+                control = control with { Children = control.Children!.Add(NewPage(withTabs, i)) };
+                withTabs = screen with { Controls = screen.Controls.Add(control) };
+            }
+        }
+
+        return control;
+    }
+
+    /// <summary>A new, empty tab page whose tab says "Tab n".</summary>
+    private static ControlDocument NewPage(ScreenDocument screen, int number)
+    {
+        var page = NewControl(ControlType.TabPage, NextDefaultName(screen, ControlType.TabPage));
+        return page with { Properties = page.Properties with { Text = $"Tab {number}" } };
+    }
+
     private static ControlDocument NewControl(ControlType type, string name)
     {
         var definition = ControlCatalog.Get(type);
@@ -900,6 +961,14 @@ public sealed partial class DesignEditor
         {
             var (row, column) = ContainerLayout.GridCellAt(container, x, y);
             return (container.Control.Children?.Count ?? 0, row, column);
+        }
+
+        if (container.Control.Type == ControlType.TabControl)
+        {
+            // A page dropped on another TabControl becomes its last tab; on its own, it stays put.
+            var children = container.Control.Children ?? [];
+            var current = children.FindIndex(c => c.Id == ignore);
+            return (current >= 0 ? current : children.Count, null, null);
         }
 
         return (ContainerLayout.StackIndexAt(container, x, y, ignore), null, null);

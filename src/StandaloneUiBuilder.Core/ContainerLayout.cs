@@ -1,7 +1,8 @@
 namespace StandaloneUiBuilder.Core;
 
 /// <summary>A control with its position on the screen, and the container it is in.</summary>
-public sealed record PlacedControl(ControlDocument Control, ControlBounds Bounds, Guid? ParentId, int Depth);
+/// <param name="IsHidden">True for a TabPage that is not the one shown, and everything inside it.</param>
+public sealed record PlacedControl(ControlDocument Control, ControlBounds Bounds, Guid? ParentId, int Depth, bool IsHidden = false);
 
 /// <summary>
 /// How containers arrange their children, and where every control ends up. These rules are
@@ -11,7 +12,9 @@ public sealed record PlacedControl(ControlDocument Control, ControlBounds Bounds
 /// A vertical StackPanel places its children top to bottom, each keeping its height and
 /// stretching to the stack's width, with Spacing between them; a horizontal one does the same
 /// left to right. Children that do not fit are clipped. A GroupBox arranges its children the
-/// same way inside its frame, <see cref="GroupBoxInset"/> in from its edges. A Grid divides itself into rows and
+/// same way inside its frame, <see cref="GroupBoxInset"/> in from its edges. A TabControl
+/// gives every page the same area, <see cref="TabControlInset"/> in from its edges, and shows
+/// only the page at its SelectedTab; a TabPage lines its children up like a StackPanel. A Grid divides itself into rows and
 /// columns, each a fixed size or a share of the space left (equal shares by default); each
 /// child fills the cell at its Row and Column, extended over RowSpan rows and ColumnSpan
 /// columns.
@@ -24,15 +27,26 @@ public static class ContainerLayout
     /// </summary>
     public static (int Left, int Top, int Right, int Bottom) GroupBoxInset { get; } = (8, 20, 8, 8);
 
+    /// <summary>
+    /// Where a TabControl's pages are, in from its edges: room for the row of tabs at the top
+    /// and the frame. Fixed, like <see cref="GroupBoxInset"/>, so every target places pages
+    /// exactly, whatever its tabs look like.
+    /// </summary>
+    public static (int Left, int Top, int Right, int Bottom) TabControlInset { get; } = (8, 36, 8, 8);
+
+    /// <summary>The page a TabControl shows: its SelectedTab, kept within its pages.</summary>
+    public static int ShownTab(ControlDocument tabs) =>
+        Math.Clamp(tabs.Properties.SelectedTab ?? 0, 0, Math.Max(0, (tabs.Children?.Count ?? 0) - 1));
+
     /// <summary>The area of a container its children are arranged in, relative to its top-left.</summary>
     public static ControlBounds ContentArea(ControlDocument container, int width, int height)
     {
-        if (container.Type != ControlType.GroupBox)
+        if (container.Type is not (ControlType.GroupBox or ControlType.TabControl))
         {
             return new ControlBounds(0, 0, width, height);
         }
 
-        var (left, top, right, bottom) = GroupBoxInset;
+        var (left, top, right, bottom) = container.Type == ControlType.GroupBox ? GroupBoxInset : TabControlInset;
         return new ControlBounds(left, top, Math.Max(0, width - left - right), Math.Max(0, height - top - bottom));
     }
 
@@ -43,7 +57,12 @@ public static class ContainerLayout
         var properties = container.Properties;
         var arranged = new List<(ControlDocument, ControlBounds)>(children.Count);
 
-        if (container.Type is ControlType.StackPanel or ControlType.GroupBox)
+        if (container.Type == ControlType.TabControl)
+        {
+            var area = ContentArea(container, width, height);
+            arranged.AddRange(children.Select(page => (page, area)));
+        }
+        else if (container.Type is ControlType.StackPanel or ControlType.GroupBox or ControlType.TabPage)
         {
             var area = ContentArea(container, width, height);
             var spacing = properties.Spacing ?? 0;
@@ -101,13 +120,21 @@ public static class ContainerLayout
         return placed;
     }
 
-    /// <summary>The innermost container at a screen point, ignoring some controls (and what is inside them).</summary>
-    public static PlacedControl? ContainerAt(ScreenDocument screen, double x, double y, IReadOnlyCollection<Guid>? ignore = null)
+    /// <summary>
+    /// The innermost container at a screen point that can hold a control of a type, ignoring
+    /// some controls (and what is inside them). Hidden tab pages are never chosen; over a
+    /// TabControl's tabs, the page it shows is. A TabPage goes only into a TabControl.
+    /// </summary>
+    public static PlacedControl? ContainerAt(ScreenDocument screen, double x, double y, IReadOnlyCollection<Guid>? ignore = null, ControlType type = ControlType.Button)
     {
         ignore ??= [];
         var ignored = ignore.SelectMany(id => ControlTree.Find(screen.Controls, id) is { } c ? ControlTree.All([c]) : []).Select(c => c.Id).ToHashSet();
-        return Flatten(screen)
-            .Where(p => p.Control.Children is not null && !ignored.Contains(p.Control.Id) && Contains(p.Bounds, x, y))
+        var placed = Flatten(screen);
+        var byId = placed.ToDictionary(p => p.Control.Id);
+        return placed
+            .Where(p => p.Control.Children is not null && !p.IsHidden && !ignored.Contains(p.Control.Id)
+                && ControlCatalog.Get(p.Control.Type).CanHold(type))
+            .Where(p => Contains(p.Control.Type == ControlType.TabPage && p.ParentId is { } tabs ? byId[tabs].Bounds : p.Bounds, x, y))
             .OrderByDescending(p => p.Depth)
             .FirstOrDefault();
     }
@@ -170,12 +197,16 @@ public static class ContainerLayout
         return index;
     }
 
-    private static void Add(List<PlacedControl> placed, ControlDocument control, ControlBounds bounds, Guid? parentId, int depth)
+    private static void Add(List<PlacedControl> placed, ControlDocument control, ControlBounds bounds, Guid? parentId, int depth, bool hidden = false)
     {
-        placed.Add(new PlacedControl(control, bounds, parentId, depth));
+        placed.Add(new PlacedControl(control, bounds, parentId, depth, hidden));
+        var shown = control.Type == ControlType.TabControl ? ShownTab(control) : -1;
+        var index = 0;
         foreach (var (child, relative) in Arrange(control, bounds.Width, bounds.Height))
         {
-            Add(placed, child, relative with { X = bounds.X + relative.X, Y = bounds.Y + relative.Y }, control.Id, depth + 1);
+            var childHidden = hidden || (shown >= 0 && index != shown);
+            Add(placed, child, relative with { X = bounds.X + relative.X, Y = bounds.Y + relative.Y }, control.Id, depth + 1, childHidden);
+            index++;
         }
     }
 

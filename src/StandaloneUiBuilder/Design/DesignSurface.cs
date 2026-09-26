@@ -192,6 +192,9 @@ internal sealed class DesignSurface : Grid
     /// <summary>The user pressed the mouse on a control (with any modifier keys held).</summary>
     public event EventHandler<ControlClickEventArgs>? ControlClicked;
 
+    /// <summary>The user pressed the mouse on one of a TabControl's tabs.</summary>
+    public event EventHandler<TabClickEventArgs>? TabClicked;
+
     /// <summary>The user clicked a control and released without dragging it.</summary>
     public event EventHandler<ControlClickEventArgs>? ControlClickCompleted;
 
@@ -260,6 +263,12 @@ internal sealed class DesignSurface : Grid
             // they hold, so the innermost control under the pointer is the one clicked.
             foreach (var item in placed.Values)
             {
+                // Pages behind the shown tab, and what they hold, are not drawn.
+                if (item.IsHidden)
+                {
+                    continue;
+                }
+
                 var host = CreateDesignHost(item.Control, item.Bounds);
                 ClipToContainers(host, item);
                 hosts[item.Control.Id] = host;
@@ -322,6 +331,26 @@ internal sealed class DesignSurface : Grid
         {
             host.Clip = new RectangleGeometry(new Rect(visible.X - item.Bounds.X, visible.Y - item.Bounds.Y, visible.Width, visible.Height));
         }
+    }
+
+    /// <summary>The index of the tab under the pointer, when a TabControl is clicked on one.</summary>
+    private int? TabAt(Guid id, MouseButtonEventArgs e)
+    {
+        if (!hosts.TryGetValue(id, out var host) || ControlFactory.FindTabControl(host.Child) is not { } tabs)
+        {
+            return null;
+        }
+
+        for (var i = 0; i < tabs.Items.Count; i++)
+        {
+            if (tabs.Items[i] is TabItem item && item.IsVisible
+                && item.TransformToAncestor(host).TransformBounds(new Rect(item.RenderSize)).Contains(e.GetPosition(host)))
+            {
+                return i;
+            }
+        }
+
+        return null;
     }
 
     private bool IsRoot(Guid id) => placed.TryGetValue(id, out var item) && item.ParentId is null;
@@ -521,6 +550,16 @@ internal sealed class DesignSurface : Grid
         {
             // The window updates the selection first; a drag then moves whatever is selected.
             ControlClicked?.Invoke(this, new ControlClickEventArgs(id, dragModifiers, e.GetPosition(controlsLayer)));
+            if (TabAt(id, e) is { } tab)
+            {
+                // Showing another tab redraws the surface; the TabControl stays selected.
+                TabClicked?.Invoke(this, new TabClickEventArgs(id, tab));
+                if (!hosts.ContainsKey(id))
+                {
+                    return;
+                }
+            }
+
             if (selection.Contains(id))
             {
                 BeginDrag(DragMode.Pending, id, e);
@@ -759,7 +798,7 @@ internal sealed class DesignSurface : Grid
     private void UpdateDropTarget()
     {
         var single = draggingChild || movingRoots.Count == 1;
-        var target = single ? ContainerLayout.ContainerAt(screen, dragPoint.X, dragPoint.Y, [dragId]) : null;
+        var target = single ? ContainerLayout.ContainerAt(screen, dragPoint.X, dragPoint.Y, [dragId], placed[dragId].Control.Type) : null;
         dropTargetId = target?.Control.Id;
         dropTargetOutline.Visibility = target is null ? Visibility.Collapsed : Visibility.Visible;
         if (target is not null)
@@ -857,6 +896,8 @@ internal sealed class DesignSurface : Grid
 internal sealed record ControlDropEventArgs(ControlType Type, double X, double Y);
 
 internal sealed record BoundsChangedEventArgs(Guid Id, ControlBounds Bounds);
+
+internal sealed record TabClickEventArgs(Guid TabControlId, int Index);
 
 internal sealed record ControlClickEventArgs(Guid Id, ModifierKeys Modifiers, Point Point);
 

@@ -76,14 +76,17 @@ internal static class ControlFactory
             },
             ControlType.StackPanel or ControlType.Grid => CreatePanel(control, buttonClicked),
             ControlType.GroupBox => CreateGroupBox(control, buttonClicked),
+            ControlType.TabControl => CreateTabControl(control, buttonClicked),
+            ControlType.TabPage => CreatePanel(control, buttonClicked),
             _ => throw new ArgumentOutOfRangeException(nameof(control), control.Type, "Unknown control type."),
         };
 
         ApplyStyle(control, element is Grid { Children: [GroupBox group, ..] } ? group : element);
 
         // Named after the design, so tools and tests can find controls in the Preview. A
-        // GroupBox's name is on the GroupBox inside the element, as in generated XAML.
-        if (control.Type != ControlType.GroupBox)
+        // GroupBox's or TabControl's name is on the real control inside the element, as in
+        // generated XAML.
+        if (control.Type is not (ControlType.GroupBox or ControlType.TabControl))
         {
             element.Name = control.Name;
         }
@@ -101,7 +104,7 @@ internal static class ControlFactory
     {
         var children = container.Children ?? [];
         var properties = container.Properties;
-        if (container.Type is ControlType.StackPanel or ControlType.GroupBox)
+        if (container.Type is ControlType.StackPanel or ControlType.GroupBox or ControlType.TabPage)
         {
             var vertical = properties.Orientation != StackOrientation.Horizontal;
             var stack = new StackPanel { Orientation = vertical ? Orientation.Vertical : Orientation.Horizontal, ClipToBounds = true };
@@ -245,6 +248,58 @@ internal static class ControlFactory
     }
 
     /// <summary>
+    /// A TabControl as generated XAML builds it: a Grid holding the real TabControl, with an
+    /// empty tab for each page, and each page as a StackPanel on top, inset by the fixed
+    /// TabControl inset. Choosing a tab shows its page, as the generated handler does.
+    /// </summary>
+    private static Grid CreateTabControl(ControlDocument tabs, Action<ControlDocument>? buttonClicked)
+    {
+        var (left, top, right, bottom) = ContainerLayout.TabControlInset;
+        var control = CreateTabStrip(tabs);
+        control.Name = tabs.Name;
+        var grid = new Grid { Children = { control } };
+        var pages = new List<FrameworkElement>();
+        foreach (var page in tabs.Children ?? [])
+        {
+            var element = Create(page, buttonClicked);
+            element.ClearValue(FrameworkElement.WidthProperty);
+            element.ClearValue(FrameworkElement.HeightProperty);
+            element.Margin = new Thickness(left, top, right, bottom);
+            pages.Add(element);
+            grid.Children.Add(element);
+        }
+
+        void ShowPage()
+        {
+            for (var i = 0; i < pages.Count; i++)
+            {
+                pages[i].Visibility = control.SelectedIndex == i ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        ShowPage();
+        control.SelectionChanged += (_, _) => ShowPage();
+        return grid;
+    }
+
+    /// <summary>A real TabControl with an empty tab for each page, showing the design's tab.</summary>
+    private static TabControl CreateTabStrip(ControlDocument tabs)
+    {
+        var control = new TabControl();
+        foreach (var page in tabs.Children ?? [])
+        {
+            control.Items.Add(new TabItem { Header = new TextBlock { Text = page.Properties.Text ?? "" } });
+        }
+
+        control.SelectedIndex = control.Items.Count > 0 ? ContainerLayout.ShownTab(tabs) : -1;
+        return control;
+    }
+
+    /// <summary>The real TabControl inside an element made for a TabControl, if it is one.</summary>
+    public static TabControl? FindTabControl(UIElement element) =>
+        element as TabControl ?? (element as Panel)?.Children.OfType<TabControl>().FirstOrDefault();
+
+    /// <summary>
     /// How a container looks in Design mode: a tinted, outlined area with its name, and cell
     /// lines for a Grid. Its children are drawn separately, on top, by the design surface.
     /// </summary>
@@ -275,6 +330,17 @@ internal static class ControlFactory
             }
         }
 
+        // A TabControl shows its real tabs; the page shown is drawn over it.
+        if (container.Type == ControlType.TabControl)
+        {
+            return new Grid
+            {
+                Width = container.Width,
+                Height = container.Height,
+                Children = { CreateTabStrip(container) },
+            };
+        }
+
         // A GroupBox shows its real frame and title; its children are drawn over it.
         if (container.Type == ControlType.GroupBox)
         {
@@ -291,7 +357,12 @@ internal static class ControlFactory
 
         var caption = new TextBlock
         {
-            Text = $"{container.Name} ({(container.Type == ControlType.StackPanel ? container.Properties.Orientation?.ToString().ToLowerInvariant() + " stack" : "grid")})",
+            Text = container.Type switch
+            {
+                ControlType.StackPanel => $"{container.Name} ({container.Properties.Orientation?.ToString().ToLowerInvariant()} stack)",
+                ControlType.TabPage => $"{container.Name} (tab page)",
+                _ => $"{container.Name} (grid)",
+            },
             Foreground = outline,
             FontSize = 10,
             Margin = new Thickness(3, 1, 3, 1),

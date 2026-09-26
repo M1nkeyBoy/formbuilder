@@ -191,6 +191,22 @@ public static partial class DocumentValidator
             errors.Add($"{label}: {nameError}");
         }
 
+        if (parent is null && !definition.InToolbox)
+        {
+            errors.Add($"{label}: a {control.Type} must be inside a TabControl.");
+        }
+        else if (parent is not null && !ControlCatalog.Get(parent.Type).CanHold(control.Type))
+        {
+            errors.Add(parent.Type == ControlType.TabControl
+                ? $"{label}: TabControl \"{parent.Name}\" can hold only tab pages."
+                : $"{label}: a {control.Type} must be inside a TabControl.");
+        }
+
+        if (definition.IsTabs && control.Properties.SelectedTab is { } tab && (tab < 0 || tab >= Math.Max(1, control.Children?.Count ?? 0)))
+        {
+            errors.Add($"{label}: the tab shown ({tab + 1}) is not one of its tabs.");
+        }
+
         if (parent is null)
         {
             // On the screen: position, size and anchors matter.

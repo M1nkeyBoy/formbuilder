@@ -539,3 +539,26 @@ Choices made during the prototype slices that affect later work.
 - **Only controls placed on the screen are arranged.** Controls inside a StackPanel or Grid
   are placed by their container, so they are left alone. Sizes never go below a type's
   minimum, and every control stays inside the screen.
+
+## Slice 29 — Tab controls
+
+- **The last everyday control missing.** A TabControl holds pages; a TabPage has the text on
+  its tab and lines its controls up like a StackPanel. Pages exist only in a TabControl and a
+  TabControl holds only pages, so the toolbox offers TabControl (with two pages, "Tab 1" and
+  "Tab 2") and the Properties panel's Add tab button adds more. Format version 11.
+- **The shown tab is part of the design** (`selectedTab`): it is the page the editor shows,
+  and the page the generated screen opens on. Choosing it is an edit like any other, so undo
+  covers it. Clicking a tab on the canvas, or the Shown tab list, chooses it; pages behind it
+  are not drawn and cannot be dropped on. A control dropped over the tabs goes onto the page
+  shown.
+- **Fixed inset, pages beside the tabs,** as for GroupBox: every page is 8 DIPs in from the
+  sides and bottom and 36 from the top, and each target puts the pages over its tab control
+  (or a drawn one) instead of inside it. How tall a target draws its tabs then never moves a
+  control. Each target shows the chosen page from its own tab-changed code, generated with
+  the rest of the event code.
+- **Real tab controls where the target has one** (WPF, WinForms), drawn ones elsewhere: WinUI's
+  TabView is for documents and MAUI has none within a page, so both get a row of buttons over
+  a frame, and Blazor gets buttons styled as tabs.
+- **Hidden pages in the layout rules.** Every page is laid out, but those behind the chosen
+  tab (and what they hold) are marked hidden, so the editor, the layout tests and the import
+  check all agree on what is on screen.

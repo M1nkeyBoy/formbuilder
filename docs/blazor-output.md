@@ -38,6 +38,10 @@ other screen is named after itself, with its name in lower case as its address.
   Each child has `grid-row` and `grid-column` with its span.
 - A **GroupBox** is a framed box with its title, and its children in a flex box 8 pixels in
   from the sides and bottom and 20 from the top, as in the design.
+- A **TabControl** is a row of tab buttons over a frame, with each page a flex box 8 pixels in
+  from the sides and bottom and 36 from the top. An `int` field named after the TabControl
+  holds the index of the page shown; every other page has the `hidden` attribute. Clicking a
+  tab sets the field and calls the hook.
 - Every element uses border-box sizing, so its box is exactly the designed size.
 - Text size, bold and colours become `font-size`, `font-weight`, `color` and
   `background-color`. A GroupBox's font and text colour style its title, and its background
