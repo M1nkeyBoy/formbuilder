@@ -43,7 +43,8 @@ become `FontSize`, `FontAttributes` and `TextColor`/`BackgroundColor`.
 Hooks are partial methods named after MAUI's events: `OnSaveButtonClicked(EventArgs e)`,
 `OnNameTextBoxTextChanged(TextChangedEventArgs e)`, `OnSubscribeCheckBoxCheckedChanged(...)`,
 `OnThemeComboBoxSelectedIndexChanged(EventArgs e)`. A Button that opens a screen pushes that
-screen's page as a modal page; one that closes its screen pops it (or closes the window if it
+screen's page as a modal page, which fills the window, so its anchored controls move and
+stretch to the window's size; one that closes its screen pops it (or closes the window if it
 is the first screen).
 
 ## Checks

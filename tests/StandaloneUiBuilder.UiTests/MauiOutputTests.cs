@@ -42,14 +42,17 @@ public sealed class MauiOutputTests
             window.Patterns.Transform.Pattern.Move(0, 0);
             Thread.Sleep(1000);
             Screenshot(window, "50-maui-main");
-            AssertLayout(window, document.MainScreen);
+            var main = document.MainScreen;
+            AssertLayout(window, main, main.Width, main.Height);
 
             // OK opens Settings as a modal page in the same window; Close goes back.
             EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("OkButton")), "OK button").Click();
             EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("CloseSettingsButton")), "the Settings page");
             Thread.Sleep(1000);
             Screenshot(window, "51-maui-settings");
-            AssertLayout(window, document.Screens[1]);
+            // A modal page fills the window, which has the first screen's size, so the Settings
+            // screen is laid out at that size: its anchored controls move and stretch.
+            AssertLayout(window, document.Screens[1], main.Width, main.Height);
 
             EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("CloseSettingsButton")), "Close button").Click();
             EditorSession.WaitUntil(() => window.FindFirstDescendant(cf => cf.ByAutomationId("CloseSettingsButton")) is null, () => "The Settings page did not close.");
@@ -70,11 +73,11 @@ public sealed class MauiOutputTests
     /// other control must be in the same place relative to it. Labels, panels and check boxes
     /// (a box beside a label in MAUI) are skipped; the controls around them stand for them.
     /// </summary>
-    private static void AssertLayout(Window window, ScreenDocument screen)
+    private static void AssertLayout(Window window, ScreenDocument screen, int width, int height)
     {
         (int X, int Y)? origin = null;
         var report = new List<string>();
-        foreach (var placed in ContainerLayout.Flatten(screen))
+        foreach (var placed in ContainerLayout.Flatten(screen, width, height))
         {
             var control = placed.Control;
             if (ControlCatalog.Get(control.Type).IsContainer || control.Type is Core.ControlType.Label or Core.ControlType.CheckBox)
