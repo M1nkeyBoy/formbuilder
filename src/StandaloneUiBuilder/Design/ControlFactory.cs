@@ -78,6 +78,7 @@ internal static class ControlFactory
             ControlType.GroupBox => CreateGroupBox(control, buttonClicked),
             ControlType.TabControl => CreateTabControl(control, buttonClicked),
             ControlType.TabPage => CreatePanel(control, buttonClicked),
+            ControlType.Custom => CreateLibraryControl(control),
             _ => throw new ArgumentOutOfRangeException(nameof(control), control.Type, "Unknown control type."),
         };
 
@@ -98,6 +99,50 @@ internal static class ControlFactory
         element.Width = control.Width;
         element.Height = control.Height;
         return element;
+    }
+
+    /// <summary>The drawing a library control gets on the canvas, when nothing better draws it.</summary>
+    public static Func<ControlDocument, FrameworkElement?>? LibraryRenderer { get; set; }
+
+    /// <summary>
+    /// A library control: drawn by <see cref="LibraryRenderer"/> when it can, otherwise a
+    /// labelled box with the control's type and its text, if it has one.
+    /// </summary>
+    private static FrameworkElement CreateLibraryControl(ControlDocument control)
+    {
+        if (LibraryRenderer?.Invoke(control) is { } rendered)
+        {
+            return rendered;
+        }
+
+        var type = control.Properties.LibraryType ?? "";
+        var name = type[(type.LastIndexOf('.') + 1)..];
+        var text = control.Properties.LibrarySettings?.FirstOrDefault(s => s.Name is "Content" or "Text" or "Label" && s.Kind == LibraryValueKind.Text)?.Value;
+        var accent = Color.FromRgb(0x63, 0x5B, 0xDF);
+        var box = new Grid { ClipToBounds = true, ToolTip = type };
+        box.Children.Add(new System.Windows.Shapes.Rectangle
+        {
+            Fill = new SolidColorBrush(Color.FromArgb(0x1C, accent.R, accent.G, accent.B)),
+            Stroke = new SolidColorBrush(Color.FromArgb(0xB0, accent.R, accent.G, accent.B)),
+            StrokeDashArray = [4, 3],
+            RadiusX = 4,
+            RadiusY = 4,
+        });
+        var label = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 2, 8, 2) };
+        label.Children.Add(new TextBlock
+        {
+            Text = "◆ " + name,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = new SolidColorBrush(Color.FromRgb(0x4B, 0x44, 0xB8)),
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        });
+        if (!string.IsNullOrEmpty(text))
+        {
+            label.Children.Add(new TextBlock { Text = text, Opacity = 0.75, TextTrimming = TextTrimming.CharacterEllipsis });
+        }
+
+        box.Children.Add(label);
+        return box;
     }
 
     /// <summary>

@@ -9,9 +9,15 @@ public partial class NewProjectWindow : Window
 {
     private sealed record PlatformItem(ProjectPlatform Platform, string Name, string Description);
 
-    private NewProjectWindow(ProjectPlatform initial)
+    private NewProjectWindow(ProjectPlatform initial, string? title)
     {
         InitializeComponent();
+        if (title is not null)
+        {
+            Title = title;
+            CreateButton.Content = "OK";
+        }
+
         var items = ProjectPlatforms.All.Select(p => new PlatformItem(p, p.DisplayName(), p.Description())).ToList();
         PlatformList.ItemsSource = items;
         PlatformList.SelectedItem = items.First(i => i.Platform == initial);
@@ -25,9 +31,9 @@ public partial class NewProjectWindow : Window
     }
 
     /// <summary>Shows the window; returns the chosen platform, or null if the user cancelled.</summary>
-    public static ProjectPlatform? Choose(Window owner, ProjectPlatform initial = ProjectPlatform.Wpf)
+    public static ProjectPlatform? Choose(Window owner, ProjectPlatform initial = ProjectPlatform.Wpf, string? title = null)
     {
-        var window = new NewProjectWindow(initial) { Owner = owner };
+        var window = new NewProjectWindow(initial, title) { Owner = owner };
         return window.ShowDialog() == true && window.PlatformList.SelectedItem is PlatformItem item ? item.Platform : null;
     }
 

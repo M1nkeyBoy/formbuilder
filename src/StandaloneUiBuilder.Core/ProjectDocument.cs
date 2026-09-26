@@ -11,10 +11,10 @@ public sealed record ProjectDocument
     /// <summary>
     /// The format version this builder writes. Older versions (1: no anchors, 2: no containers,
     /// 3: no grid spans, 4: no sized grid rows and columns, 5: one screen, 6: the first seven
-    /// control types only, 7: no button actions, 8: no fonts or colours, 9: no images, 10: no tab controls, 11: no tab order, 12: no theme, 13: no data binding, 14: no commands, 15: no enabled bindings, 16: no screen code, 17: no platform) are still
+    /// control types only, 7: no button actions, 8: no fonts or colours, 9: no images, 10: no tab controls, 11: no tab order, 12: no theme, 13: no data binding, 14: no commands, 15: no enabled bindings, 16: no screen code, 17: no platform, 18: no control libraries) are still
     /// read. See docs/project-format.md for the history.
     /// </summary>
-    public const int CurrentSchemaVersion = 18;
+    public const int CurrentSchemaVersion = 19;
 
     public const int OldestSupportedSchemaVersion = 1;
     public const string DefaultName = "Untitled";
@@ -28,6 +28,15 @@ public sealed record ProjectDocument
     /// <summary>The platform the screens are for; not stored when Any (every platform).</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public ProjectPlatform Platform { get; init; }
+
+    /// <summary>The control libraries the project uses, in the order they were added; null for none.</summary>
+    public ImmutableList<LibraryPackage>? Libraries { get; init; }
+
+    /// <summary>
+    /// Licence keys for library vendors the builder registers keys for (Syncfusion), by vendor;
+    /// null for none. Every export registers them when the app starts.
+    /// </summary>
+    public ImmutableSortedDictionary<string, string>? LicenseKeys { get; init; }
 
     /// <summary>Light or dark colours for every screen's standard controls; not stored when Light.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -238,4 +247,13 @@ public sealed record ControlProperties
 
     /// <summary>Grid: each column's size, as for <see cref="RowSizes"/>.</summary>
     public ImmutableList<string>? ColumnSizes { get; init; }
+
+    /// <summary>Custom: the library control's full type name. See <see cref="LibraryControl"/>.</summary>
+    public string? LibraryType { get; init; }
+
+    /// <summary>Custom: the assembly that defines the type.</summary>
+    public string? LibraryAssembly { get; init; }
+
+    /// <summary>Custom: the values set on the control, by property name; null for none.</summary>
+    public ImmutableList<LibrarySetting>? LibrarySettings { get; init; }
 }

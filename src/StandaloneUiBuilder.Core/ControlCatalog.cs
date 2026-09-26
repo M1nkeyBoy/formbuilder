@@ -34,7 +34,10 @@ public sealed record ControlDefinition(
     /// False for types that are not placed from the toolbox: a TabPage comes with its
     /// TabControl, or from its Add tab command.
     /// </summary>
-    public bool InToolbox => Type != ControlType.TabPage;
+    public bool InToolbox => Type is not (ControlType.TabPage or ControlType.Custom);
+
+    /// <summary>True for a control from a library.</summary>
+    public bool IsLibrary => Type == ControlType.Custom;
 
     /// <summary>True if a container of this type can hold a control of the given type.</summary>
     public bool CanHold(ControlType child) =>
@@ -53,7 +56,7 @@ public sealed record ControlDefinition(
     public const int MaxFontSize = 72;
 
     /// <summary>True for types that can have a background colour: all but Image and TabControl (colour its pages instead).</summary>
-    public bool HasBackground => Type is not (ControlType.Image or ControlType.TabControl);
+    public bool HasBackground => Type is not (ControlType.Image or ControlType.TabControl or ControlType.Custom);
 
     /// <summary>True for types that show a picture.</summary>
     public bool HasImage => Type == ControlType.Image;
@@ -117,6 +120,9 @@ public sealed record ControlDefinition(
         Columns = IsGrid ? properties.Columns ?? 1 : null,
         RowSizes = IsGrid ? properties.RowSizes : null,
         ColumnSizes = IsGrid ? properties.ColumnSizes : null,
+        LibraryType = IsLibrary ? properties.LibraryType ?? "" : null,
+        LibraryAssembly = IsLibrary ? properties.LibraryAssembly ?? "" : null,
+        LibrarySettings = IsLibrary && properties.LibrarySettings is { Count: > 0 } settings ? settings : null,
         SelectedTab = IsTabs ? properties.SelectedTab ?? 0 : null,
 
         ImageData = HasImage ? properties.ImageData : null,
@@ -161,6 +167,7 @@ public static class ControlCatalog
         new(ControlType.GroupBox, 220, 160, 40, 40, HasText: true, HasIsChecked: false, HasItems: false, IsStack: true),
         new(ControlType.TabControl, 300, 200, 60, 60, HasText: false, HasIsChecked: false, HasItems: false, IsTabs: true),
         new(ControlType.TabPage, 200, 150, 20, 20, HasText: true, HasIsChecked: false, HasItems: false, IsStack: true),
+        new(ControlType.Custom, 160, 40, 8, 8, HasText: false, HasIsChecked: false, HasItems: false),
     ];
 
     public static bool TryGet(ControlType type, out ControlDefinition definition)

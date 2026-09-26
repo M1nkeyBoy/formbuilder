@@ -53,6 +53,13 @@ public enum ControlType
     /// children up like a StackPanel. It exists only inside a TabControl.
     /// </summary>
     TabPage,
+
+    /// <summary>
+    /// A control from one of the project's control libraries, such as a Syncfusion grid. Its
+    /// type and values are in <see cref="ControlProperties.LibraryType"/> and
+    /// <see cref="ControlProperties.LibrarySettings"/>.
+    /// </summary>
+    Custom,
 }
 
 /// <summary>The kind of value a control shows, which decides the type of the property it binds to.</summary>

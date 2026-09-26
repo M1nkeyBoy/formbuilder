@@ -128,6 +128,28 @@ screen's values so your code works with values rather than controls.
 Names start with a capital letter. Each target gets the types its controls use; where they
 differ (a number is whole in Windows Forms and Blazor), write code that suits both.
 
+## Control libraries
+
+A project for one platform can use control libraries: NuGet packages of controls, such as
+Syncfusion, Telerik, DevExpress or the Extended WPF Toolkit, as you would add them in Visual
+Studio.
+
+- **Project > Libraries** (Ctrl+Shift+L): type the package's name, such as
+  `Syncfusion.SfGrid.WPF`, and optionally a version, and choose **Add**. The builder
+  downloads it and lists its controls in the toolbox, under the package's name.
+- **Place** them like any control. The inspector's **Library** section lists the properties
+  you can set: text, numbers, on or off, and choices. Empty fields keep the library's
+  defaults; set anything else, such as data, in your code.
+- **Export** references the packages, so the exported project builds with them.
+- **Licence keys**: with a Syncfusion package, paste your key in Project > Libraries; every
+  export registers it when the app starts.
+- **Update to newest** or **Remove** a library in the same window. A library in use cannot be
+  removed until its controls are deleted.
+
+The builder only reads a library; none of its code runs in the builder. Until the builder
+draws them, library controls show on the canvas as labelled boxes. Changing the project's
+platform removes its libraries, since each is for one platform; Undo brings them back.
+
 ## Export
 
 **Export** (or the File menu) asks for a folder and writes a project there that builds with
@@ -161,6 +183,7 @@ unexpectedly, it offers your unsaved work the next time it starts.
 | Arrow keys, Shift+arrow keys | Move the selection a DIP, or a grid square |
 | Ctrl+], Ctrl+[ | Bring to front, send to back |
 | Ctrl+T | Set the tab order |
+| Ctrl+Shift+L | Control libraries |
 | F7 | The screen's code |
 | Ctrl+Shift+N | Add a screen |
 | Ctrl+PgUp, Ctrl+PgDn | Previous and next screen |

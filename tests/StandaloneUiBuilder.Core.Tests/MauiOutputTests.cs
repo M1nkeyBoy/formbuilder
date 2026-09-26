@@ -26,7 +26,7 @@ public class MauiOutputTests
         var files = MauiGenerator.Generate(Sample(), "LayoutDemo").ToDictionary(f => f.RelativePath);
 
         Assert.Equal(
-            ["App.g.cs", "MainPage.g.cs", "MainPage.xaml", "Resources/Images/main_logoimage.png", "SettingsPage.g.cs", "SettingsPage.xaml"],
+            ["App.g.cs", "LibrarySetup.g.cs", "MainPage.g.cs", "MainPage.xaml", "Resources/Images/main_logoimage.png", "SettingsPage.g.cs", "SettingsPage.xaml"],
             files.Values.Where(f => f.Regenerate).Select(f => f.RelativePath).Order());
         Assert.Contains("<UseMaui>true</UseMaui>", files["LayoutDemo.csproj"].Content);
         Assert.Contains("<WindowsPackageType>None</WindowsPackageType>", files["LayoutDemo.csproj"].Content);

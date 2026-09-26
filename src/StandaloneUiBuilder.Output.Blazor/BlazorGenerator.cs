@@ -93,7 +93,7 @@ public static class BlazorGenerator
         foreach (var screen in document.Screens)
         {
             var prefix = document.Screens.Count > 1 ? $"Screen \"{screen.Name}\": " : "";
-            problems.AddRange(CheckScreen(ClassName(document, screen), screen).Select(p => prefix + p));
+            problems.AddRange(CheckScreen(ClassName(document, screen), screen).Concat(LibraryCode.Check(document, screen)).Select(p => prefix + p));
         }
 
         return problems;
@@ -162,6 +162,10 @@ public static class BlazorGenerator
         }
 
         files.AddRange(CodeNames.ImageFiles(document, folder: "wwwroot/"));
+        files.Add(new("LibrarySetup.g.cs", LibraryCode.BlazorSetupCode(document, rootNamespace), Regenerate: true));
+        files.Add(new("Components/LibraryHead.razor", LibraryCode.BlazorHead(document), Regenerate: true));
+        files.Add(new("Components/LibraryScripts.razor", LibraryCode.BlazorScripts(document), Regenerate: true));
+        files.AddRange(LibraryCode.Files(document, rootNamespace));
         return files;
     }
 
@@ -407,10 +411,25 @@ public static class BlazorGenerator
 
                 markup.AppendLine($"{indent}</div>");
                 break;
+            case ControlType.Custom:
+                // A library component, in a box placed like any control: its values are its parameters.
+                var parameters = LibraryCode.TypeArguments(control).Concat(LibraryCode.Values(control)).Select(s => $" {s.Name}=\"{ComponentValue(s)}\"");
+                markup.AppendLine($"{indent}<div {common} class=\"uib-library\">");
+                markup.AppendLine($"{indent}    <{properties.LibraryType}{string.Concat(parameters)} />");
+                markup.AppendLine($"{indent}</div>");
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(control), control.Type, "Unknown control type.");
         }
     }
+
+    /// <summary>A library component's parameter value: text as written, anything else as C#.</summary>
+    private static string ComponentValue(LibrarySetting setting) => setting.Kind switch
+    {
+        LibraryValueKind.Text => Attribute(setting.Value),
+        LibraryValueKind.Choice => $"@({LibraryCode.CSharpValue(setting)})",
+        _ => LibraryCode.CSharpValue(setting),
+    };
 
     private static IEnumerable<string> StyleRules(ControlProperties properties, bool background)
     {
@@ -634,11 +653,15 @@ public static class BlazorGenerator
         """;
 
     private static string ProgramCode(string rootNamespace) => $$"""
+        using {{rootNamespace}};
         using {{rootNamespace}}.Components;
 
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.AddRazorComponents()
             .AddInteractiveServerComponents();
+
+        // What the builder's control libraries need (LibrarySetup.g.cs).
+        builder.Services.AddLibraries();
 
         var app = builder.Build();
         app.UseAntiforgery();
@@ -660,12 +683,14 @@ public static class BlazorGenerator
             <base href="/" />
             <link rel="stylesheet" href="@Assets["uib.css"]" />
             <link rel="stylesheet" href="@Assets["app.css"]" />
+            <LibraryHead />
             <HeadOutlet @rendermode="InteractiveServer" />
         </head>
 
         <body>
             <Routes @rendermode="InteractiveServer" />
             <script src="@Assets["_framework/blazor.web.js"]"></script>
+            <LibraryScripts />
         </body>
 
         </html>

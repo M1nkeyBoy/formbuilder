@@ -991,27 +991,39 @@ internal sealed class DesignSurface : Grid
     protected override void OnDragOver(DragEventArgs e)
     {
         base.OnDragOver(e);
-        e.Effects = !isPreview && TryGetDroppedType(e.Data, out _) ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Effects = !isPreview && TryGetDroppedType(e.Data, out _, out _) ? DragDropEffects.Copy : DragDropEffects.None;
         e.Handled = true;
     }
 
     protected override void OnDrop(DragEventArgs e)
     {
         base.OnDrop(e);
-        if (!isPreview && TryGetDroppedType(e.Data, out var type))
+        if (!isPreview && TryGetDroppedType(e.Data, out var type, out var libraryType))
         {
             var position = e.GetPosition(controlsLayer);
-            ControlDropped?.Invoke(this, new ControlDropEventArgs(type, position.X, position.Y));
+            ControlDropped?.Invoke(this, new ControlDropEventArgs(type, position.X, position.Y, libraryType));
             e.Handled = true;
         }
     }
 
-    private static bool TryGetDroppedType(IDataObject data, out ControlType type)
+    /// <summary>A dragged toolbox tile: a control type's name, or "Custom:" and a library control's type name.</summary>
+    private static bool TryGetDroppedType(IDataObject data, out ControlType type, out string? libraryType)
     {
         type = default;
-        return data.GetDataPresent(ControlTypeDataFormat)
-            && data.GetData(ControlTypeDataFormat) is string name
-            && Enum.TryParse(name, out type);
+        libraryType = null;
+        if (!data.GetDataPresent(ControlTypeDataFormat) || data.GetData(ControlTypeDataFormat) is not string name)
+        {
+            return false;
+        }
+
+        if (name.StartsWith("Custom:", StringComparison.Ordinal))
+        {
+            type = ControlType.Custom;
+            libraryType = name["Custom:".Length..];
+            return libraryType.Length > 0;
+        }
+
+        return Enum.TryParse(name, out type) && type != ControlType.Custom;
     }
 
     private Border? FindAncestor(DependencyObject? source, Func<Border, bool> match)
@@ -1040,7 +1052,7 @@ internal sealed class DesignSurface : Grid
     }
 }
 
-internal sealed record ControlDropEventArgs(ControlType Type, double X, double Y);
+internal sealed record ControlDropEventArgs(ControlType Type, double X, double Y, string? LibraryType = null);
 
 internal sealed record BoundsChangedEventArgs(Guid Id, ControlBounds Bounds);
 

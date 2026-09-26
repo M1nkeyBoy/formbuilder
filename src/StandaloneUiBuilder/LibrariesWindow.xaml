@@ -1,0 +1,81 @@
+<Window x:Class="StandaloneUiBuilder.LibrariesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Libraries"
+        Width="620" SizeToContent="Height" MinHeight="360"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource AppBackgroundBrush}"
+        Foreground="{DynamicResource TextBrush}"
+        FontFamily="Segoe UI" FontSize="13">
+    <Window.Resources>
+        <ResourceDictionary Source="Themes/Studio.xaml" />
+    </Window.Resources>
+    <StackPanel Margin="20">
+        <TextBlock Text="Control libraries" FontSize="18" FontWeight="SemiBold" />
+        <TextBlock x:Name="IntroText" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,4,0,12" />
+
+        <Border Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="4">
+            <Grid MinHeight="120" MaxHeight="220">
+                <ListBox x:Name="LibraryList" AutomationProperties.Name="Libraries" SelectionChanged="LibraryList_SelectionChanged"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding Summary}" Style="{StaticResource MutedText}" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Id}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                            </DockPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource ListItem}">
+                            <Setter Property="AutomationProperties.Name" Value="{Binding Id}" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                </ListBox>
+                <TextBlock x:Name="EmptyText" Text="No libraries yet. Add a package below." Style="{StaticResource PlaceholderText}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+            <Button x:Name="UpdateButton" Content="_Update to newest" Style="{StaticResource OutlineButton}" IsEnabled="False" Click="Update_Click" Margin="0,0,8,0"
+                    ToolTip="Download the newest version of the chosen library and use it." />
+            <Button x:Name="RemoveButton" Content="_Remove" Style="{StaticResource OutlineButton}" IsEnabled="False" Click="Remove_Click"
+                    ToolTip="Remove the chosen library. Delete the controls placed from it first." />
+        </StackPanel>
+
+        <TextBlock Text="Add a package" FontWeight="SemiBold" Margin="0,12,0,6" />
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="120" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="PackageBox" AutomationProperties.Name="Package" KeyDown="PackageBox_KeyDown"
+                     ToolTip="The NuGet package's name, as on nuget.org, such as Syncfusion.SfGrid.WPF." />
+            <TextBox x:Name="VersionBox" Grid.Column="1" Margin="8,0,0,0" AutomationProperties.Name="Version" KeyDown="PackageBox_KeyDown"
+                     ToolTip="The version to use; leave empty for the newest release." />
+            <Button x:Name="AddButton" Grid.Column="2" Content="_Add" MinWidth="80" Margin="8,0,0,0" Style="{StaticResource PrimaryButton}" Click="Add_Click" />
+        </Grid>
+        <TextBlock Style="{StaticResource MutedText}" FontSize="11" Margin="0,4,0,0"
+                   Text="The package name, such as Syncfusion.SfGrid.WPF, and a version, or empty for the newest." />
+        <DockPanel x:Name="BusyPanel" Margin="0,10,0,0" Visibility="Collapsed">
+            <Button x:Name="CancelDownloadButton" DockPanel.Dock="Right" Content="Stop" Style="{StaticResource OutlineButton}" Click="CancelDownload_Click" Margin="8,0,0,0" />
+            <ProgressBar IsIndeterminate="True" Height="4" DockPanel.Dock="Bottom" Margin="0,6,0,0" />
+            <TextBlock x:Name="BusyText" TextTrimming="CharacterEllipsis" />
+        </DockPanel>
+        <TextBlock x:Name="LibraryStatusText" TextWrapping="Wrap" Margin="0,8,0,0" />
+
+        <StackPanel x:Name="LicensePanel" Margin="0,12,0,0" Visibility="Collapsed">
+            <TextBlock Text="Syncfusion licence key" FontWeight="SemiBold" Margin="0,0,0,6" />
+            <TextBox x:Name="SyncfusionKeyBox" AutomationProperties.Name="Syncfusion licence key" LostKeyboardFocus="SyncfusionKeyBox_LostKeyboardFocus" />
+            <TextBlock Style="{StaticResource MutedText}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"
+                       Text="Every export registers it when the app starts, so Syncfusion's controls show no licence message. The key is saved in the project file." />
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button x:Name="CloseButton" Content="Close" MinWidth="88" Style="{StaticResource OutlineButton}" IsCancel="True" Click="Close_Click" />
+        </StackPanel>
+    </StackPanel>
+</Window>

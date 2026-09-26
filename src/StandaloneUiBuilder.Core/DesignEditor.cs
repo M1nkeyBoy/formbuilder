@@ -777,7 +777,11 @@ public sealed partial class DesignEditor
     }
 
     /// <summary>Chooses the project's theme; one undo step. Returns false if it was already chosen.</summary>
-    /// <summary>Changes the platform the project is for; false if it already is.</summary>
+    /// <summary>
+    /// Changes the platform the project is for; false if it already is. Libraries, and the
+    /// controls placed from them, exist on their platform only, so they are dropped (in the
+    /// same step, which Undo puts back).
+    /// </summary>
     public bool SetPlatform(ProjectPlatform platform)
     {
         if (Document.Platform == platform)
@@ -785,7 +789,7 @@ public sealed partial class DesignEditor
             return false;
         }
 
-        Commit(Document with { Platform = platform });
+        Commit(WithoutLibraries(Document) with { Platform = platform });
         return true;
     }
 
@@ -926,7 +930,9 @@ public sealed partial class DesignEditor
         {
             // Skip anything that cannot fit (a copy from a larger screen).
             // A tab page cannot stand on its own on the screen.
-            if (!ControlCatalog.TryGet(copy.Type, out var definition) || !definition.InToolbox
+            // A library control needs its library in this project.
+            if (!ControlCatalog.TryGet(copy.Type, out var definition)
+                || !(definition.InToolbox || (definition.IsLibrary && LibraryValues.Find(Document, copy.Properties.LibraryType) is not null))
                 || copy.Width > screen.Width || copy.Height > screen.Height)
             {
                 continue;

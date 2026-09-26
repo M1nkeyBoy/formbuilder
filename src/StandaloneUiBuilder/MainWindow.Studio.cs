@@ -25,22 +25,41 @@ public partial class MainWindow
 
     private sealed record LayerItem(Guid Id, string Name, string Type, Thickness Indent);
 
-    /// <summary>The toolbox as tiles in three groups, filtered by the search box.</summary>
+    /// <summary>
+    /// A tile in the toolbox: a built-in control type, or a control from one of the project's
+    /// libraries (<see cref="LibraryType"/> set, and <see cref="Type"/> Custom).
+    /// </summary>
+    internal sealed record ToolboxEntry(ControlType Type, string Name, string Category, string? LibraryType = null)
+    {
+        public string ToolTip => LibraryType ?? Name;
+    }
+
+    private string toolboxLibraries = "";
+
+    /// <summary>The toolbox as tiles in groups (the built-in ones, then one per library), filtered by the search box.</summary>
     private void SetUpToolbox()
     {
-        var types = ControlCatalog.All.Where(d => d.InToolbox)
+        var entries = ControlCatalog.All.Where(d => d.InToolbox)
             .Select((definition, index) => (definition, index))
             .OrderBy(t => Array.IndexOf(ToolboxCategories, ToolboxCategory(t.definition.Type)))
             .ThenBy(t => t.index)
-            .Select(t => t.definition)
+            .Select(t => new ToolboxEntry(t.definition.Type, t.definition.Type.ToString(), ToolboxCategory(t.definition.Type).ToUpperInvariant()))
             .ToList();
-        var source = new CollectionViewSource { Source = types };
-        source.GroupDescriptions.Add(new PropertyGroupDescription(nameof(ControlDefinition.Type), new ToolboxCategoryConverter()));
+        foreach (var library in editor.Document.Libraries ?? [])
+        {
+            entries.AddRange(library.Controls.Select(c => new ToolboxEntry(ControlType.Custom, c.Name, library.Id.ToUpperInvariant(), c.TypeName)));
+        }
+
+        toolboxLibraries = LibrarySignature();
+        var source = new CollectionViewSource { Source = entries };
+        source.GroupDescriptions.Add(new PropertyGroupDescription(nameof(ToolboxEntry.Category)));
         toolboxView = source.View;
-        toolboxView.Filter = item => item is ControlDefinition d
-            && (ControlSearchBox.Text.Trim() is not { Length: > 0 } search || d.Type.ToString().Contains(search, StringComparison.OrdinalIgnoreCase));
+        toolboxView.Filter = item => item is ToolboxEntry entry
+            && (ControlSearchBox.Text.Trim() is not { Length: > 0 } search || entry.Name.Contains(search, StringComparison.OrdinalIgnoreCase));
         ToolboxList.ItemsSource = toolboxView;
     }
+
+    private string LibrarySignature() => string.Join("|", (editor.Document.Libraries ?? []).Select(l => $"{l.Id} {l.Version} {l.Controls.Count}"));
 
     private static readonly string[] ToolboxCategories = ["Essentials", "Containers", "More controls"];
 
@@ -50,15 +69,6 @@ public partial class MainWindow
         ControlType.StackPanel or ControlType.Grid or ControlType.GroupBox or ControlType.TabControl => "Containers",
         _ => "More controls",
     };
-
-    private sealed class ToolboxCategoryConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
-            ToolboxCategory((ControlType)value).ToUpperInvariant();
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
-            throw new NotSupportedException();
-    }
 
     /// <summary>Whatever takes keyboard focus scrolls into view, in the inspector or the toolbox.</summary>
     private static void Window_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
@@ -91,6 +101,11 @@ public partial class MainWindow
         ExportButton.Content = platform == ProjectPlatform.Any ? "Export ▾" : $"Export to {platform.DisplayName()}";
         ScreenInfoText.Text = $"{platform.DisplayName()} · {ThemeName(editor.Document.Theme)} theme · {screen.Width} × {screen.Height} DIPs · {Math.Round(zoom * 100)}%";
         ShowGridBox.IsChecked = ShowGridMenuItem.IsChecked = Surface.ShowGrid;
+        if (LibrarySignature() != toolboxLibraries)
+        {
+            SetUpToolbox();
+        }
+
         RefreshLayers();
     }
 
@@ -139,7 +154,7 @@ public partial class MainWindow
     private void UpdateInspectorSections()
     {
         BoundsGrid.Visibility = Show(new[] { XRow, YRow, WidthRow, HeightRow }.Any(r => r.Visibility == Visibility.Visible));
-        foreach (var section in new[] { IdentitySection, LayoutSection, AppearanceSection, InteractionSection })
+        foreach (var section in new[] { IdentitySection, LibrarySection, LayoutSection, AppearanceSection, InteractionSection })
         {
             var fields = ((Panel)section.Child).Children.OfType<FrameworkElement>().Where(f => f is not TextBlock);
             section.Visibility = Show(fields.Any(f => f.Visibility == Visibility.Visible));
@@ -195,6 +210,12 @@ public partial class MainWindow
     private void SetPlatform_Executed(object sender, ExecutedRoutedEventArgs e)
     {
         var platform = Enum.Parse<ProjectPlatform>((string)e.Parameter);
+        if (!ConfirmPlatformChange(platform))
+        {
+            StatusText.Text = "Platform unchanged";
+            return;
+        }
+
         StatusText.Text = editor.SetPlatform(platform)
             ? platform == ProjectPlatform.Any ? "Platform: any; the project exports to all five" : $"Platform: {platform.DisplayName()}"
             : "That platform is already chosen";

@@ -31,6 +31,16 @@
     <ProjectReference Include="..\..\src\StandaloneUiBuilder.Output.WinUI\StandaloneUiBuilder.Output.WinUI.csproj" />
     <ProjectReference Include="..\..\src\StandaloneUiBuilder.Import.Wpf\StandaloneUiBuilder.Import.Wpf.csproj" />
     <ProjectReference Include="..\..\src\StandaloneUiBuilder.Output.Maui\StandaloneUiBuilder.Output.Maui.csproj" />
+    <ProjectReference Include="..\..\src\StandaloneUiBuilder.Libraries\StandaloneUiBuilder.Libraries.csproj" />
+
+    <!-- Built, not referenced: the scanner reads it as a library's assembly. -->
+    <ProjectReference Include="..\StandaloneUiBuilder.SampleControls\StandaloneUiBuilder.SampleControls.csproj"
+                      ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" Private="false" />
   </ItemGroup>
+
+  <Target Name="CopySampleControls" AfterTargets="Build">
+    <Copy SourceFiles="..\StandaloneUiBuilder.SampleControls\bin\$(Configuration)\net10.0-windows\StandaloneUiBuilder.SampleControls.dll"
+          DestinationFolder="$(OutDir)SampleControls" SkipUnchangedFiles="true" />
+  </Target>
 
 </Project>

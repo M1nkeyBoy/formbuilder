@@ -745,3 +745,49 @@ Choices made during the prototype slices that affect later work.
   changes it, and Undo puts it back.
 - **Tests** start the editor with the test hook `UIB_START_PLATFORM` answering "any
   platform"; one UI test answers the real question.
+
+## Slice 39 — Control libraries
+
+- **A library is a NuGet package for the project's platform**, added in Project > Libraries by
+  its name and, optionally, version (the newest release otherwise), as in Visual Studio. Its
+  controls go in the toolbox, grouped under the package, and are placed, moved, resized,
+  copied and undone like any other.
+- **The builder reads the package's assemblies; it runs none of their code.** It downloads
+  the package and the packages it depends on (skipping the platform's own, such as the
+  Windows App SDK or ASP.NET Core), chooses the lib folder that suits the platform (net8.0-
+  windows for WPF, plain net8.0 for Blazor, falling back to .NET Standard and, for WPF and
+  Windows Forms, .NET Framework), and reads the metadata with System.Reflection.Metadata. A
+  control is a public, non-abstract class with a constructor taking nothing, deriving through
+  the library's classes from the platform's controls (recognised by name, so the platform's
+  own assemblies are not needed), and not hidden from designers (`[ToolboxItem(false)]`,
+  `[Browsable(false)]`). Parts of other controls (cells, rows, item containers, adorners) are
+  left out by name.
+- **Properties the builder can set** are the public, settable ones of simple types: text,
+  on-or-off, whole and fractional numbers, and enums (not flags); for Blazor, the component's
+  `[Parameter]` properties, and its type arguments. A WPF or WinUI content control also gets
+  `Content`, and a Windows Forms control `Text`. Empty means the library's default, so only
+  values the design sets are exported. Other properties (brushes, templates, data) are set
+  in code.
+- **The project keeps what the builder found** (the controls and their properties), so it
+  opens and exports offline and shows the same controls to everyone. Updating a library
+  rescans it and drops values its controls no longer have. Downloads are kept in the user's
+  local application data, and NuGet's global packages folder is used when it has the package.
+- **Exports reference the packages in Directory.Build.props**, which MSBuild reads for every
+  project in the folder and the builder rewrites on every export, so a project exported
+  before a library was added gets it too without the developer's .csproj changing. XAML
+  targets declare a namespace per .NET namespace (`clr-namespace:…;assembly=…`, `using:` for
+  WinUI); Windows Forms creates the control in the designer file; Blazor writes the component
+  by its full name inside a positioned box.
+- **Licences and setup:** a Syncfusion licence key (Project > Libraries) is registered by a
+  module initializer before any window opens. Blazor and .NET MAUI exports call a regenerated
+  `LibrarySetup` from Program.cs and MauiProgram.cs, which adds what Syncfusion's Blazor
+  components (services, theme and script) and MAUI controls (`ConfigureSyncfusionCore`) need.
+- **A library exists on one platform**, so libraries need a platform, and changing the
+  platform removes them and the controls placed from them, after asking; Undo puts them back.
+- **The canvas shows a library control as a labelled box** until Slice 40 draws the real one.
+- **Values are checked twice**: when edited (numbers must fit the type, choices must be
+  members), and when a file is read, since they end up in code.
+- **Checked by** tests that scan a sample library of WPF, Windows Forms and Blazor controls,
+  load it as a package from a folder feed, edit and save library controls, and check every
+  target's output; and on Windows, by adding the Extended WPF Toolkit from nuget.org in the
+  editor, and exporting, building and running a WPF app that uses it.

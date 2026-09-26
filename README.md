@@ -14,6 +14,10 @@ its menus, Save and Export. It follows Windows' light or dark app setting.
 - **Choose a platform.** A new project asks which platform it is for: WPF, Windows Forms,
   WinUI 3, .NET MAUI, Blazor, or any platform. A project for one platform exports straight to
   it; any platform exports to all five with the built-in controls.
+- **Control libraries.** Project > Libraries adds NuGet packages of controls, such as
+  Syncfusion or the Extended WPF Toolkit, to a project for one platform. Their controls join
+  the toolbox, the inspector sets their properties, and exports reference the packages. The
+  builder reads the packages' metadata; their code never runs in it.
 - **Find and arrange.** Search the toolbox, grouped into essentials, containers and more
   controls. The Layers tab lists the screen's controls, inside their containers; choosing one
   selects it on the canvas. The action bar switches Design and Preview, undoes and redoes,

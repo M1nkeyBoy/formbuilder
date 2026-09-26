@@ -97,6 +97,13 @@ public static class EditorCommands
         typeof(EditorCommands),
         [new KeyGesture(Key.F7)]);
 
+    /// <summary>Project > Libraries: the project's control libraries.</summary>
+    public static RoutedUICommand Libraries { get; } = new(
+        "_Libraries…",
+        nameof(Libraries),
+        typeof(EditorCommands),
+        [new KeyGesture(Key.L, ModifierKeys.Control | ModifierKeys.Shift)]);
+
     /// <summary>Changes the platform the project is for; the parameter is a <see cref="Core.ProjectPlatform"/> name.</summary>
     public static RoutedUICommand SetPlatform { get; } = new(
         "Platform",

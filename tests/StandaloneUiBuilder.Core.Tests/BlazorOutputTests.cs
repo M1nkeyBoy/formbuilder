@@ -32,7 +32,7 @@ public class BlazorOutputTests
         var files = BlazorGenerator.Generate(Sample(), "LayoutDemo").ToDictionary(f => f.RelativePath);
 
         Assert.Equal(
-            ["Components/Pages/MainPage.Events.g.cs", "Components/Pages/MainPage.razor", "Components/Pages/SettingsPage.Events.g.cs", "Components/Pages/SettingsPage.razor", "wwwroot/Assets/Main/LogoImage.png", "wwwroot/uib.css"],
+            ["Components/LibraryHead.razor", "Components/LibraryScripts.razor", "Components/Pages/MainPage.Events.g.cs", "Components/Pages/MainPage.razor", "Components/Pages/SettingsPage.Events.g.cs", "Components/Pages/SettingsPage.razor", "LibrarySetup.g.cs", "wwwroot/Assets/Main/LogoImage.png", "wwwroot/uib.css"],
             files.Values.Where(f => f.Regenerate).Select(f => f.RelativePath).Order());
         Assert.Contains("LayoutDemo.csproj", files.Keys);
         Assert.Contains("Program.cs", files.Keys);

@@ -20,7 +20,8 @@
             </ResourceDictionary.MergedDictionaries>
             <Style x:Key="FieldBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}" />
             <Style x:Key="ToolboxTile" TargetType="ListBoxItem" BasedOn="{StaticResource ToolTile}">
-                <Setter Property="AutomationProperties.Name" Value="{Binding Type}" />
+                <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
+                <Setter Property="ToolTip" Value="{Binding ToolTip}" />
                 <Setter Property="Width" Value="Auto" />
                 <Setter Property="Height" Value="34" />
                 <Setter Property="Margin" Value="2" />
@@ -52,6 +53,7 @@
         <CommandBinding Command="{x:Static local:EditorCommands.ExportMaui}" Executed="ExportMaui_Executed" CanExecute="Export_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.ExportBlazor}" Executed="ExportBlazor_Executed" CanExecute="Export_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.SetPlatform}" Executed="SetPlatform_Executed" CanExecute="Designing_CanExecute" />
+        <CommandBinding Command="{x:Static local:EditorCommands.Libraries}" Executed="Libraries_Executed" CanExecute="Libraries_CanExecute" />
         <CommandBinding Command="ApplicationCommands.Delete" Executed="Delete_Executed" CanExecute="HasSelection_CanExecute" />
         <CommandBinding Command="ApplicationCommands.Copy" Executed="Copy_Executed" CanExecute="HasSelection_CanExecute" />
         <CommandBinding Command="ApplicationCommands.Cut" Executed="Cut_Executed" CanExecute="HasSelection_CanExecute" />
@@ -189,6 +191,8 @@
                 </MenuItem>
                 <MenuItem Header="_Project">
                     <MenuItem x:Name="PlatformMenuItem" Header="_Platform" />
+                    <MenuItem Command="{x:Static local:EditorCommands.Libraries}" InputGestureText="Ctrl+Shift+L" />
+                    <Separator />
                     <MenuItem Header="_Theme">
                         <MenuItem x:Name="LightThemeMenuItem" Header="_Light" Command="{x:Static local:EditorCommands.SetTheme}" CommandParameter="Light" />
                         <MenuItem x:Name="DarkThemeMenuItem" Header="_Dark" Command="{x:Static local:EditorCommands.SetTheme}" CommandParameter="Dark" />
@@ -330,7 +334,7 @@
                                 </ListBox.GroupStyle>
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding Type}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Name}" FontSize="11" TextTrimming="CharacterEllipsis" />
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                             </ListBox>
@@ -520,6 +524,13 @@
                                             <ComboBox x:Name="ShownTabBox" AutomationProperties.Name="Shown tab"
                                                       SelectionChanged="ShownTabBox_SelectionChanged" />
                                         </DockPanel>
+                                    </StackPanel>
+                                </Border>
+                                <Border x:Name="LibrarySection" Style="{StaticResource InspectorSection}">
+                                    <StackPanel>
+                                        <TextBlock Text="Library" Style="{StaticResource SectionTitle}" />
+                                        <TextBlock x:Name="LibraryInfoText" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,-6,0,10" FontSize="11" />
+                                        <StackPanel x:Name="LibraryPropertiesPanel" />
                                     </StackPanel>
                                 </Border>
                                 <Border x:Name="LayoutSection" Style="{StaticResource InspectorSection}">

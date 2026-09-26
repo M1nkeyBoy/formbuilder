@@ -67,7 +67,7 @@ public static class MauiGenerator
         foreach (var screen in document.Screens)
         {
             var prefix = document.Screens.Count > 1 ? $"Screen \"{screen.Name}\": " : "";
-            problems.AddRange(CheckScreen(ClassName(document, screen), screen).Select(p => prefix + p));
+            problems.AddRange(CheckScreen(ClassName(document, screen), screen).Concat(LibraryCode.Check(document, screen)).Select(p => prefix + p));
         }
 
         return problems;
@@ -149,6 +149,8 @@ public static class MauiGenerator
             files.Add(new("RangeToProgressConverter.g.cs", ProgressConverterCode(rootNamespace), Regenerate: true));
         }
 
+        files.Add(new("LibrarySetup.g.cs", LibraryCode.MauiSetupCode(document, rootNamespace), Regenerate: true));
+        files.AddRange(LibraryCode.Files(document, rootNamespace));
         return files;
     }
 
@@ -231,6 +233,11 @@ public static class MauiGenerator
         xaml.AppendLine($"     put your own code in {className}.xaml.cs. -->");
         xaml.AppendLine("<ContentPage xmlns=\"http://schemas.microsoft.com/dotnet/2021/maui\"");
         xaml.AppendLine("             xmlns:x=\"http://schemas.microsoft.com/winfx/2009/xaml\"");
+        foreach (var library in LibraryCode.XamlNamespaces(screen))
+        {
+            xaml.AppendLine($"             xmlns:{library.Prefix}=\"clr-namespace:{library.Namespace};assembly={library.Assembly}\"");
+        }
+
         xaml.AppendLine($"             x:Class=\"{rootNamespace}.{className}\"");
         var hasViewModel = DataBindings.HasViewModel(screen);
         if (hasViewModel)
@@ -302,6 +309,11 @@ public static class MauiGenerator
                 return;
             case ControlType.TabControl:
                 AppendTabControl(xaml, screen, control, layout, depth);
+                return;
+            case ControlType.Custom:
+                // A library control: its values as attributes, which XAML converts to the property types.
+                var values = LibraryCode.Values(control).Select(s => $"{s.Name}=\"{Attribute(LibraryCode.XamlValue(s))}\"");
+                xaml.AppendLine($"{indent}<{LibraryCode.XamlElement(screen, control)} {string.Join(" ", new[] { $"x:Name=\"{control.Name}\"", $"AutomationId=\"{control.Name}\"" }.Concat(layout).Concat(values))} />");
                 return;
             case ControlType.Image:
                 // Given only a size request, MAUI shows a picture at its natural size in a corner
@@ -817,6 +829,9 @@ public static class MauiGenerator
             {
                 var builder = MauiApp.CreateBuilder();
                 builder.UseMauiApp<App>();
+
+                // What the builder's control libraries need (LibrarySetup.g.cs).
+                builder.UseLibraries();
                 return builder.Build();
             }
         }

@@ -69,7 +69,7 @@ public partial class MainWindow : Window
         Surface.ReparentRequested += Surface_ReparentRequested;
         Surface.TabClicked += Surface_TabClicked;
         Surface.NudgeRequested += (_, e) => MoveSelection(e.Ids, e.Dx, e.Dy);
-        Surface.ControlDropped += (_, e) => AddControl(e.Type, e.X, e.Y);
+        Surface.ControlDropped += (_, e) => AddControl(new ToolboxEntry(e.Type, e.Type.ToString(), "", e.LibraryType), e.X, e.Y);
         Surface.BoundsChanging += (_, e) => ShowBounds(e.Id, e.Bounds);
         Surface.BoundsCommitted += Surface_BoundsCommitted;
 
@@ -132,7 +132,7 @@ public partial class MainWindow : Window
     private string ProjectDisplayName =>
         projectPath is not null ? Path.GetFileNameWithoutExtension(projectPath) : editor.Document.Name;
 
-    private ControlDefinition? ArmedToolboxItem => ToolboxList.SelectedItem as ControlDefinition;
+    private ToolboxEntry? ArmedToolboxItem => ToolboxList.SelectedItem as ToolboxEntry;
 
     /// <summary>The selected control when exactly one is selected; the inspector edits it.</summary>
     private Guid? selectedId => selection.Count == 1 ? selection[0] : null;
@@ -212,7 +212,7 @@ public partial class MainWindow : Window
         // With a toolbox item chosen, a click places it: into a container if one is clicked.
         if (ArmedToolboxItem is { } armed)
         {
-            AddControl(armed.Type, e.Point.X, e.Point.Y);
+            AddControl(armed, e.Point.X, e.Point.Y);
             return;
         }
 
@@ -265,11 +265,26 @@ public partial class MainWindow : Window
     }
 
     /// <summary>Adds a control at a point: into the innermost container there, or onto the screen.</summary>
-    private void AddControl(ControlType type, double x, double y)
+    private void AddControl(ToolboxEntry entry, double x, double y)
     {
-        var container = ContainerLayout.ContainerAt(editor.Screen, x, y, type: type);
-        var control = (container is not null ? editor.AddControlTo(type, container.Control.Id, x, y) : null)
-            ?? editor.AddControl(type, x, y);
+        var container = ContainerLayout.ContainerAt(editor.Screen, x, y, type: entry.Type);
+        ControlDocument? control;
+        if (entry.LibraryType is { } libraryType)
+        {
+            control = (container is not null ? editor.AddLibraryControlTo(libraryType, container.Control.Id, x, y) : null)
+                ?? editor.AddLibraryControl(libraryType, x, y);
+            if (control is null)
+            {
+                StatusText.Text = $"The project no longer has the library of {entry.Name}.";
+                return;
+            }
+        }
+        else
+        {
+            control = (container is not null ? editor.AddControlTo(entry.Type, container.Control.Id, x, y) : null)
+                ?? editor.AddControl(entry.Type, x, y);
+        }
+
         ToolboxList.SelectedItem = null;
         Select(control.Id);
         StatusText.Text = container is null ? $"Added {control.Name}" : $"Added {control.Name} to {container.Control.Name}";
@@ -352,7 +367,9 @@ public partial class MainWindow : Window
         var definition = ControlCatalog.Get(control.Type);
         var properties = control.Properties;
         SelectedTitleText.Text = control.Name;
-        TypeText.Text = $"{control.Type} · {editor.Screen.Name}";
+        TypeText.Text = control.Type == ControlType.Custom
+            ? $"{LibraryCode.NameOf(properties.LibraryType ?? "")} · {editor.Screen.Name}"
+            : $"{control.Type} · {editor.Screen.Name}";
 
         // Inside a container, the container decides placement: show only what still applies.
         var parent = editor.ParentOf(control.Id);
@@ -458,6 +475,7 @@ public partial class MainWindow : Window
         IsCheckedBox.IsChecked = properties.IsChecked == true;
         ItemsRow.Visibility = definition.HasItems ? Visibility.Visible : Visibility.Collapsed;
         SetField(ItemsBox, string.Join(Environment.NewLine, properties.Items ?? []));
+        RefreshLibraryInspector(control);
         UpdateInspectorSections();
     }
 
@@ -498,6 +516,11 @@ public partial class MainWindow : Window
 
     private void CommitField(TextBox box)
     {
+        if (CommitLibraryField(box))
+        {
+            return;
+        }
+
         if (box == ScreenWidthBox || box == ScreenHeightBox)
         {
             CommitScreenSize(box);
@@ -849,7 +872,7 @@ public partial class MainWindow : Window
     {
         if (ArmedToolboxItem is { } armed)
         {
-            AddControl(armed.Type, position.X, position.Y);
+            AddControl(armed, position.X, position.Y);
         }
         else
         {
@@ -861,7 +884,7 @@ public partial class MainWindow : Window
     {
         if (ArmedToolboxItem is { } armed)
         {
-            StatusText.Text = $"Click the canvas to place a {armed.Type}, or press Enter to add it.";
+            StatusText.Text = $"Click the canvas to place a {armed.Name}, or press Enter to add it.";
         }
     }
 
@@ -871,7 +894,7 @@ public partial class MainWindow : Window
         {
             // Cascade keyboard-added controls so they do not stack exactly on top of each other.
             var offset = 20 + editor.Screen.Controls.Count % 10 * 20;
-            AddControl(armed.Type, offset, offset);
+            AddControl(armed, offset, offset);
             e.Handled = true;
         }
     }
@@ -908,9 +931,9 @@ public partial class MainWindow : Window
         }
 
         toolboxDragStart = null;
-        if (ItemsControl.ContainerFromElement(ToolboxList, (DependencyObject)e.OriginalSource) is ListBoxItem { DataContext: ControlDefinition definition })
+        if (ItemsControl.ContainerFromElement(ToolboxList, (DependencyObject)e.OriginalSource) is ListBoxItem { DataContext: ToolboxEntry entry })
         {
-            var data = new DataObject(DesignSurface.ControlTypeDataFormat, definition.Type.ToString());
+            var data = new DataObject(DesignSurface.ControlTypeDataFormat, entry.LibraryType is { } library ? $"Custom:{library}" : entry.Type.ToString());
             DragDrop.DoDragDrop(ToolboxList, data, DragDropEffects.Copy);
         }
     }

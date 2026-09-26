@@ -199,9 +199,15 @@ public static partial class DocumentValidator
                 }
             }
 
+            foreach (var custom in ControlTree.All(screen.Controls).Where(c => c.Type == ControlType.Custom))
+            {
+                ValidateLibraryControl(custom, screenErrors);
+            }
+
             errors.AddRange(screenErrors.Select(e => prefix + e));
         }
 
+        ValidateLibraries(document, errors);
         return errors;
     }
 
@@ -229,7 +235,7 @@ public static partial class DocumentValidator
             errors.Add($"{label}: {nameError}");
         }
 
-        if (parent is null && !definition.InToolbox)
+        if (parent is null && control.Type == ControlType.TabPage)
         {
             errors.Add($"{label}: a {control.Type} must be inside a TabControl.");
         }

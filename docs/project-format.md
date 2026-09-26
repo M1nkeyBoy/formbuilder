@@ -28,15 +28,16 @@ A complete example is in [`samples/customer-form.uibproj`](samples/customer-form
 | 16 | Adds `enabledBinding` to Buttons. | None: older buttons are always enabled. |
 | 17 | Adds `code` to screens. | None: older screens have no code. |
 | 18 | Adds the project's `platform`. | None: older projects are for any platform, as before. |
+| 19 | Adds control libraries: `libraries`, `licenseKeys`, and the `Custom` type with `libraryType`, `libraryAssembly` and `librarySettings`. | None: older projects use no libraries. |
 
-The builder reads versions 1 to 18 and always saves version 18. An older builder rejects a
+The builder reads versions 1 to 19 and always saves version 19. An older builder rejects a
 newer file with a clear message instead of silently dropping what it does not know.
 
-## Schema version 18
+## Schema version 19
 
 ```json
 {
-  "schemaVersion": 18,
+  "schemaVersion": 19,
   "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971",
   "name": "Customer form",
   "screens": [{
@@ -66,10 +67,12 @@ newer file with a clear message instead of silently dropping what it does not kn
 
 | Field | Type | Notes |
 |---|---|---|
-| `schemaVersion` | integer | Required. `18` when saved by this builder; `1` to `17` are still read. |
+| `schemaVersion` | integer | Required. `19` when saved by this builder; `1` to `18` are still read. |
 | `projectId` | GUID string | Required. Stable for the life of the project. |
 | `name` | string | Written as the file name (without extension) on save. |
 | `platform` | string | The platform the screens are for: `"Wpf"`, `"WinForms"`, `"WinUI"`, `"Maui"` or `"Blazor"`; `"Any"` (the default, not written) exports to all five. A project for one platform exports only to it. |
+| `libraries` | array | The control libraries the project uses (Project > Libraries), below. Omitted when there are none. Only a project for one platform has libraries. |
+| `licenseKeys` | object | Licence keys by vendor, which every export registers when the app starts: `{ "Syncfusion": "…" }`. Omitted when there are none. |
 | `theme` | string | `"Light"` (the default, not written), `"Dark"`, or `"System"` to follow the computer's or browser's setting. See each output's Theme section. |
 | `screens` | array | Required, at least one. In order: the first is the main screen, which a generated application opens with. Versions 1 to 5 had a single `screen` object instead. |
 
@@ -90,7 +93,7 @@ newer file with a clear message instead of silently dropping what it does not kn
 | Field | Type | Notes |
 |---|---|---|
 | `id` | GUID string | Required, unique within the project, never empty. |
-| `type` | string | Required. One of `Label`, `Button`, `TextBox`, `PasswordBox`, `CheckBox`, `RadioButton`, `ComboBox`, `ListBox`, `Slider`, `ProgressBar`, `DatePicker`, `Image`, or the containers `StackPanel`, `Grid`, `GroupBox`, `TabControl` and `TabPage`. |
+| `type` | string | Required. One of `Label`, `Button`, `TextBox`, `PasswordBox`, `CheckBox`, `RadioButton`, `ComboBox`, `ListBox`, `Slider`, `ProgressBar`, `DatePicker`, `Image`, the containers `StackPanel`, `Grid`, `GroupBox`, `TabControl` and `TabPage`, or `Custom` for a control from a library. |
 | `name` | string | Required. Letter or underscore first, then letters, digits or underscores. Unique within its screen, ignoring case; other screens may reuse it. |
 | `x`, `y` | integer | DIPs from the screen's top-left corner; not negative. |
 | `width`, `height` | integer | DIPs; at least the type's minimum size. The control must fit inside the screen. |
@@ -198,6 +201,40 @@ only buttons use starts on.
 
 Slider and ProgressBar have whole-number `minimum`, `maximum` and `value`: the minimum is less
 than the maximum, the value lies between them, and all are within ±1,000,000.
+
+### Control libraries
+
+Each entry of `libraries` is a NuGet package for the project's platform and the controls the
+builder found in it, so the project opens and exports without downloading it again:
+
+```json
+{
+  "id": "Extended.Wpf.Toolkit",
+  "version": "4.6.1",
+  "controls": [{
+    "typeName": "Xceed.Wpf.Toolkit.IntegerUpDown",
+    "assembly": "Xceed.Wpf.Toolkit",
+    "width": 160,
+    "height": 32,
+    "properties": [
+      { "name": "FormatString", "type": "System.String" },
+      { "name": "AutoSelectBehavior", "type": "Xceed.Wpf.Toolkit.AutoSelectBehavior", "choices": ["Never", "OnFocus"] }
+    ]
+  }]
+}
+```
+
+A control's `typeName` is its full .NET type name (without generic arity) and `assembly` the
+assembly that defines it; a generic Blazor component lists its `typeParameters`. Each property
+has a `type`: `System.String`, `System.Boolean`, a number type (`System.Int32`,
+`System.Double` and the like), or an enum's full name with its `choices`.
+
+A `Custom` control places one of them: `libraryType` is the type name, `libraryAssembly` its
+assembly, and `librarySettings` the values set in the builder, each with the property's
+`name`, `type`, and `value` as invariant text (`True`, `12.5`, an enum member, or the text).
+A generic component's type arguments are settings of type `System.Type`. Properties not set
+keep the library's defaults. Names, types and values must be well formed, since exports write
+them into code.
 
 | Type | `orientation` | `spacing` | `rows` | `columns` |
 |---|---|---|---|---|

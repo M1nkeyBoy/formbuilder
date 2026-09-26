@@ -316,9 +316,9 @@ internal sealed class EditorSession : IDisposable
         return result.Result;
     }
 
-    public static void WaitUntil(Func<bool> condition, Func<string> describe)
+    public static void WaitUntil(Func<bool> condition, Func<string> describe, TimeSpan? timeout = null)
     {
-        var result = Retry.WhileFalse(condition, Timeout, TimeSpan.FromMilliseconds(200));
+        var result = Retry.WhileFalse(condition, timeout ?? Timeout, TimeSpan.FromMilliseconds(200));
         if (!result.Result)
         {
             CaptureFailure();

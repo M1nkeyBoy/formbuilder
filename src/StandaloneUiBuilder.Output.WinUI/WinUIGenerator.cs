@@ -68,7 +68,7 @@ public static class WinUIGenerator
         foreach (var screen in document.Screens)
         {
             var prefix = document.Screens.Count > 1 ? $"Screen \"{screen.Name}\": " : "";
-            problems.AddRange(CheckScreen(ClassName(document, screen), screen).Select(p => prefix + p));
+            problems.AddRange(CheckScreen(ClassName(document, screen), screen).Concat(LibraryCode.Check(document, screen)).Select(p => prefix + p));
         }
 
         return problems;
@@ -133,6 +133,7 @@ public static class WinUIGenerator
         }
 
         files.AddRange(CodeNames.ImageFiles(document));
+        files.AddRange(LibraryCode.Files(document, rootNamespace));
         return files;
     }
 
@@ -150,7 +151,14 @@ public static class WinUIGenerator
         xaml.AppendLine($"     put your own code in {className}.xaml.cs. -->");
         xaml.AppendLine($"<Window x:Class=\"{rootNamespace}.{className}\"");
         xaml.AppendLine("        xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"");
-        xaml.AppendLine("        xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\">");
+        xaml.Append("        xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"");
+        foreach (var library in LibraryCode.XamlNamespaces(screen))
+        {
+            xaml.AppendLine();
+            xaml.Append($"        xmlns:{library.Prefix}=\"using:{library.Namespace}\"");
+        }
+
+        xaml.AppendLine(">");
 
         // The window opens at the design size (see the generated code). If any control follows
         // the right or bottom edge it can be enlarged, and controls move or stretch with their
@@ -230,6 +238,14 @@ public static class WinUIGenerator
         if (control.Type == ControlType.TabControl)
         {
             AppendTabControl(xaml, screen, control, layout, depth);
+            return;
+        }
+
+        if (control.Type == ControlType.Custom)
+        {
+            // A library control: its values as attributes, which XAML converts to the property types.
+            var values = LibraryCode.Values(control).Select(s => $"{s.Name}=\"{Attribute(LibraryCode.XamlValue(s))}\"");
+            xaml.AppendLine($"{new string(' ', depth * 4)}<{LibraryCode.XamlElement(screen, control)} {string.Join(" ", new[] { $"x:Name=\"{control.Name}\"" }.Concat(layout).Concat(values))} />");
             return;
         }
 

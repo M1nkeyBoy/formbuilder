@@ -67,7 +67,7 @@ public static class WpfGenerator
         {
             // With one screen, messages read as before; with several, they say which screen.
             var prefix = document.Screens.Count > 1 ? $"Screen \"{screen.Name}\": " : "";
-            problems.AddRange(CheckScreen(ClassName(document, screen), screen).Select(p => prefix + p));
+            problems.AddRange(CheckScreen(ClassName(document, screen), screen).Concat(LibraryCode.Check(document, screen)).Select(p => prefix + p));
         }
 
         return problems;
@@ -139,6 +139,7 @@ public static class WpfGenerator
         }
 
         files.AddRange(CodeNames.ImageFiles(document));
+        files.AddRange(LibraryCode.Files(document, rootNamespace));
         return files;
     }
 
@@ -181,6 +182,11 @@ public static class WpfGenerator
         xaml.AppendLine($"<Window x:Class=\"{rootNamespace}.{className}\"");
         xaml.AppendLine("        xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"");
         xaml.AppendLine("        xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"");
+        foreach (var library in LibraryCode.XamlNamespaces(screen))
+        {
+            xaml.AppendLine($"        xmlns:{library.Prefix}=\"clr-namespace:{library.Namespace};assembly={library.Assembly}\"");
+        }
+
         xaml.AppendLine($"        Title=\"{Attribute(WindowTitle(document, screen))}\"");
         xaml.AppendLine("        SizeToContent=\"WidthAndHeight\"");
         xaml.AppendLine($"        ResizeMode=\"{(resizable ? "CanResize" : "CanMinimize")}\"");
@@ -268,6 +274,14 @@ public static class WpfGenerator
         if (control.Type == ControlType.TabControl)
         {
             AppendTabControl(xaml, screen, theme, control, layout, depth);
+            return;
+        }
+
+        if (control.Type == ControlType.Custom)
+        {
+            // A library control: its values as attributes, which WPF converts to the property types.
+            var values = LibraryCode.Values(control).Select(s => $"{s.Name}=\"{Attribute(LibraryCode.XamlValue(s))}\"");
+            xaml.AppendLine($"{new string(' ', depth * 4)}<{LibraryCode.XamlElement(screen, control)} {string.Join(" ", new[] { $"x:Name=\"{control.Name}\"" }.Concat(layout).Concat(values))} />");
             return;
         }
 

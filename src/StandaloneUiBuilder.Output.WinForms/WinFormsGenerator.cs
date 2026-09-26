@@ -71,7 +71,7 @@ public static class WinFormsGenerator
         {
             // With one screen, messages read as before; with several, they say which screen.
             var prefix = document.Screens.Count > 1 ? $"Screen \"{screen.Name}\": " : "";
-            problems.AddRange(CheckScreen(ClassName(document, screen), screen).Select(p => prefix + p));
+            problems.AddRange(CheckScreen(ClassName(document, screen), screen).Concat(LibraryCode.Check(document, screen)).Select(p => prefix + p));
         }
 
         return problems;
@@ -157,6 +157,7 @@ public static class WinFormsGenerator
         }
 
         files.AddRange(CodeNames.ImageFiles(document));
+        files.AddRange(LibraryCode.Files(document, rootNamespace));
         return files;
     }
 
@@ -217,7 +218,7 @@ public static class WinFormsGenerator
 
         foreach (var control in all)
         {
-            code.AppendLine($"        this.{control.Name} = new System.Windows.Forms.{WinFormsType(control.Type)}();");
+            code.AppendLine($"        this.{control.Name} = new {ControlClass(control)}();");
             if (control.Type == ControlType.GroupBox)
             {
                 code.AppendLine($"        this.{LayoutPanelName(control)} = new System.Windows.Forms.TableLayoutPanel();");
@@ -305,7 +306,7 @@ public static class WinFormsGenerator
         foreach (var control in all)
         {
             var hides = HiddenFormMembers.Contains(control.Name) ? "new " : "";
-            code.AppendLine($"    private {hides}System.Windows.Forms.{WinFormsType(control.Type)} {control.Name};");
+            code.AppendLine($"    private {hides}{ControlClass(control)} {control.Name};");
             if (control.Type == ControlType.GroupBox)
             {
                 code.AppendLine($"    private System.Windows.Forms.TableLayoutPanel {LayoutPanelName(control)};");
@@ -324,6 +325,9 @@ public static class WinFormsGenerator
     /// The WinForms control for each type. StackPanel and Grid become a TableLayoutPanel set
     /// up to follow the builder's layout rules; a GroupBox holds one too.
     /// </summary>
+    private static string ControlClass(ControlDocument control) =>
+        control.Type == ControlType.Custom ? "global::" + control.Properties.LibraryType : "System.Windows.Forms." + WinFormsType(control.Type);
+
     private static string WinFormsType(ControlType type) => type switch
     {
         ControlType.StackPanel or ControlType.Grid or ControlType.TabPage => "TableLayoutPanel",
@@ -452,6 +456,14 @@ public static class WinFormsGenerator
                 {
                     var parts = ImageFile.ExportPath(screen, control).Split('/').Select(Literal);
                     Set("Image", $"System.Drawing.Image.FromFile(System.IO.Path.Combine(System.AppContext.BaseDirectory, {string.Join(", ", parts)}))");
+                }
+
+                break;
+            case ControlType.Custom:
+                // A library control: the values set in the builder.
+                foreach (var setting in LibraryCode.Values(control))
+                {
+                    Set(setting.Name, LibraryCode.CSharpValue(setting));
                 }
 
                 break;
