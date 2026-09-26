@@ -45,6 +45,23 @@ internal sealed class DesignSurface : Grid
 
     private static readonly Brush AnchorBrush = CreateFrozenBrush(Color.FromRgb(0x1E, 0x6F, 0xE0));
 
+    private bool showGrid = true;
+
+    /// <summary>Whether the design grid is drawn; controls snap to it either way.</summary>
+    public bool ShowGrid
+    {
+        get => showGrid;
+        set
+        {
+            showGrid = value;
+            gridOverlay.Visibility = isPreview || !showGrid ? Visibility.Collapsed : Visibility.Visible;
+        }
+    }
+
+    /// <summary>The surface appears to UI Automation as "Surface", so tools can find where the design is drawn.</summary>
+    protected override System.Windows.Automation.Peers.AutomationPeer OnCreateAutomationPeer() =>
+        new System.Windows.Automation.Peers.FrameworkElementAutomationPeer(this);
+
     // A dark window's background in WPF's Fluent theme.
     private static readonly Brush DarkBackground = CreateFrozenBrush(Color.FromRgb(0x20, 0x20, 0x20));
 
@@ -252,7 +269,7 @@ internal sealed class DesignSurface : Grid
         Width = screen.Width;
         Height = screen.Height;
         gridOverlay.GridSize = screen.GridSize;
-        gridOverlay.Visibility = isPreview ? Visibility.Collapsed : Visibility.Visible;
+        gridOverlay.Visibility = isPreview || !showGrid ? Visibility.Collapsed : Visibility.Visible;
         adornerLayer.Visibility = isPreview ? Visibility.Collapsed : Visibility.Visible;
         AllowDrop = !isPreview;
         resizeGrip.Visibility = isPreview && AnchorLayout.IsResizable(screen) ? Visibility.Visible : Visibility.Collapsed;

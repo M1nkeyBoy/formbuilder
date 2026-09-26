@@ -67,6 +67,29 @@ public static class EditorCommands
         nameof(TabOrderByPosition),
         typeof(EditorCommands));
 
+    public static RoutedUICommand ZoomIn { get; } = new(
+        "Zoom _In",
+        nameof(ZoomIn),
+        typeof(EditorCommands),
+        [new KeyGesture(Key.OemPlus, ModifierKeys.Control), new KeyGesture(Key.Add, ModifierKeys.Control)]);
+
+    public static RoutedUICommand ZoomOut { get; } = new(
+        "Zoom _Out",
+        nameof(ZoomOut),
+        typeof(EditorCommands),
+        [new KeyGesture(Key.OemMinus, ModifierKeys.Control), new KeyGesture(Key.Subtract, ModifierKeys.Control)]);
+
+    public static RoutedUICommand ActualSize { get; } = new(
+        "_Actual Size",
+        nameof(ActualSize),
+        typeof(EditorCommands),
+        [new KeyGesture(Key.D0, ModifierKeys.Control), new KeyGesture(Key.NumPad0, ModifierKeys.Control)]);
+
+    public static RoutedUICommand FitToWindow { get; } = new(
+        "_Fit to Canvas",
+        nameof(FitToWindow),
+        typeof(EditorCommands));
+
     /// <summary>Opens the current screen's view model code.</summary>
     public static RoutedUICommand EditCode { get; } = new(
         "_Code…",

@@ -5,13 +5,19 @@
         SizeToContent="WidthAndHeight"
         ResizeMode="NoResize"
         ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner">
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource AppBackgroundBrush}"
+        Foreground="{DynamicResource TextBrush}"
+        FontFamily="Segoe UI" FontSize="13">
+    <Window.Resources>
+        <ResourceDictionary Source="Themes/Studio.xaml" />
+    </Window.Resources>
     <StackPanel Margin="20,16" MaxWidth="420">
         <TextBlock x:Name="MessageText" TextWrapping="Wrap" Margin="0,0,0,16" />
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="_Save" MinWidth="80" Padding="10,3" IsDefault="True" Click="Save_Click" />
-            <Button Content="_Discard" MinWidth="80" Padding="10,3" Margin="8,0,0,0" Click="Discard_Click" />
-            <Button Content="Cancel" MinWidth="80" Padding="10,3" Margin="8,0,0,0" IsCancel="True" />
+            <Button Content="_Save" MinWidth="88" Style="{StaticResource PrimaryButton}" IsDefault="True" Click="Save_Click" />
+            <Button Content="_Discard" MinWidth="88" Style="{StaticResource OutlineButton}" Margin="8,0,0,0" Click="Discard_Click" />
+            <Button Content="Cancel" MinWidth="88" Style="{StaticResource OutlineButton}" Margin="8,0,0,0" IsCancel="True" />
         </StackPanel>
     </StackPanel>
 </Window>

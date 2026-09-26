@@ -101,12 +101,11 @@ internal sealed class EditorSession : IDisposable
         return string.IsNullOrEmpty(id) ? focused.Properties.ClassName.ValueOrDefault ?? "" : id;
     }
 
-    /// <summary>Screen point of a design coordinate, assuming 100% display scaling.</summary>
+    /// <summary>Screen point of a design coordinate, assuming 100% display scaling and zoom.</summary>
     public Point Canvas(int x, int y)
     {
-        // The surface sits inside a 24 DIP margin and a 1 DIP border in its scroll viewer.
-        var scroller = ById("SurfaceScroller").BoundingRectangle;
-        return new Point(scroller.Left + 25 + x, scroller.Top + 25 + y);
+        var surface = ById("Surface").BoundingRectangle;
+        return new Point(surface.Left + x, surface.Top + y);
     }
 
     public void ClickCanvas(int x, int y)

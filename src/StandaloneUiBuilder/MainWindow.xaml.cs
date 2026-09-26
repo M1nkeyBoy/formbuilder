@@ -58,7 +58,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        ToolboxList.ItemsSource = ControlCatalog.All.Where(d => d.InToolbox).ToList();
+        SetUpToolbox();
         Surface.ControlClicked += Surface_ControlClicked;
         Surface.ControlClickCompleted += Surface_ControlClickCompleted;
         Surface.BlankClicked += Surface_BlankClicked;
@@ -149,6 +149,7 @@ public partial class MainWindow : Window
         SetTabOrderMenuItem.IsChecked = tabOrderNext is not null;
         RefreshInspector();
         Title = $"{ProjectDisplayName}{(editor.IsDirty ? " ●" : "")} — {AppTitle}";
+        RefreshStudio();
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -323,14 +324,17 @@ public partial class MainWindow : Window
         inspectedId = control?.Id;
         NoSelectionText.Visibility = control is null ? Visibility.Visible : Visibility.Collapsed;
         InspectorPanel.Visibility = control is null ? Visibility.Collapsed : Visibility.Visible;
+        TypeText.Visibility = control is null ? Visibility.Collapsed : Visibility.Visible;
         if (control is null)
         {
+            SelectedTitleText.Text = selection.Count > 1 ? $"{selection.Count} controls" : $"Screen {editor.Screen.Name}";
             return;
         }
 
         var definition = ControlCatalog.Get(control.Type);
         var properties = control.Properties;
-        TypeText.Text = control.Type.ToString();
+        SelectedTitleText.Text = control.Name;
+        TypeText.Text = $"{control.Type} · {editor.Screen.Name}";
 
         // Inside a container, the container decides placement: show only what still applies.
         var parent = editor.ParentOf(control.Id);
@@ -421,7 +425,7 @@ public partial class MainWindow : Window
         FontRow.Visibility = Show(definition.HasFont);
         SetField(FontSizeBox, properties.FontSize?.ToString(CultureInfo.CurrentCulture) ?? "");
         BoldBox.IsChecked = properties.IsBold == true;
-        TextColorLabel.Visibility = TextColorBox.Visibility = Show(definition.HasFont);
+        TextColorPanel.Visibility = Show(definition.HasFont);
         SetField(TextColorBox, properties.Foreground ?? "");
         SetField(BackgroundBox, properties.Background ?? "");
 
@@ -436,6 +440,7 @@ public partial class MainWindow : Window
         IsCheckedBox.IsChecked = properties.IsChecked == true;
         ItemsRow.Visibility = definition.HasItems ? Visibility.Visible : Visibility.Collapsed;
         SetField(ItemsBox, string.Join(Environment.NewLine, properties.Items ?? []));
+        UpdateInspectorSections();
     }
 
     private static Visibility Show(bool visible) => visible ? Visibility.Visible : Visibility.Collapsed;
@@ -1502,6 +1507,7 @@ public partial class MainWindow : Window
         PreviewMenuItem.IsChecked = isPreview;
         ToolboxList.IsEnabled = !isPreview;
         InspectorPanel.IsEnabled = !isPreview;
+        LayersList.IsEnabled = !isPreview;
 
         // Rendering from the document again is what discards anything typed or toggled in Preview.
         RefreshAll();

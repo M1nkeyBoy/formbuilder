@@ -3,5 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
+        <!-- The editor's colours (Themes/Light.xaml or Dark.xaml) are added at startup to match Windows. -->
+        <ResourceDictionary />
     </Application.Resources>
 </Application>

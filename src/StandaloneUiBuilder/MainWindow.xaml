@@ -4,34 +4,33 @@
         xmlns:design="clr-namespace:StandaloneUiBuilder.Design"
         xmlns:local="clr-namespace:StandaloneUiBuilder"
         Title="Standalone UI Builder"
-        Width="1280" Height="800"
-        MinWidth="960" MinHeight="600"
+        Width="1280" Height="860"
+        MinWidth="960" MinHeight="700"
         WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource AppBackgroundBrush}"
+        Foreground="{DynamicResource TextBrush}"
+        FontFamily="Segoe UI" FontSize="13"
         UseLayoutRounding="True">
 
+    <!-- The look follows docs/design/UiBuilderRedesign.xaml; the colours follow Windows (EditorTheme). -->
     <Window.Resources>
-        <Style x:Key="PanelHeader" TargetType="TextBlock">
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="10,8,10,6" />
-        </Style>
-        <Style x:Key="FieldLabel" TargetType="Label">
-            <Setter Property="Width" Value="72" />
-            <Setter Property="Padding" Value="0,0,6,0" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="DockPanel.Dock" Value="Left" />
-        </Style>
-        <Style x:Key="FieldRow" TargetType="DockPanel">
-            <Setter Property="Margin" Value="10,0,10,6" />
-        </Style>
-        <Style x:Key="FieldBox" TargetType="TextBox">
-            <Setter Property="Padding" Value="2,1" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style x:Key="PlaceholderText" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="Margin" Value="10,0,10,0" />
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Studio.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="FieldBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}" />
+            <Style x:Key="ToolboxTile" TargetType="ListBoxItem" BasedOn="{StaticResource ToolTile}">
+                <Setter Property="AutomationProperties.Name" Value="{Binding Type}" />
+            </Style>
+            <Style x:Key="ScreenTabItem" TargetType="ListBoxItem" BasedOn="{StaticResource ScreenTab}">
+                <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
+                <Setter Property="ToolTip" Value="{Binding ToolTip}" />
+            </Style>
+            <Style x:Key="LayerItem" TargetType="ListBoxItem" BasedOn="{StaticResource ListItem}">
+                <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
+                <Setter Property="Padding" Value="6,4" />
+            </Style>
+        </ResourceDictionary>
     </Window.Resources>
 
     <Window.InputBindings>
@@ -70,404 +69,607 @@
         <CommandBinding Command="{x:Static local:EditorCommands.MoveScreenLater}" Executed="MoveScreenLater_Executed" CanExecute="MoveScreenLater_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.PreviousScreen}" Executed="PreviousScreen_Executed" CanExecute="PreviousScreen_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.NextScreen}" Executed="NextScreen_Executed" CanExecute="NextScreen_CanExecute" />
+        <CommandBinding Command="{x:Static local:EditorCommands.ZoomIn}" Executed="ZoomIn_Executed" />
+        <CommandBinding Command="{x:Static local:EditorCommands.ZoomOut}" Executed="ZoomOut_Executed" />
+        <CommandBinding Command="{x:Static local:EditorCommands.ActualSize}" Executed="ActualSize_Executed" />
+        <CommandBinding Command="{x:Static local:EditorCommands.FitToWindow}" Executed="FitToWindow_Executed" />
         <CommandBinding Command="ApplicationCommands.Undo" Executed="Undo_Executed" CanExecute="Undo_CanExecute" />
         <CommandBinding Command="ApplicationCommands.Redo" Executed="Redo_Executed" CanExecute="Redo_CanExecute" />
     </Window.CommandBindings>
 
-    <DockPanel>
-        <Menu DockPanel.Dock="Top">
-            <MenuItem Header="_File">
-                <MenuItem Header="_New" Command="ApplicationCommands.New" />
-                <MenuItem Header="_Open…" Command="ApplicationCommands.Open" />
-                <MenuItem Header="_Save" Command="ApplicationCommands.Save" />
-                <MenuItem Header="Save _As…" Command="ApplicationCommands.SaveAs" InputGestureText="Ctrl+Shift+S" />
-                <Separator />
-                <MenuItem Command="{x:Static local:EditorCommands.ImportWpf}" />
-                <Separator />
-                <MenuItem Command="{x:Static local:EditorCommands.ExportWpf}" />
-                <MenuItem Command="{x:Static local:EditorCommands.ExportWinForms}" InputGestureText="Ctrl+Shift+E" />
-                <MenuItem Command="{x:Static local:EditorCommands.ExportWinUI}" />
-                <MenuItem Command="{x:Static local:EditorCommands.ExportMaui}" />
-                <MenuItem Command="{x:Static local:EditorCommands.ExportBlazor}" />
-                <Separator />
-                <MenuItem Header="E_xit" Click="Exit_Click" />
-            </MenuItem>
-            <MenuItem Header="_Edit">
-                <MenuItem Header="_Undo" Command="ApplicationCommands.Undo" />
-                <MenuItem Header="_Redo" Command="ApplicationCommands.Redo" />
-                <Separator />
-                <MenuItem Header="Cu_t" Command="ApplicationCommands.Cut" />
-                <MenuItem Header="_Copy" Command="ApplicationCommands.Copy" />
-                <MenuItem Header="_Paste" Command="ApplicationCommands.Paste" />
-                <MenuItem Command="{x:Static local:EditorCommands.Duplicate}" />
-                <MenuItem Header="_Delete" Command="ApplicationCommands.Delete" />
-                <Separator />
-                <MenuItem Header="Select _All" Command="ApplicationCommands.SelectAll" />
-                <Separator />
-                <MenuItem Command="{x:Static local:EditorCommands.BringToFront}" InputGestureText="Ctrl+]" />
-                <MenuItem Command="{x:Static local:EditorCommands.SendToBack}" InputGestureText="Ctrl+[" />
-            </MenuItem>
-            <MenuItem Header="F_ormat">
-                <MenuItem Header="Align _Lefts" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Lefts" />
-                <MenuItem Header="Align _Centres" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Centers" />
-                <MenuItem Header="Align _Rights" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Rights" />
-                <Separator />
-                <MenuItem Header="Align _Tops" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Tops" />
-                <MenuItem Header="Align _Middles" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Middles" />
-                <MenuItem Header="Align _Bottoms" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Bottoms" />
-                <Separator />
-                <MenuItem Header="Make Same _Width" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Width" />
-                <MenuItem Header="Make Same _Height" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Height" />
-                <MenuItem Header="Make Same _Size" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Both" />
-                <Separator />
-                <MenuItem Header="Distribute _Across" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Horizontally" />
-                <MenuItem Header="Distribute _Down" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Vertically" />
-                <Separator />
-                <MenuItem Header="The last control selected is the one the others follow." IsEnabled="False" />
-                <Separator />
-                <MenuItem x:Name="SetTabOrderMenuItem" Command="{x:Static local:EditorCommands.SetTabOrder}" IsCheckable="False" />
-                <MenuItem Command="{x:Static local:EditorCommands.TabOrderByPosition}" />
-                <MenuItem Command="{x:Static local:EditorCommands.ResetTabOrder}" />
-            </MenuItem>
-            <MenuItem Header="_Screen">
-                <MenuItem Command="{x:Static local:EditorCommands.AddScreen}" InputGestureText="Ctrl+Shift+N" />
-                <MenuItem Command="{x:Static local:EditorCommands.DuplicateScreen}" />
-                <MenuItem Command="{x:Static local:EditorCommands.DeleteScreen}" />
-                <Separator />
-                <MenuItem Command="{x:Static local:EditorCommands.EditCode}" InputGestureText="F7" />
-                <Separator />
-                <MenuItem Command="{x:Static local:EditorCommands.MoveScreenEarlier}" />
-                <MenuItem Command="{x:Static local:EditorCommands.MoveScreenLater}" />
-                <Separator />
-                <MenuItem Command="{x:Static local:EditorCommands.PreviousScreen}" InputGestureText="Ctrl+PgUp" />
-                <MenuItem Command="{x:Static local:EditorCommands.NextScreen}" InputGestureText="Ctrl+PgDn" />
-            </MenuItem>
-            <MenuItem Header="_Project">
-                <MenuItem Header="_Theme">
-                    <MenuItem x:Name="LightThemeMenuItem" Header="_Light" Command="{x:Static local:EditorCommands.SetTheme}" CommandParameter="Light" />
-                    <MenuItem x:Name="DarkThemeMenuItem" Header="_Dark" Command="{x:Static local:EditorCommands.SetTheme}" CommandParameter="Dark" />
-                    <MenuItem x:Name="SystemThemeMenuItem" Header="Follow _Windows or Browser" Command="{x:Static local:EditorCommands.SetTheme}" CommandParameter="System" />
-                </MenuItem>
-            </MenuItem>
-            <MenuItem Header="_View">
-                <MenuItem x:Name="DesignMenuItem" Header="_Design" IsCheckable="True" IsChecked="True" Click="DesignMenuItem_Click" />
-                <MenuItem x:Name="PreviewMenuItem" Header="_Preview" IsCheckable="True" Click="PreviewMenuItem_Click" />
-            </MenuItem>
-        </Menu>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="60" />
+            <RowDefinition Height="52" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="30" />
+        </Grid.RowDefinitions>
 
-        <Border DockPanel.Dock="Bottom"
-                BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
-                BorderThickness="0,1,0,0"
-                Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
-            <DockPanel Margin="8,4">
-                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
-                    <RadioButton x:Name="DesignModeButton" Content="Design" GroupName="Mode"
-                                 IsChecked="True" Padding="10,2" MinWidth="72"
-                                 Style="{StaticResource {x:Type ToggleButton}}"
-                                 Checked="DesignModeButton_Checked" />
-                    <RadioButton x:Name="PreviewModeButton" Content="Preview" GroupName="Mode"
-                                 Padding="10,2" MinWidth="72" Margin="4,0,0,0"
-                                 Style="{StaticResource {x:Type ToggleButton}}"
-                                 Checked="PreviewModeButton_Checked" />
+        <!-- The project: its name, the menus, Save and Export. -->
+        <Border Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Border Background="{DynamicResource AccentBrush}" CornerRadius="9" Width="32" Height="32" VerticalAlignment="Center">
+                    <TextBlock Text="▦" Foreground="{DynamicResource OnAccentBrush}" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <Border Grid.Column="1" Margin="12,0,0,0" Padding="0,0,16,0" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0" VerticalAlignment="Center">
+                    <StackPanel>
+                        <TextBlock x:Name="ProjectNameText" Text="Untitled" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="260" />
+                        <TextBlock x:Name="ProjectSubtitleText" Text="Standalone UI Builder" Style="{StaticResource MutedText}" Margin="0,2,0,0" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center">
+                    <Menu x:Name="MainMenu" VerticalAlignment="Center" AutomationProperties.Name="Menu">
+                <MenuItem Header="_File">
+                    <MenuItem Header="_New" Command="ApplicationCommands.New" />
+                    <MenuItem Header="_Open…" Command="ApplicationCommands.Open" />
+                    <MenuItem Header="_Save" Command="ApplicationCommands.Save" />
+                    <MenuItem Header="Save _As…" Command="ApplicationCommands.SaveAs" InputGestureText="Ctrl+Shift+S" />
+                    <Separator />
+                    <MenuItem Command="{x:Static local:EditorCommands.ImportWpf}" />
+                    <Separator />
+                    <MenuItem Command="{x:Static local:EditorCommands.ExportWpf}" />
+                    <MenuItem Command="{x:Static local:EditorCommands.ExportWinForms}" InputGestureText="Ctrl+Shift+E" />
+                    <MenuItem Command="{x:Static local:EditorCommands.ExportWinUI}" />
+                    <MenuItem Command="{x:Static local:EditorCommands.ExportMaui}" />
+                    <MenuItem Command="{x:Static local:EditorCommands.ExportBlazor}" />
+                    <Separator />
+                    <MenuItem Header="E_xit" Click="Exit_Click" />
+                </MenuItem>
+                <MenuItem Header="_Edit">
+                    <MenuItem Header="_Undo" Command="ApplicationCommands.Undo" />
+                    <MenuItem Header="_Redo" Command="ApplicationCommands.Redo" />
+                    <Separator />
+                    <MenuItem Header="Cu_t" Command="ApplicationCommands.Cut" />
+                    <MenuItem Header="_Copy" Command="ApplicationCommands.Copy" />
+                    <MenuItem Header="_Paste" Command="ApplicationCommands.Paste" />
+                    <MenuItem Command="{x:Static local:EditorCommands.Duplicate}" />
+                    <MenuItem Header="_Delete" Command="ApplicationCommands.Delete" />
+                    <Separator />
+                    <MenuItem Header="Select _All" Command="ApplicationCommands.SelectAll" />
+                    <Separator />
+                    <MenuItem Command="{x:Static local:EditorCommands.BringToFront}" InputGestureText="Ctrl+]" />
+                    <MenuItem Command="{x:Static local:EditorCommands.SendToBack}" InputGestureText="Ctrl+[" />
+                </MenuItem>
+                <MenuItem Header="F_ormat">
+                    <MenuItem Header="Align _Lefts" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Lefts" />
+                    <MenuItem Header="Align _Centres" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Centers" />
+                    <MenuItem Header="Align _Rights" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Rights" />
+                    <Separator />
+                    <MenuItem Header="Align _Tops" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Tops" />
+                    <MenuItem Header="Align _Middles" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Middles" />
+                    <MenuItem Header="Align _Bottoms" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Bottoms" />
+                    <Separator />
+                    <MenuItem Header="Make Same _Width" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Width" />
+                    <MenuItem Header="Make Same _Height" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Height" />
+                    <MenuItem Header="Make Same _Size" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Both" />
+                    <Separator />
+                    <MenuItem Header="Distribute _Across" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Horizontally" />
+                    <MenuItem Header="Distribute _Down" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Vertically" />
+                    <Separator />
+                    <MenuItem Header="The last control selected is the one the others follow." IsEnabled="False" />
+                    <Separator />
+                    <MenuItem x:Name="SetTabOrderMenuItem" Command="{x:Static local:EditorCommands.SetTabOrder}" IsCheckable="False" />
+                    <MenuItem Command="{x:Static local:EditorCommands.TabOrderByPosition}" />
+                    <MenuItem Command="{x:Static local:EditorCommands.ResetTabOrder}" />
+                </MenuItem>
+                <MenuItem Header="_Screen">
+                    <MenuItem Command="{x:Static local:EditorCommands.AddScreen}" InputGestureText="Ctrl+Shift+N" />
+                    <MenuItem Command="{x:Static local:EditorCommands.DuplicateScreen}" />
+                    <MenuItem Command="{x:Static local:EditorCommands.DeleteScreen}" />
+                    <Separator />
+                    <MenuItem Command="{x:Static local:EditorCommands.EditCode}" InputGestureText="F7" />
+                    <Separator />
+                    <MenuItem Command="{x:Static local:EditorCommands.MoveScreenEarlier}" />
+                    <MenuItem Command="{x:Static local:EditorCommands.MoveScreenLater}" />
+                    <Separator />
+                    <MenuItem Command="{x:Static local:EditorCommands.PreviousScreen}" InputGestureText="Ctrl+PgUp" />
+                    <MenuItem Command="{x:Static local:EditorCommands.NextScreen}" InputGestureText="Ctrl+PgDn" />
+                </MenuItem>
+                <MenuItem Header="_Project">
+                    <MenuItem Header="_Theme">
+                        <MenuItem x:Name="LightThemeMenuItem" Header="_Light" Command="{x:Static local:EditorCommands.SetTheme}" CommandParameter="Light" />
+                        <MenuItem x:Name="DarkThemeMenuItem" Header="_Dark" Command="{x:Static local:EditorCommands.SetTheme}" CommandParameter="Dark" />
+                        <MenuItem x:Name="SystemThemeMenuItem" Header="Follow _Windows or Browser" Command="{x:Static local:EditorCommands.SetTheme}" CommandParameter="System" />
+                    </MenuItem>
+                </MenuItem>
+                <MenuItem Header="_View">
+                    <MenuItem x:Name="DesignMenuItem" Header="_Design" IsCheckable="True" IsChecked="True" Click="DesignMenuItem_Click" />
+                    <MenuItem x:Name="PreviewMenuItem" Header="_Preview" IsCheckable="True" Click="PreviewMenuItem_Click" />
+                    <Separator />
+                    <MenuItem x:Name="ShowGridMenuItem" Header="Show _Grid" IsCheckable="True" IsChecked="True" Click="ShowGridMenuItem_Click" />
+                    <Separator />
+                    <MenuItem Command="{x:Static local:EditorCommands.ZoomIn}" InputGestureText="Ctrl++" />
+                    <MenuItem Command="{x:Static local:EditorCommands.ZoomOut}" InputGestureText="Ctrl+-" />
+                    <MenuItem Command="{x:Static local:EditorCommands.ActualSize}" InputGestureText="Ctrl+0" />
+                    <MenuItem Command="{x:Static local:EditorCommands.FitToWindow}" />
+                </MenuItem>
+            </Menu>
+                </Border>
+                <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="SaveHeaderButton" Content="Save" Command="ApplicationCommands.Save" Style="{StaticResource OutlineButton}"
+                            ToolTip="Save (Ctrl+S)" Margin="0,0,8,0" />
+                    <Button x:Name="ExportButton" Content="Export ▾" Style="{StaticResource PrimaryButton}" Click="ExportButton_Click"
+                            ToolTip="Export the project as a WPF, Windows Forms, WinUI 3, .NET MAUI or Blazor application.">
+                        <Button.ContextMenu>
+                            <ContextMenu x:Name="ExportMenu">
+                                <MenuItem Command="{x:Static local:EditorCommands.ExportWpf}" />
+                                <MenuItem Command="{x:Static local:EditorCommands.ExportWinForms}" InputGestureText="Ctrl+Shift+E" />
+                                <MenuItem Command="{x:Static local:EditorCommands.ExportWinUI}" />
+                                <MenuItem Command="{x:Static local:EditorCommands.ExportMaui}" />
+                                <MenuItem Command="{x:Static local:EditorCommands.ExportBlazor}" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                 </StackPanel>
-                <TextBlock x:Name="StatusText" Text="Ready" VerticalAlignment="Center"
-                           HorizontalAlignment="Right" Margin="12,0,4,0" />
+            </Grid>
+        </Border>
+
+        <!-- Design or Preview, undo, arranging, the grid and zoom. -->
+        <Border Grid.Row="1" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="14,0">
+            <DockPanel LastChildFill="False">
+                <Border Background="{DynamicResource SoftBrush}" CornerRadius="10" Padding="3" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="DesignModeButton" Content="Design" GroupName="Mode" IsChecked="True"
+                                     Style="{StaticResource ModeButton}" Checked="DesignModeButton_Checked" />
+                        <RadioButton x:Name="PreviewModeButton" Content="Preview" GroupName="Mode"
+                                     Style="{StaticResource ModeButton}" Checked="PreviewModeButton_Checked" />
+                    </StackPanel>
+                </Border>
+                <Button x:Name="UndoButton" Content="↶" Command="ApplicationCommands.Undo" Style="{StaticResource IconButton}" FontSize="18"
+                        ToolTip="Undo (Ctrl+Z)" AutomationProperties.Name="Undo" Margin="12,0,0,0" VerticalAlignment="Center" />
+                <Button x:Name="RedoButton" Content="↷" Command="ApplicationCommands.Redo" Style="{StaticResource IconButton}" FontSize="18"
+                        ToolTip="Redo (Ctrl+Y)" AutomationProperties.Name="Redo" VerticalAlignment="Center" />
+                <Border Width="1" Background="{DynamicResource BorderBrush}" Margin="10,14" />
+                <Button x:Name="ArrangeButton" Content="Arrange ▾" VerticalAlignment="Center" Click="ArrangeButton_Click"
+                        ToolTip="Align, size and space the selected controls (select two or more); the last one selected leads.">
+                    <Button.ContextMenu>
+                        <ContextMenu x:Name="ArrangeMenu">
+                            <MenuItem Header="Align _Lefts" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Lefts" />
+                            <MenuItem Header="Align _Centres" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Centers" />
+                            <MenuItem Header="Align _Rights" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Rights" />
+                            <Separator />
+                            <MenuItem Header="Align _Tops" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Tops" />
+                            <MenuItem Header="Align _Middles" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Middles" />
+                            <MenuItem Header="Align _Bottoms" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Bottoms" />
+                            <Separator />
+                            <MenuItem Header="Make Same _Width" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Width" />
+                            <MenuItem Header="Make Same _Height" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Height" />
+                            <MenuItem Header="Make Same _Size" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Both" />
+                            <Separator />
+                            <MenuItem Header="Distribute _Across" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Horizontally" />
+                            <MenuItem Header="Distribute _Down" Command="{x:Static local:EditorCommands.Arrange}" CommandParameter="Vertically" />
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                </Button>
+                <Button x:Name="TabOrderButton" Content="Tab order" Command="{x:Static local:EditorCommands.SetTabOrder}" VerticalAlignment="Center"
+                        ToolTip="Set the order Tab visits the controls: click them in turn, then press Esc (Ctrl+T)." />
+                <Button x:Name="CodeButton" Content="Code" Command="{x:Static local:EditorCommands.EditCode}" VerticalAlignment="Center"
+                        ToolTip="The screen's view model code (F7)." />
+
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <CheckBox x:Name="ShowGridBox" Content="Grid" IsChecked="True" Margin="0,0,16,0" Click="ShowGridBox_Click"
+                              ToolTip="Show the design grid. Controls snap to it either way." />
+                    <Button x:Name="ZoomOutButton" Content="−" Command="{x:Static local:EditorCommands.ZoomOut}" Style="{StaticResource IconButton}"
+                            AutomationProperties.Name="Zoom out" ToolTip="Zoom out (Ctrl+-)" />
+                    <TextBlock x:Name="ZoomText" Text="100%" MinWidth="44" TextAlignment="Center" VerticalAlignment="Center"
+                               Style="{StaticResource MutedText}" AutomationProperties.Name="Zoom" />
+                    <Button x:Name="ZoomInButton" Content="+" Command="{x:Static local:EditorCommands.ZoomIn}" Style="{StaticResource IconButton}"
+                            AutomationProperties.Name="Zoom in" ToolTip="Zoom in (Ctrl++)" />
+                    <Button x:Name="ActualSizeButton" Content="100%" Command="{x:Static local:EditorCommands.ActualSize}"
+                            ToolTip="Actual size (Ctrl+0)" Margin="4,0,0,0" />
+                    <Button x:Name="FitButton" Content="Fit" Command="{x:Static local:EditorCommands.FitToWindow}"
+                            ToolTip="Fit the screen in the canvas" />
+                </StackPanel>
             </DockPanel>
         </Border>
 
-        <Grid>
+        <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="180" MinWidth="140" />
+                <ColumnDefinition Width="210" MinWidth="170" />
                 <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" MinWidth="320" />
+                <ColumnDefinition Width="*" MinWidth="400" />
                 <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="260" MinWidth="200" />
+                <ColumnDefinition Width="290" MinWidth="240" />
             </Grid.ColumnDefinitions>
 
-            <DockPanel Grid.Column="0" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
-                <TextBlock DockPanel.Dock="Top" Text="Toolbox" Style="{StaticResource PanelHeader}" />
-                <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource PlaceholderText}" Margin="10,8,10,10"
-                           Text="Drag a control onto the canvas. Or select one, then click the canvas or press Enter." />
-                <ListBox x:Name="ToolboxList" Margin="6,0" BorderThickness="0" Background="Transparent"
-                         AutomationProperties.Name="Toolbox"
-                         PreviewMouseLeftButtonDown="ToolboxList_PreviewMouseLeftButtonDown"
-                         PreviewMouseMove="ToolboxList_PreviewMouseMove"
-                         PreviewMouseLeftButtonUp="ToolboxList_PreviewMouseLeftButtonUp"
-                         KeyDown="ToolboxList_KeyDown"
-                         SelectionChanged="ToolboxList_SelectionChanged">
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem">
-                            <Setter Property="AutomationProperties.Name" Value="{Binding Type}" />
-                        </Style>
-                    </ListBox.ItemContainerStyle>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Type}" Padding="6,4" />
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </DockPanel>
+            <!-- Controls to add, and the screen's controls as layers. -->
+            <Border Background="{DynamicResource PanelBrush}">
+                <TabControl x:Name="LibraryTabs">
+                    <TabItem Header="Controls" AutomationProperties.Name="Controls">
+                        <DockPanel Margin="10,10,10,0">
+                            <TextBox x:Name="ControlSearchBox" DockPanel.Dock="Top" TextChanged="ControlSearchBox_TextChanged"
+                                     AutomationProperties.Name="Find a control" ToolTip="Find a control" />
+                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource PlaceholderText}" Margin="4,10,4,12"
+                                       Text="Drag a control onto the canvas. Or select one, then click the canvas or press Enter." />
+                            <ListBox x:Name="ToolboxList" Margin="0,4,0,0"
+                                     AutomationProperties.Name="Toolbox"
+                                     ItemContainerStyle="{StaticResource ToolboxTile}"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     PreviewMouseLeftButtonDown="ToolboxList_PreviewMouseLeftButtonDown"
+                                     PreviewMouseMove="ToolboxList_PreviewMouseMove"
+                                     PreviewMouseLeftButtonUp="ToolboxList_PreviewMouseLeftButtonUp"
+                                     KeyDown="ToolboxList_KeyDown"
+                                     SelectionChanged="ToolboxList_SelectionChanged">
+                                <ListBox.GroupStyle>
+                                    <GroupStyle>
+                                        <GroupStyle.HeaderTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Name}" Style="{StaticResource CategoryTitle}" />
+                                            </DataTemplate>
+                                        </GroupStyle.HeaderTemplate>
+                                        <GroupStyle.Panel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </GroupStyle.Panel>
+                                    </GroupStyle>
+                                </ListBox.GroupStyle>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Type}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                    </TabItem>
+                    <TabItem Header="Layers" AutomationProperties.Name="Layers">
+                        <ListBox x:Name="LayersList" Margin="8" SelectionMode="Extended" AutomationProperties.Name="Layers"
+                                 ItemContainerStyle="{StaticResource LayerItem}" SelectionChanged="LayersList_SelectionChanged">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="{Binding Indent}">
+                                        <TextBlock Text="{Binding Name}" />
+                                        <TextBlock Text="{Binding Type}" Style="{StaticResource MutedText}" Margin="8,0,0,0" FontSize="11" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </TabItem>
+                </TabControl>
+            </Border>
 
             <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch"
-                          ResizeBehavior="PreviousAndNext" Focusable="False" />
+                          ResizeBehavior="PreviousAndNext" Focusable="False" Background="{DynamicResource BorderBrush}" />
 
-            <DockPanel Grid.Column="2">
-                <!-- One tab per screen; the first is the one a generated app opens with. -->
-                <DockPanel DockPanel.Dock="Top" Margin="6,4,6,0">
-                    <Button x:Name="AddScreenButton" DockPanel.Dock="Right" Content="+" Padding="8,0" Margin="4,2,0,2"
-                            Command="{x:Static local:EditorCommands.AddScreen}"
-                            AutomationProperties.Name="Add screen" ToolTip="Add a screen (Ctrl+Shift+N)" />
-                    <ListBox x:Name="ScreenTabs" BorderThickness="0" Background="Transparent"
-                             AutomationProperties.Name="Screens"
-                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                             ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                             SelectionChanged="ScreenTabs_SelectionChanged">
-                        <ListBox.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ListBox.ItemsPanel>
-                        <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
-                                <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
-                                <Setter Property="Margin" Value="0,0,2,0" />
-                                <Setter Property="ToolTip" Value="{Binding ToolTip}" />
-                            </Style>
-                        </ListBox.ItemContainerStyle>
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding Name}" Padding="8,3" />
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </DockPanel>
-                <ScrollViewer x:Name="SurfaceScroller"
+            <!-- The screens and the design surface. -->
+            <Grid Grid.Column="2" Background="{DynamicResource CanvasBrush}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="36" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Border Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+                    <!-- One tab per screen; the first is the one a generated app opens with. -->
+                    <DockPanel>
+                        <Button x:Name="AddScreenButton" DockPanel.Dock="Right" Content="+" Style="{StaticResource IconButton}" Margin="6,4"
+                                Command="{x:Static local:EditorCommands.AddScreen}"
+                                AutomationProperties.Name="Add screen" ToolTip="Add a screen (Ctrl+Shift+N)" />
+                        <ListBox x:Name="ScreenTabs"
+                                 AutomationProperties.Name="Screens"
+                                 ItemContainerStyle="{StaticResource ScreenTabItem}"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                 SelectionChanged="ScreenTabs_SelectionChanged">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+                </Border>
+                <TextBlock x:Name="ScreenSizeText" Grid.Row="1" Margin="18,0" VerticalAlignment="Center" Style="{StaticResource MutedText}" />
+                <ScrollViewer x:Name="SurfaceScroller" Grid.Row="2"
                               HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
-                              Background="{DynamicResource {x:Static SystemColors.AppWorkspaceBrushKey}}">
-                    <Border Margin="24" HorizontalAlignment="Left" VerticalAlignment="Top"
-                            BorderBrush="#FFB8BFC8" BorderThickness="1">
+                              Background="{StaticResource CanvasDotBrush}"
+                              PreviewMouseWheel="SurfaceScroller_PreviewMouseWheel">
+                    <!-- The editor's styles stop here: the canvas shows each control as its target draws it. Left-aligned,
+                         so the Preview's resize grip follows the pointer. -->
+                    <Border x:Name="Artboard" Margin="24" HorizontalAlignment="Left" VerticalAlignment="Top"
+                            BorderBrush="{DynamicResource ArtboardBorderBrush}" BorderThickness="1"
+                            TextElement.FontFamily="{x:Static SystemFonts.MessageFontFamily}"
+                            TextElement.FontSize="{x:Static SystemFonts.MessageFontSize}"
+                            TextElement.Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}">
+                        <Border.Resources>
+                            <ResourceDictionary Source="Themes/CanvasReset.xaml" />
+                        </Border.Resources>
+                        <Border.LayoutTransform>
+                            <ScaleTransform x:Name="ZoomTransform" ScaleX="1" ScaleY="1" />
+                        </Border.LayoutTransform>
                         <design:DesignSurface x:Name="Surface" />
                     </Border>
                 </ScrollViewer>
-            </DockPanel>
+            </Grid>
 
             <GridSplitter Grid.Column="3" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch"
-                          ResizeBehavior="PreviousAndNext" Focusable="False" />
+                          ResizeBehavior="PreviousAndNext" Focusable="False" Background="{DynamicResource BorderBrush}" />
 
-            <DockPanel Grid.Column="4" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
-                <TextBlock DockPanel.Dock="Top" Text="Properties" Style="{StaticResource PanelHeader}" />
-                <TextBlock x:Name="NoSelectionText" DockPanel.Dock="Top" Style="{StaticResource PlaceholderText}"
-                           Text="Select a control to edit its properties." />
-                <StackPanel x:Name="ScreenPanel" DockPanel.Dock="Top" Margin="0,10,0,0">
-                    <TextBlock Text="Screen" Style="{StaticResource PanelHeader}" />
-                    <DockPanel Style="{StaticResource FieldRow}">
-                        <Label Content="Na_me" Target="{Binding ElementName=ScreenNameBox}" Style="{StaticResource FieldLabel}" />
-                        <TextBox x:Name="ScreenNameBox" Style="{StaticResource FieldBox}" AutomationProperties.Name="Screen name" />
-                    </DockPanel>
-                    <DockPanel Style="{StaticResource FieldRow}">
-                        <Label Content="Wi_dth" Target="{Binding ElementName=ScreenWidthBox}" Style="{StaticResource FieldLabel}" />
-                        <TextBox x:Name="ScreenWidthBox" Style="{StaticResource FieldBox}" />
-                    </DockPanel>
-                    <DockPanel Style="{StaticResource FieldRow}">
-                        <Label Content="H_eight" Target="{Binding ElementName=ScreenHeightBox}" Style="{StaticResource FieldLabel}" />
-                        <TextBox x:Name="ScreenHeightBox" Style="{StaticResource FieldBox}" />
-                    </DockPanel>
-                    <TextBlock x:Name="ScreenErrorText" Margin="10,0,10,6" TextWrapping="Wrap"
-                               Foreground="#FFC42B1C" Visibility="Collapsed" />
-                    <TextBlock Style="{StaticResource PlaceholderText}" Margin="10,0,10,6"
-                               Text="The design size in DIPs. Every control must still fit. The name becomes the screen's window in exported code; the first screen is the main window." />
-                </StackPanel>
-                <ScrollViewer x:Name="InspectorPanel" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                    <StackPanel>
-                        <DockPanel Style="{StaticResource FieldRow}">
-                            <Label Content="Type" Style="{StaticResource FieldLabel}" />
-                            <TextBlock x:Name="TypeText" VerticalAlignment="Center" Padding="3,4" />
-                        </DockPanel>
-                        <DockPanel Style="{StaticResource FieldRow}">
-                            <Label Content="_Name" Target="{Binding ElementName=NameBox}" Style="{StaticResource FieldLabel}" />
-                            <TextBox x:Name="NameBox" Style="{StaticResource FieldBox}" />
-                        </DockPanel>
-                        <DockPanel x:Name="XRow" Style="{StaticResource FieldRow}">
-                            <Label Content="_X" Target="{Binding ElementName=XBox}" Style="{StaticResource FieldLabel}" />
-                            <TextBox x:Name="XBox" Style="{StaticResource FieldBox}" />
-                        </DockPanel>
-                        <DockPanel x:Name="YRow" Style="{StaticResource FieldRow}">
-                            <Label Content="_Y" Target="{Binding ElementName=YBox}" Style="{StaticResource FieldLabel}" />
-                            <TextBox x:Name="YBox" Style="{StaticResource FieldBox}" />
-                        </DockPanel>
-                        <DockPanel x:Name="WidthRow" Style="{StaticResource FieldRow}">
-                            <Label Content="_Width" Target="{Binding ElementName=WidthBox}" Style="{StaticResource FieldLabel}" />
-                            <TextBox x:Name="WidthBox" Style="{StaticResource FieldBox}" />
-                        </DockPanel>
-                        <DockPanel x:Name="HeightRow" Style="{StaticResource FieldRow}">
-                            <Label Content="_Height" Target="{Binding ElementName=HeightBox}" Style="{StaticResource FieldLabel}" />
-                            <TextBox x:Name="HeightBox" Style="{StaticResource FieldBox}" />
-                        </DockPanel>
-                        <DockPanel x:Name="AnchorRow" Style="{StaticResource FieldRow}">
-                            <Label Content="Anchor" Style="{StaticResource FieldLabel}" VerticalContentAlignment="Top" />
-                            <UniformGrid Columns="2" ToolTip="Edges the control follows when the window is resized. Left and Right together, or Top and Bottom together, make it stretch.">
-                                <CheckBox x:Name="AnchorLeftBox" Content="Left" Margin="0,2" Click="AnchorBox_Click" />
-                                <CheckBox x:Name="AnchorTopBox" Content="Top" Margin="0,2" Click="AnchorBox_Click" />
-                                <CheckBox x:Name="AnchorRightBox" Content="Right" Margin="0,2" Click="AnchorBox_Click" />
-                                <CheckBox x:Name="AnchorBottomBox" Content="Bottom" Margin="0,2" Click="AnchorBox_Click" />
-                            </UniformGrid>
-                        </DockPanel>
-                        <DockPanel x:Name="CellRow" Style="{StaticResource FieldRow}"
-                                   ToolTip="The Grid cell this control fills, counted from 0.">
-                            <Label Content="Cell" Style="{StaticResource FieldLabel}" />
-                            <UniformGrid Columns="4">
-                                <Label Content="_Row" Target="{Binding ElementName=RowBox}" Padding="0,0,4,0" VerticalContentAlignment="Center" />
-                                <TextBox x:Name="RowBox" Style="{StaticResource FieldBox}" />
-                                <Label Content="C_ol" Target="{Binding ElementName=ColumnBox}" Padding="6,0,4,0" VerticalContentAlignment="Center" />
-                                <TextBox x:Name="ColumnBox" Style="{StaticResource FieldBox}" />
-                            </UniformGrid>
-                        </DockPanel>
-                        <DockPanel x:Name="SpanRow" Style="{StaticResource FieldRow}"
-                                   ToolTip="How many rows and columns of the Grid this control covers.">
-                            <Label Content="Span" Style="{StaticResource FieldLabel}" />
-                            <UniformGrid Columns="4">
-                                <Label Content="Rows" Target="{Binding ElementName=RowSpanBox}" Padding="0,0,4,0" VerticalContentAlignment="Center" />
-                                <TextBox x:Name="RowSpanBox" Style="{StaticResource FieldBox}" AutomationProperties.Name="Row span" />
-                                <Label Content="Cols" Target="{Binding ElementName=ColumnSpanBox}" Padding="6,0,4,0" VerticalContentAlignment="Center" />
-                                <TextBox x:Name="ColumnSpanBox" Style="{StaticResource FieldBox}" AutomationProperties.Name="Column span" />
-                            </UniformGrid>
-                        </DockPanel>
-                        <DockPanel x:Name="OrderRow" Style="{StaticResource FieldRow}"
-                                   ToolTip="The control's place among the others in its StackPanel.">
-                            <Label Content="Order" Style="{StaticResource FieldLabel}" />
-                            <UniformGrid Columns="2">
-                                <Button x:Name="EarlierButton" Content="Earlier" Margin="0,0,3,0" Click="EarlierButton_Click" />
-                                <Button x:Name="LaterButton" Content="Later" Margin="3,0,0,0" Click="LaterButton_Click" />
-                            </UniformGrid>
-                        </DockPanel>
-                        <DockPanel x:Name="OrientationRow" Style="{StaticResource FieldRow}">
-                            <Label Content="Direction" Target="{Binding ElementName=OrientationBox}" Style="{StaticResource FieldLabel}" />
-                            <ComboBox x:Name="OrientationBox" SelectionChanged="OrientationBox_SelectionChanged"
-                                      AutomationProperties.Name="Direction">
-                                <ComboBoxItem Content="Vertical" />
-                                <ComboBoxItem Content="Horizontal" />
-                            </ComboBox>
-                        </DockPanel>
-                        <DockPanel x:Name="SpacingRow" Style="{StaticResource FieldRow}">
-                            <Label Content="_Spacing" Target="{Binding ElementName=SpacingBox}" Style="{StaticResource FieldLabel}" />
-                            <TextBox x:Name="SpacingBox" Style="{StaticResource FieldBox}" />
-                        </DockPanel>
-                        <DockPanel x:Name="GridSizeRow" Style="{StaticResource FieldRow}">
-                            <Label Content="Cells" Style="{StaticResource FieldLabel}" />
-                            <UniformGrid Columns="4">
-                                <Label Content="Ro_ws" Target="{Binding ElementName=RowsBox}" Padding="0,0,4,0" VerticalContentAlignment="Center" />
-                                <TextBox x:Name="RowsBox" Style="{StaticResource FieldBox}" />
-                                <Label Content="Co_ls" Target="{Binding ElementName=ColumnsBox}" Padding="6,0,4,0" VerticalContentAlignment="Center" />
-                                <TextBox x:Name="ColumnsBox" Style="{StaticResource FieldBox}" />
-                            </UniformGrid>
-                        </DockPanel>
-                        <StackPanel x:Name="TrackSizesRow" Margin="10,0,10,6"
-                                    ToolTip="One size per row or column, separated by commas: a number of DIPs (100), or a share of the space left (* or 2*).">
-                            <Label Content="Row si_zes" Target="{Binding ElementName=RowSizesBox}" Padding="0,0,0,3" />
-                            <TextBox x:Name="RowSizesBox" Style="{StaticResource FieldBox}" Margin="0,0,0,6" />
-                            <Label Content="Col_umn sizes" Target="{Binding ElementName=ColumnSizesBox}" Padding="0,0,0,3" />
-                            <TextBox x:Name="ColumnSizesBox" Style="{StaticResource FieldBox}" />
+            <!-- The inspector: the selected control, or the screen when nothing is selected. -->
+            <Border Grid.Column="4" Background="{DynamicResource PanelBrush}">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="18,14">
+                        <StackPanel>
+                            <TextBlock x:Name="SelectedTitleText" Text="Properties" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="TypeText" Style="{StaticResource MutedText}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="NoSelectionText" Style="{StaticResource PlaceholderText}" Margin="0,4,0,0"
+                                       Text="Select a control to edit its properties." />
                         </StackPanel>
-                        <DockPanel x:Name="TextRow" Style="{StaticResource FieldRow}">
-                            <Label Content="_Text" Target="{Binding ElementName=TextValueBox}" Style="{StaticResource FieldLabel}" />
-                            <TextBox x:Name="TextValueBox" Style="{StaticResource FieldBox}" />
-                        </DockPanel>
-                        <DockPanel x:Name="ActionRow" Style="{StaticResource FieldRow}"
-                                   ToolTip="What clicking the button does in Preview and in exported code, after its hook.">
-                            <Label Content="On click" Target="{Binding ElementName=ActionBox}" Style="{StaticResource FieldLabel}" />
-                            <ComboBox x:Name="ActionBox" AutomationProperties.Name="On click"
-                                      DisplayMemberPath="Label" SelectionChanged="ActionBox_SelectionChanged" />
-                        </DockPanel>
-                        <DockPanel x:Name="TabsRow" Style="{StaticResource FieldRow}"
-                                   ToolTip="The tab shown on the canvas and when the screen opens. Click a tab on the canvas to show it too.">
-                            <Label Content="Shown tab" Target="{Binding ElementName=ShownTabBox}" Style="{StaticResource FieldLabel}" />
-                            <Button x:Name="AddTabButton" DockPanel.Dock="Right" Content="Add tab" Margin="6,0,0,0" Padding="6,0"
-                                    Click="AddTabButton_Click" />
-                            <ComboBox x:Name="ShownTabBox" AutomationProperties.Name="Shown tab"
-                                      SelectionChanged="ShownTabBox_SelectionChanged" />
-                        </DockPanel>
-                        <DockPanel x:Name="MultilineRow" Style="{StaticResource FieldRow}"
-                                   ToolTip="Several lines of text that wrap, with a scroll bar when needed.">
-                            <Label Content="Lines" Style="{StaticResource FieldLabel}" />
-                            <CheckBox x:Name="MultilineBox" Content="Multi-line" VerticalAlignment="Center"
-                                      Click="MultilineBox_Click" />
-                        </DockPanel>
-                        <DockPanel x:Name="RangeRow" Style="{StaticResource FieldRow}"
-                                   ToolTip="Whole numbers: the lowest and highest values, and the value shown.">
-                            <Label Content="Range" Style="{StaticResource FieldLabel}" VerticalContentAlignment="Top" />
-                            <UniformGrid Columns="2">
-                                <Label Content="M_inimum" Target="{Binding ElementName=MinimumBox}" Padding="0,0,4,0" VerticalContentAlignment="Center" />
-                                <TextBox x:Name="MinimumBox" Style="{StaticResource FieldBox}" Margin="0,0,0,4" />
-                                <Label Content="Maxim_um" Target="{Binding ElementName=MaximumBox}" Padding="0,0,4,0" VerticalContentAlignment="Center" />
-                                <TextBox x:Name="MaximumBox" Style="{StaticResource FieldBox}" Margin="0,0,0,4" />
-                                <Label Content="_Value" Target="{Binding ElementName=ValueBox}" Padding="0,0,4,0" VerticalContentAlignment="Center" />
-                                <TextBox x:Name="ValueBox" Style="{StaticResource FieldBox}" />
-                            </UniformGrid>
-                        </DockPanel>
-                        <DockPanel x:Name="IsCheckedRow" Style="{StaticResource FieldRow}">
-                            <Label Content="Checked" Style="{StaticResource FieldLabel}" />
-                            <CheckBox x:Name="IsCheckedBox" VerticalAlignment="Center"
-                                      AutomationProperties.Name="Checked" Click="IsCheckedBox_Click" />
-                        </DockPanel>
-                        <StackPanel x:Name="ItemsRow" Margin="10,0,10,6">
-                            <Label Content="_Items (one per line)" Target="{Binding ElementName=ItemsBox}" Padding="0,0,0,3" />
-                            <TextBox x:Name="ItemsBox" Style="{StaticResource FieldBox}" AcceptsReturn="True"
-                                     MinLines="4" MaxLines="12" VerticalScrollBarVisibility="Auto"
-                                     VerticalContentAlignment="Top" />
-                        </StackPanel>
-                        <DockPanel x:Name="ImageRow" Style="{StaticResource FieldRow}">
-                            <Label Content="Picture" Style="{StaticResource FieldLabel}" VerticalContentAlignment="Top" />
-                            <StackPanel>
-                                <UniformGrid Columns="2" Margin="0,0,0,4">
-                                    <Button x:Name="ChooseImageButton" Content="Choose…" Margin="0,0,3,0" Click="ChooseImageButton_Click"
-                                            ToolTip="A PNG, JPEG, GIF or BMP file of up to 2 MB, stored in the project." />
-                                    <Button x:Name="RemoveImageButton" Content="Remove" Margin="3,0,0,0" Click="RemoveImageButton_Click" />
-                                </UniformGrid>
-                                <ComboBox x:Name="StretchBox" AutomationProperties.Name="Picture fit" SelectionChanged="StretchBox_SelectionChanged">
-                                    <ComboBoxItem Content="Fit, keeping its shape" />
-                                    <ComboBoxItem Content="Stretch to fill" />
-                                </ComboBox>
+                    </Border>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel>
+                            <Border x:Name="ScreenPanel" Style="{StaticResource InspectorSection}">
+                                <StackPanel>
+                                    <TextBlock Text="Screen" Style="{StaticResource SectionTitle}" />
+                                    <DockPanel Style="{StaticResource FieldRow}">
+                                        <Label Content="Na_me" Target="{Binding ElementName=ScreenNameBox}" Style="{StaticResource FieldLabel}" />
+                                        <TextBox x:Name="ScreenNameBox" Style="{StaticResource FieldBox}" AutomationProperties.Name="Screen name" />
+                                    </DockPanel>
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition />
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition />
+                                        </Grid.ColumnDefinitions>
+                                        <DockPanel>
+                                            <Label Content="Wi_dth" Target="{Binding ElementName=ScreenWidthBox}" Style="{StaticResource FieldLabel}" />
+                                            <TextBox x:Name="ScreenWidthBox" Style="{StaticResource FieldBox}" />
+                                        </DockPanel>
+                                        <DockPanel Grid.Column="2">
+                                            <Label Content="H_eight" Target="{Binding ElementName=ScreenHeightBox}" Style="{StaticResource FieldLabel}" />
+                                            <TextBox x:Name="ScreenHeightBox" Style="{StaticResource FieldBox}" />
+                                        </DockPanel>
+                                    </Grid>
+                                    <TextBlock x:Name="ScreenErrorText" Margin="0,0,0,8" TextWrapping="Wrap"
+                                               Foreground="{DynamicResource ErrorBrush}" Visibility="Collapsed" />
+                                    <TextBlock Style="{StaticResource PlaceholderText}" Margin="0,0,0,10"
+                                               Text="The design size in DIPs. Every control must still fit. The name becomes the screen's window in exported code; the first screen is the main window." />
+                                </StackPanel>
+                            </Border>
+                            <StackPanel x:Name="InspectorPanel" Visibility="Collapsed">
+                                <Border x:Name="IdentitySection" Style="{StaticResource InspectorSection}">
+                                    <StackPanel>
+                                        <TextBlock Text="Identity &amp; content" Style="{StaticResource SectionTitle}" />
+                                        <DockPanel Style="{StaticResource FieldRow}">
+                                            <Label Content="_Name" Target="{Binding ElementName=NameBox}" Style="{StaticResource FieldLabel}" />
+                                            <TextBox x:Name="NameBox" Style="{StaticResource FieldBox}" />
+                                        </DockPanel>
+                                        <DockPanel x:Name="TextRow" Style="{StaticResource FieldRow}">
+                                            <Label Content="_Text" Target="{Binding ElementName=TextValueBox}" Style="{StaticResource FieldLabel}" />
+                                            <TextBox x:Name="TextValueBox" Style="{StaticResource FieldBox}" />
+                                        </DockPanel>
+                                        <DockPanel x:Name="ItemsRow" Style="{StaticResource FieldRow}">
+                                            <Label Content="_Items (one per line)" Target="{Binding ElementName=ItemsBox}" Style="{StaticResource FieldLabel}" />
+                                            <TextBox x:Name="ItemsBox" Style="{StaticResource FieldBox}" AcceptsReturn="True"
+                                                     MinLines="4" MaxLines="12" VerticalScrollBarVisibility="Auto"
+                                                     VerticalContentAlignment="Top" />
+                                        </DockPanel>
+                                        <DockPanel x:Name="IsCheckedRow" Style="{StaticResource FieldRow}">
+                                            <CheckBox x:Name="IsCheckedBox" Content="Checked" AutomationProperties.Name="Checked" Click="IsCheckedBox_Click" />
+                                        </DockPanel>
+                                        <DockPanel x:Name="MultilineRow" Style="{StaticResource FieldRow}"
+                                                   ToolTip="Several lines of text that wrap, with a scroll bar when needed.">
+                                            <CheckBox x:Name="MultilineBox" Content="Multi-line" Click="MultilineBox_Click" />
+                                        </DockPanel>
+                                        <DockPanel x:Name="RangeRow" Style="{StaticResource FieldRow}"
+                                                   ToolTip="Whole numbers: the lowest and highest values, and the value shown.">
+                                            <Label Content="Range" Style="{StaticResource FieldLabel}" />
+                                            <UniformGrid Columns="3">
+                                                <DockPanel Margin="0,0,6,0">
+                                                    <Label Content="M_inimum" Target="{Binding ElementName=MinimumBox}" Style="{StaticResource FieldLabel}" />
+                                                    <TextBox x:Name="MinimumBox" Style="{StaticResource FieldBox}" />
+                                                </DockPanel>
+                                                <DockPanel Margin="3,0">
+                                                    <Label Content="Maxim_um" Target="{Binding ElementName=MaximumBox}" Style="{StaticResource FieldLabel}" />
+                                                    <TextBox x:Name="MaximumBox" Style="{StaticResource FieldBox}" />
+                                                </DockPanel>
+                                                <DockPanel Margin="6,0,0,0">
+                                                    <Label Content="_Value" Target="{Binding ElementName=ValueBox}" Style="{StaticResource FieldLabel}" />
+                                                    <TextBox x:Name="ValueBox" Style="{StaticResource FieldBox}" />
+                                                </DockPanel>
+                                            </UniformGrid>
+                                        </DockPanel>
+                                        <DockPanel x:Name="ImageRow" Style="{StaticResource FieldRow}">
+                                            <Label Content="Picture" Style="{StaticResource FieldLabel}" />
+                                            <StackPanel>
+                                                <UniformGrid Columns="2" Margin="0,0,0,6">
+                                                    <Button x:Name="ChooseImageButton" Content="Choose…" Style="{StaticResource OutlineButton}" Margin="0,0,3,0" Click="ChooseImageButton_Click"
+                                                            ToolTip="A PNG, JPEG, GIF or BMP file of up to 2 MB, stored in the project." />
+                                                    <Button x:Name="RemoveImageButton" Content="Remove" Style="{StaticResource OutlineButton}" Margin="3,0,0,0" Click="RemoveImageButton_Click" />
+                                                </UniformGrid>
+                                                <ComboBox x:Name="StretchBox" AutomationProperties.Name="Picture fit" SelectionChanged="StretchBox_SelectionChanged">
+                                                    <ComboBoxItem Content="Fit, keeping its shape" />
+                                                    <ComboBoxItem Content="Stretch to fill" />
+                                                </ComboBox>
+                                            </StackPanel>
+                                        </DockPanel>
+                                        <DockPanel x:Name="TabsRow" Style="{StaticResource FieldRow}"
+                                                   ToolTip="The tab shown on the canvas and when the screen opens. Click a tab on the canvas to show it too.">
+                                            <Label Content="Shown tab" Target="{Binding ElementName=ShownTabBox}" Style="{StaticResource FieldLabel}" />
+                                            <Button x:Name="AddTabButton" DockPanel.Dock="Right" Content="Add tab" Style="{StaticResource OutlineButton}" Margin="6,0,0,0"
+                                                    Click="AddTabButton_Click" />
+                                            <ComboBox x:Name="ShownTabBox" AutomationProperties.Name="Shown tab"
+                                                      SelectionChanged="ShownTabBox_SelectionChanged" />
+                                        </DockPanel>
+                                    </StackPanel>
+                                </Border>
+                                <Border x:Name="LayoutSection" Style="{StaticResource InspectorSection}">
+                                    <StackPanel>
+                                        <TextBlock Text="Layout" Style="{StaticResource SectionTitle}" />
+                                        <Grid x:Name="BoundsGrid">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition />
+                                                <ColumnDefinition Width="12" />
+                                                <ColumnDefinition />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <DockPanel x:Name="XRow" Style="{StaticResource FieldRow}">
+                                                <Label Content="_X" Target="{Binding ElementName=XBox}" Style="{StaticResource FieldLabel}" />
+                                                <TextBox x:Name="XBox" Style="{StaticResource FieldBox}" />
+                                            </DockPanel>
+                                            <DockPanel x:Name="YRow" Grid.Column="2" Style="{StaticResource FieldRow}">
+                                                <Label Content="_Y" Target="{Binding ElementName=YBox}" Style="{StaticResource FieldLabel}" />
+                                                <TextBox x:Name="YBox" Style="{StaticResource FieldBox}" />
+                                            </DockPanel>
+                                            <DockPanel x:Name="WidthRow" Grid.Row="1" Style="{StaticResource FieldRow}">
+                                                <Label Content="_Width" Target="{Binding ElementName=WidthBox}" Style="{StaticResource FieldLabel}" />
+                                                <TextBox x:Name="WidthBox" Style="{StaticResource FieldBox}" />
+                                            </DockPanel>
+                                            <DockPanel x:Name="HeightRow" Grid.Row="1" Grid.Column="2" Style="{StaticResource FieldRow}">
+                                                <Label Content="_Height" Target="{Binding ElementName=HeightBox}" Style="{StaticResource FieldLabel}" />
+                                                <TextBox x:Name="HeightBox" Style="{StaticResource FieldBox}" />
+                                            </DockPanel>
+                                        </Grid>
+                                        <DockPanel x:Name="AnchorRow" Style="{StaticResource FieldRow}">
+                                            <Label Content="Anchor to" Style="{StaticResource FieldLabel}" />
+                                            <WrapPanel ToolTip="Edges the control follows when the window is resized. Left and Right together, or Top and Bottom together, make it stretch.">
+                                                <CheckBox x:Name="AnchorLeftBox" Content="Left" Margin="0,2,12,2" Click="AnchorBox_Click" />
+                                                <CheckBox x:Name="AnchorTopBox" Content="Top" Margin="0,2,12,2" Click="AnchorBox_Click" />
+                                                <CheckBox x:Name="AnchorRightBox" Content="Right" Margin="0,2,12,2" Click="AnchorBox_Click" />
+                                                <CheckBox x:Name="AnchorBottomBox" Content="Bottom" Margin="0,2,12,2" Click="AnchorBox_Click" />
+                                            </WrapPanel>
+                                        </DockPanel>
+                                        <DockPanel x:Name="CellRow" Style="{StaticResource FieldRow}"
+                                                   ToolTip="The Grid cell this control fills, counted from 0.">
+                                            <Label Content="Cell" Style="{StaticResource FieldLabel}" />
+                                            <UniformGrid Columns="4">
+                                                <Label Content="_Row" Target="{Binding ElementName=RowBox}" Style="{StaticResource InlineLabel}" />
+                                                <TextBox x:Name="RowBox" Style="{StaticResource FieldBox}" />
+                                                <Label Content="C_ol" Target="{Binding ElementName=ColumnBox}" Style="{StaticResource InlineLabel}" Margin="6,0,0,0" />
+                                                <TextBox x:Name="ColumnBox" Style="{StaticResource FieldBox}" />
+                                            </UniformGrid>
+                                        </DockPanel>
+                                        <DockPanel x:Name="SpanRow" Style="{StaticResource FieldRow}"
+                                                   ToolTip="How many rows and columns of the Grid this control covers.">
+                                            <Label Content="Span" Style="{StaticResource FieldLabel}" />
+                                            <UniformGrid Columns="4">
+                                                <Label Content="Rows" Target="{Binding ElementName=RowSpanBox}" Style="{StaticResource InlineLabel}" />
+                                                <TextBox x:Name="RowSpanBox" Style="{StaticResource FieldBox}" AutomationProperties.Name="Row span" />
+                                                <Label Content="Cols" Target="{Binding ElementName=ColumnSpanBox}" Style="{StaticResource InlineLabel}" Margin="6,0,0,0" />
+                                                <TextBox x:Name="ColumnSpanBox" Style="{StaticResource FieldBox}" AutomationProperties.Name="Column span" />
+                                            </UniformGrid>
+                                        </DockPanel>
+                                        <DockPanel x:Name="OrderRow" Style="{StaticResource FieldRow}"
+                                                   ToolTip="The control's place among the others in its StackPanel.">
+                                            <Label Content="Order" Style="{StaticResource FieldLabel}" />
+                                            <UniformGrid Columns="2">
+                                                <Button x:Name="EarlierButton" Content="Earlier" Style="{StaticResource OutlineButton}" Margin="0,0,3,0" Click="EarlierButton_Click" />
+                                                <Button x:Name="LaterButton" Content="Later" Style="{StaticResource OutlineButton}" Margin="3,0,0,0" Click="LaterButton_Click" />
+                                            </UniformGrid>
+                                        </DockPanel>
+                                        <DockPanel x:Name="OrientationRow" Style="{StaticResource FieldRow}">
+                                            <Label Content="Direction" Target="{Binding ElementName=OrientationBox}" Style="{StaticResource FieldLabel}" />
+                                            <ComboBox x:Name="OrientationBox" SelectionChanged="OrientationBox_SelectionChanged"
+                                                      AutomationProperties.Name="Direction">
+                                                <ComboBoxItem Content="Vertical" />
+                                                <ComboBoxItem Content="Horizontal" />
+                                            </ComboBox>
+                                        </DockPanel>
+                                        <DockPanel x:Name="SpacingRow" Style="{StaticResource FieldRow}">
+                                            <Label Content="_Spacing" Target="{Binding ElementName=SpacingBox}" Style="{StaticResource FieldLabel}" />
+                                            <TextBox x:Name="SpacingBox" Style="{StaticResource FieldBox}" />
+                                        </DockPanel>
+                                        <DockPanel x:Name="GridSizeRow" Style="{StaticResource FieldRow}">
+                                            <Label Content="Cells" Style="{StaticResource FieldLabel}" />
+                                            <UniformGrid Columns="4">
+                                                <Label Content="Ro_ws" Target="{Binding ElementName=RowsBox}" Style="{StaticResource InlineLabel}" />
+                                                <TextBox x:Name="RowsBox" Style="{StaticResource FieldBox}" />
+                                                <Label Content="Co_ls" Target="{Binding ElementName=ColumnsBox}" Style="{StaticResource InlineLabel}" Margin="6,0,0,0" />
+                                                <TextBox x:Name="ColumnsBox" Style="{StaticResource FieldBox}" />
+                                            </UniformGrid>
+                                        </DockPanel>
+                                        <StackPanel x:Name="TrackSizesRow" Margin="0,0,0,12"
+                                                    ToolTip="One size per row or column, separated by commas: a number of DIPs (100), or a share of the space left (* or 2*).">
+                                            <Label Content="Row si_zes" Target="{Binding ElementName=RowSizesBox}" Style="{StaticResource FieldLabel}" />
+                                            <TextBox x:Name="RowSizesBox" Style="{StaticResource FieldBox}" Margin="0,0,0,10" />
+                                            <Label Content="Col_umn sizes" Target="{Binding ElementName=ColumnSizesBox}" Style="{StaticResource FieldLabel}" />
+                                            <TextBox x:Name="ColumnSizesBox" Style="{StaticResource FieldBox}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                <Border x:Name="AppearanceSection" Style="{StaticResource InspectorSection}">
+                                    <StackPanel>
+                                        <TextBlock Text="Appearance" Style="{StaticResource SectionTitle}" />
+                                        <DockPanel x:Name="FontRow" Style="{StaticResource FieldRow}"
+                                                   ToolTip="Text size in DIPs; leave blank for the standard size (12).">
+                                            <Label Content="Text size" Target="{Binding ElementName=FontSizeBox}" Style="{StaticResource FieldLabel}" />
+                                            <CheckBox x:Name="BoldBox" DockPanel.Dock="Right" Content="Bold" Margin="12,0,0,0" Click="BoldBox_Click" />
+                                            <TextBox x:Name="FontSizeBox" Style="{StaticResource FieldBox}" AutomationProperties.Name="Text size" />
+                                        </DockPanel>
+                                        <DockPanel x:Name="ColorRow" Style="{StaticResource FieldRow}"
+                                                   ToolTip="Colours as #RRGGBB, for example #1E6FD9; leave blank for the standard colours.">
+                                            <UniformGrid Columns="2">
+                                                <DockPanel x:Name="TextColorPanel" Margin="0,0,6,0">
+                                                    <Label x:Name="TextColorLabel" Content="Text colour" Target="{Binding ElementName=TextColorBox}" Style="{StaticResource FieldLabel}" />
+                                                    <TextBox x:Name="TextColorBox" Style="{StaticResource FieldBox}" AutomationProperties.Name="Text colour" />
+                                                </DockPanel>
+                                                <DockPanel Margin="6,0,0,0">
+                                                    <Label Content="Background" Target="{Binding ElementName=BackgroundBox}" Style="{StaticResource FieldLabel}" />
+                                                    <TextBox x:Name="BackgroundBox" Style="{StaticResource FieldBox}" AutomationProperties.Name="Background colour" />
+                                                </DockPanel>
+                                            </UniformGrid>
+                                        </DockPanel>
+                                    </StackPanel>
+                                </Border>
+                                <Border x:Name="InteractionSection" Style="{StaticResource InspectorSection}">
+                                    <StackPanel>
+                                        <TextBlock Text="Interaction" Style="{StaticResource SectionTitle}" />
+                                        <DockPanel x:Name="ActionRow" Style="{StaticResource FieldRow}"
+                                                   ToolTip="What clicking the button does in Preview and in exported code, after its hook.">
+                                            <Label Content="On click" Target="{Binding ElementName=ActionBox}" Style="{StaticResource FieldLabel}" />
+                                            <ComboBox x:Name="ActionBox" AutomationProperties.Name="On click"
+                                                      DisplayMemberPath="Label" SelectionChanged="ActionBox_SelectionChanged" />
+                                        </DockPanel>
+                                        <DockPanel x:Name="CommandRow" Style="{StaticResource FieldRow}"
+                                                   ToolTip="A method of the screen's view model the button runs when clicked, such as Save; you write what it does in OnSave. Leave blank for none.">
+                                            <Label Content="Co_mmand" Target="{Binding ElementName=CommandBox}" Style="{StaticResource FieldLabel}" />
+                                            <TextBox x:Name="CommandBox" Style="{StaticResource FieldBox}" />
+                                        </DockPanel>
+                                        <DockPanel x:Name="EnabledRow" Style="{StaticResource FieldRow}"
+                                                   ToolTip="An on-or-off property of the screen's view model, such as CanSave; the button is enabled only while it is on. A CheckBox bound to the same name turns it on and off. Leave blank for always enabled.">
+                                            <Label Content="Ena_bled when" Target="{Binding ElementName=EnabledBox}" Style="{StaticResource FieldLabel}" />
+                                            <TextBox x:Name="EnabledBox" Style="{StaticResource FieldBox}" />
+                                        </DockPanel>
+                                        <DockPanel x:Name="BindingRow" Style="{StaticResource FieldRow}"
+                                                   ToolTip="The view model property this control's value is bound to, such as CustomerName; leave blank for none. Controls that share a name share the value.">
+                                            <Label Content="Bindin_g" Target="{Binding ElementName=BindingBox}" Style="{StaticResource FieldLabel}" />
+                                            <TextBox x:Name="BindingBox" Style="{StaticResource FieldBox}" />
+                                        </DockPanel>
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock x:Name="InspectorErrorText" Margin="18,8,18,6" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource ErrorBrush}" Visibility="Collapsed" />
+                                <TextBlock Style="{StaticResource PlaceholderText}" Margin="18,6,18,14"
+                                           Text="Press Enter or leave a field to apply. Esc restores the current value." />
                             </StackPanel>
-                        </DockPanel>
-                        <DockPanel x:Name="FontRow" Style="{StaticResource FieldRow}"
-                                   ToolTip="Text size in DIPs; leave blank for the standard size (12).">
-                            <Label Content="Font" Target="{Binding ElementName=FontSizeBox}" Style="{StaticResource FieldLabel}" />
-                            <CheckBox x:Name="BoldBox" DockPanel.Dock="Right" Content="Bold" VerticalAlignment="Center"
-                                      Margin="8,0,0,0" Click="BoldBox_Click" />
-                            <TextBox x:Name="FontSizeBox" Style="{StaticResource FieldBox}" AutomationProperties.Name="Text size" />
-                        </DockPanel>
-                        <DockPanel x:Name="ColorRow" Style="{StaticResource FieldRow}"
-                                   ToolTip="Colours as #RRGGBB, for example #1E6FD9; leave blank for the standard colours.">
-                            <Label Content="Colours" Style="{StaticResource FieldLabel}" VerticalContentAlignment="Top" />
-                            <UniformGrid Columns="2">
-                                <Label x:Name="TextColorLabel" Content="Text" Target="{Binding ElementName=TextColorBox}" Padding="0,0,4,0" VerticalContentAlignment="Center" />
-                                <TextBox x:Name="TextColorBox" Style="{StaticResource FieldBox}" Margin="0,0,0,4" AutomationProperties.Name="Text colour" />
-                                <Label Content="Back" Target="{Binding ElementName=BackgroundBox}" Padding="0,0,4,0" VerticalContentAlignment="Center" />
-                                <TextBox x:Name="BackgroundBox" Style="{StaticResource FieldBox}" AutomationProperties.Name="Background colour" />
-                            </UniformGrid>
-                        </DockPanel>
-                        <DockPanel x:Name="BindingRow" Style="{StaticResource FieldRow}"
-                                   ToolTip="The view model property this control's value is bound to, such as CustomerName; leave blank for none. Controls that share a name share the value.">
-                            <Label Content="Bindin_g" Target="{Binding ElementName=BindingBox}" Style="{StaticResource FieldLabel}" />
-                            <TextBox x:Name="BindingBox" Style="{StaticResource FieldBox}" />
-                        </DockPanel>
-                        <DockPanel x:Name="CommandRow" Style="{StaticResource FieldRow}"
-                                   ToolTip="A method of the screen's view model the button runs when clicked, such as Save; you write what it does in OnSave. Leave blank for none.">
-                            <Label Content="Co_mmand" Target="{Binding ElementName=CommandBox}" Style="{StaticResource FieldLabel}" />
-                            <TextBox x:Name="CommandBox" Style="{StaticResource FieldBox}" />
-                        </DockPanel>
-                        <DockPanel x:Name="EnabledRow" Style="{StaticResource FieldRow}"
-                                   ToolTip="An on-or-off property of the screen's view model, such as CanSave; the button is enabled only while it is on. A CheckBox bound to the same name turns it on and off. Leave blank for always enabled.">
-                            <Label Content="Ena_bled when" Target="{Binding ElementName=EnabledBox}" Style="{StaticResource FieldLabel}" />
-                            <TextBox x:Name="EnabledBox" Style="{StaticResource FieldBox}" />
-                        </DockPanel>
-                        <TextBlock x:Name="InspectorErrorText" Margin="10,4,10,6" TextWrapping="Wrap"
-                                   Foreground="#FFC42B1C" Visibility="Collapsed" />
-                        <TextBlock Style="{StaticResource PlaceholderText}" Margin="10,4,10,10"
-                                   Text="Press Enter or leave a field to apply. Esc restores the current value." />
-                    </StackPanel>
-                </ScrollViewer>
-            </DockPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
         </Grid>
-    </DockPanel>
+
+        <!-- Status: what just happened, and the screen. -->
+        <Border Grid.Row="3" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="14,0">
+            <DockPanel LastChildFill="True">
+                <TextBlock x:Name="ScreenInfoText" DockPanel.Dock="Right" Style="{StaticResource MutedText}" FontSize="11" VerticalAlignment="Center" />
+                <TextBlock x:Name="ControlCountText" DockPanel.Dock="Right" Style="{StaticResource MutedText}" FontSize="11" Margin="0,0,18,0" VerticalAlignment="Center" />
+                <TextBlock x:Name="StatusText" Text="Ready" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                           Foreground="{DynamicResource TextBrush}" />
+            </DockPanel>
+        </Border>
+    </Grid>
 </Window>

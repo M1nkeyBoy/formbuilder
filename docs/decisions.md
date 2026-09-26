@@ -689,3 +689,30 @@ Choices made during the prototype slices that affect later work.
   JSON's HTML-safe escapes.
 - **Checked by** unit tests, a UI test of the window, and the running apps: the layout demo's
   Settings code implements OnSave, which the browser and WinForms tests run by clicking Save.
+
+## Slice 36 — The redesigned editor
+
+- **The supplied redesign** (docs/design: the reference XAML and its handoff) is applied to
+  the real editor rather than copied in: a header with the project, the menus, Save and an
+  Export menu for all five targets; an action bar (Design/Preview, undo, Arrange, tab order,
+  code, grid, zoom); a toolbox of tiles in three groups with search, and a Layers tab; screen
+  tabs over a dotted canvas; the inspector in sections (identity and content, layout,
+  appearance, interaction), with the screen's settings when nothing is selected; and a status
+  bar. Every existing field, command and name is kept, so shortcuts, access keys and the UI
+  tests work as before; sections with nothing for the control are hidden.
+- **The editor follows Windows' light or dark app mode**, changing when it does, with a
+  title bar to match. This is separate from a project's theme, which is how its designs look.
+  The colours are semantic brushes in Themes/Light.xaml and Dark.xaml; the styles in
+  Studio.xaml include menu and combo box templates, since WPF's usual ones are always light.
+- **The canvas is untouched by the editor's look.** The editor's styles would otherwise also
+  restyle the controls on the canvas, so the canvas resets them (Themes/CanvasReset.xaml)
+  and the system font and text colour: it still shows each control as generated windows do.
+- **Zoom** scales the canvas; the design stays in DIPs and the surface reads the pointer in
+  its own coordinates, so selection, dragging and snapping are unchanged at any zoom. The
+  canvas stays at the top left, so the Preview's resize grip follows the pointer.
+- **Kept as they were:** the font settings (size and bold; no font family, which would be a
+  new design property for every target) and the native title bar. The surface now appears to
+  UI Automation, so tests find where the design is drawn wherever the canvas is.
+- **Checked by** the existing UI tests, which drive every part of the editor, and new ones for
+  search, Layers, clicking at 125% zoom, and the dark editor (Windows' setting changed for the
+  test and put back).

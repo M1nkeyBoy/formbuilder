@@ -1,0 +1,18 @@
+<!-- The editor's colours in the light theme (the redesign reference, docs/design). -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F8F9FC" />
+    <SolidColorBrush x:Key="PanelBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="CanvasBrush" Color="#EEF0F5" />
+    <SolidColorBrush x:Key="TextBrush" Color="#232738" />
+    <SolidColorBrush x:Key="MutedTextBrush" Color="#737C90" />
+    <SolidColorBrush x:Key="BorderBrush" Color="#E4E7EF" />
+    <SolidColorBrush x:Key="StrongBorderBrush" Color="#C9CEDB" />
+    <SolidColorBrush x:Key="SoftBrush" Color="#F0F2F7" />
+    <SolidColorBrush x:Key="AccentBrush" Color="#635BDF" />
+    <SolidColorBrush x:Key="AccentSoftBrush" Color="#EEECFF" />
+    <SolidColorBrush x:Key="OnAccentBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="SuccessBrush" Color="#237854" />
+    <SolidColorBrush x:Key="ErrorBrush" Color="#C42B1C" />
+    <SolidColorBrush x:Key="ArtboardBorderBrush" Color="#B8BFC8" />
+</ResourceDictionary>

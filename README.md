@@ -7,6 +7,16 @@ choices are recorded in `docs/decisions.md`.
 
 ## What it does
 
+The editor has a three-panel workspace: controls and layers on the left, the screens and the
+design canvas in the middle, and the inspector on the right, under a header with the project,
+its menus, Save and Export. It follows Windows' light or dark app setting.
+
+- **Find and arrange.** Search the toolbox, grouped into essentials, containers and more
+  controls. The Layers tab lists the screen's controls, inside their containers; choosing one
+  selects it on the canvas. The action bar switches Design and Preview, undoes and redoes,
+  arranges the selection, sets the tab order, opens the screen's code, shows or hides the grid,
+  and zooms (Ctrl+wheel, Ctrl++ and Ctrl+-, Ctrl+0 for actual size, or Fit).
+
 - **Place controls.** Drag Label, Button, TextBox, PasswordBox, CheckBox, RadioButton,
   ComboBox, ListBox, Slider, ProgressBar, DatePicker or Image from the toolbox onto the
   800 × 600 canvas. An Image's picture (PNG, JPEG, GIF or BMP) is stored in the project. Or select a toolbox item and then click the canvas, or press Enter.
