@@ -63,7 +63,7 @@ public class EnabledBindingTests
 
         Assert.Equal("{Binding UseSecureConnection}", Attribute(WpfGenerator.WindowXaml(document, settings, "Demo"), "IsEnabled"));
         Assert.Equal("{x:Bind IsTrue(ViewModel.UseSecureConnection), Mode=OneWay}", Attribute(WinUIGenerator.WindowXaml(document, settings, "Demo"), "IsEnabled"));
-        Assert.Contains("private static bool IsTrue(bool? value) => value == true;", WinUIGenerator.WindowGeneratedCode(document, settings, "Demo"));
+        Assert.Contains("private bool IsTrue(bool? value) => value == true;", WinUIGenerator.WindowGeneratedCode(document, settings, "Demo"));
         Assert.Contains("IsEnabled=\"{Binding UseSecureConnection}\"", File(MauiGenerator.Generate(document, "Demo"), "SettingsPage.xaml"));
         Assert.Contains("this.SaveSettingsButton.DataBindings.Add(\"Enabled\", this.ViewModel, \"UseSecureConnection\", true, System.Windows.Forms.DataSourceUpdateMode.Never);",
             WinFormsGenerator.DesignerCode(document, settings, "Demo"));

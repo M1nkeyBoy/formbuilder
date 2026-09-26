@@ -570,7 +570,7 @@ public static class WinUIGenerator
         if (ControlTree.All(screen.Controls).Any(c => c.Properties.EnabledBinding is not null))
         {
             code.AppendLine("    /// <summary>For x:Bind: whether an on-or-off value is on.</summary>");
-            code.AppendLine("    private static bool IsTrue(bool? value) => value == true;");
+            code.AppendLine("    private bool IsTrue(bool? value) => value == true;");
             code.AppendLine();
         }
 
