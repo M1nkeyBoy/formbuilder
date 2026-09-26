@@ -19,12 +19,14 @@ public sealed class GeneratedApp : IDisposable
 
     public string Url { get; }
 
-    public static async Task<GeneratedApp> StartAsync(ProjectDocument document, Func<ProjectDocument, string, ExportResult> export)
+    /// <param name="prepare">Changes the exported project folder before it is built, as a developer would.</param>
+    public static async Task<GeneratedApp> StartAsync(ProjectDocument document, Func<ProjectDocument, string, ExportResult> export, Action<string>? prepare = null)
     {
         var parent = Environment.GetEnvironmentVariable("UIB_EXPORT_DIR") is { Length: > 0 } exportDir
             ? Path.Combine(exportDir, "blazor")
             : Directory.CreateTempSubdirectory("uib-web-").FullName;
         var folder = export(document, parent).ProjectFolder;
+        prepare?.Invoke(folder);
 
         var build = Run("dotnet", ["build", folder, "--nologo"]);
         Assert.True(build.ExitCode == 0, "The generated web project did not build:\n" + build.Output);

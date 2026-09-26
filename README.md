@@ -44,7 +44,8 @@ choices are recorded in `docs/decisions.md`.
 - **Data binding.** A control's Binding field names a property of its screen's view model,
   such as CustomerName. Each export generates the view model (with change notification, and
   starting from the design's values) and binds the controls to it in the target's own way;
-  controls that share a name share the value.
+  controls that share a name share the value. A Button's Command field names a view model
+  method, such as Save, that its click runs; you write what it does in OnSave.
 - **Light and dark themes.** Project > Theme chooses Light, Dark, or Follow Windows or Browser
   for the whole project. The canvas and Preview draw in it, and every export uses its
   target's own theming (WPF's Fluent theme, Windows Forms' colour mode, WinUI's and MAUI's
@@ -178,8 +179,8 @@ tests use this so they never touch your own drafts.
 - Output is WPF, WinForms, WinUI 3, .NET MAUI (for Windows; other platforms can be added to
   the project) and Blazor. It covers
   layout, per-control fonts and colours, a light or dark theme, and one event hook per
-  control, and data binding to a generated view model per screen; there are no commands
-  (buttons bound to the view model) and no shared styles. MAUI keeps its default tab order.
+  control, and data binding and commands through a generated view model per screen; there
+  are no shared styles. MAUI keeps its default tab order.
   Import reads WPF windows only.
 - The automated UI tests assume 100% display scaling. 150% scaling has been checked by hand.
 - Only the most recent recovery draft is offered at each start; older ones wait for later

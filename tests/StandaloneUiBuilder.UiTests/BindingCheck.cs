@@ -6,6 +6,23 @@ namespace StandaloneUiBuilder.UiTests;
 /// <summary>Checks a running layout demo's Settings screen, whose slider and progress bar are bound to the same value.</summary>
 internal static class BindingCheck
 {
+    /// <summary>True if the screen's Save button runs the Save command, as the layout demo's does.</summary>
+    public static bool HasSaveCommand(ScreenDocument screen) =>
+        ControlTree.All(screen.Controls).Any(c => c.Name == "SaveSettingsButton" && c.Properties.Command == "Save");
+
+    /// <summary>Implements the Save command as a developer would, in their own part of the view model.</summary>
+    public static void ImplementSaveCommand(string folder, string rootNamespace) => File.WriteAllText(
+        Path.Combine(folder, "SettingsViewModel.cs"),
+        $"namespace {rootNamespace};\n\npublic partial class SettingsViewModel\n{{\n    partial void OnSave() => Server = \"saved\";\n}}\n");
+
+    /// <summary>Clicking Save runs the command, whose change to Server shows in the bound text box.</summary>
+    public static void AssertSaveRunsTheCommand(AutomationElement window)
+    {
+        EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("SaveSettingsButton")), "the Save button").Click();
+        var server = EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("ServerTextBox")), "the Server box");
+        EditorSession.WaitUntil(() => server.Patterns.Value.Pattern.Value.Value == "saved", () => $"The Server box shows \"{server.Patterns.Value.Pattern.Value.Value}\" after Save.");
+    }
+
     /// <summary>True if the screen binds the slider and progress bar together, as the layout demo does.</summary>
     public static bool Applies(ScreenDocument screen) =>
         ControlTree.All(screen.Controls).Count(c => c.Name is "LevelSlider" or "UploadProgress" && c.Properties.Binding == "Level") == 2;

@@ -77,6 +77,9 @@ public sealed record ControlDefinition(
     /// <summary>True for types that only show their bound value (Label, ProgressBar); the others also set it.</summary>
     public bool ShowsBindingOnly => Type is ControlType.Label or ControlType.ProgressBar;
 
+    /// <summary>True for types that can run a command of the screen's view model when clicked.</summary>
+    public bool HasCommand => Type == ControlType.Button;
+
     /// <summary>True for types that can open or close a screen when clicked.</summary>
     public bool HasAction => Type == ControlType.Button;
 
@@ -121,6 +124,7 @@ public sealed record ControlDefinition(
         Background = HasBackground ? properties.Background : null,
         OpensScreen = HasAction ? properties.OpensScreen : null,
         Binding = BindingKind is not null ? properties.Binding : null,
+        Command = HasCommand ? properties.Command : null,
         ClosesScreen = HasAction && properties.ClosesScreen == true ? true : null,
 
         // Stored only when true, so single-line text boxes read and write as before.

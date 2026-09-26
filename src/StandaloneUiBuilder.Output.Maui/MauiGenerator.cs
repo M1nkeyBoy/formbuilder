@@ -633,10 +633,11 @@ public static class MauiGenerator
             }
 
             first = false;
-            var action = control.Properties.OpensScreen is { } id && document.FindScreen(id) is { } target
+            var opensOrCloses = control.Properties.OpensScreen is { } id && document.FindScreen(id) is { } target
                 ? $"await Navigation.PushModalAsync(new {ClassName(document, target)}());"
                 : control.Properties.ClosesScreen == true ? "await CloseAsync();"
                 : null;
+            var command = ViewModelCode.CommandStatement(control);
             if (control.Type == ControlType.TabControl)
             {
                 // The clicked tab is drawn as chosen, and its page is the only one shown.
@@ -659,17 +660,31 @@ public static class MauiGenerator
                 code.AppendLine($"        {HookName(control)}(e);");
                 code.AppendLine("    }");
             }
-            else if (action is null)
+            else if (opensOrCloses is null && command is null)
             {
                 code.AppendLine($"    private void {HandlerName(control)}(object? sender, {e.Args} e) => {HookName(control)}(e);");
             }
+            else if (opensOrCloses is null)
+            {
+                // The hook runs first, then the button's command.
+                code.AppendLine($"    private void {HandlerName(control)}(object? sender, {e.Args} e)");
+                code.AppendLine("    {");
+                code.AppendLine($"        {HookName(control)}(e);");
+                code.AppendLine($"        {command}");
+                code.AppendLine("    }");
+            }
             else
             {
-                // The hook runs first, then the button's action from the design.
+                // The hook runs first, then the button's command, then its action from the design.
                 code.AppendLine($"    private async void {HandlerName(control)}(object? sender, {e.Args} e)");
                 code.AppendLine("    {");
                 code.AppendLine($"        {HookName(control)}(e);");
-                code.AppendLine($"        {action}");
+                if (command is not null)
+                {
+                    code.AppendLine($"        {command}");
+                }
+
+                code.AppendLine($"        {opensOrCloses}");
                 code.AppendLine("    }");
             }
         }

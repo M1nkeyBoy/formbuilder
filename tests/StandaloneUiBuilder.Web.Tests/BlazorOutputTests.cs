@@ -133,6 +133,25 @@ public sealed class BlazorOutputTests
         Assert.Equal(expected, visited.Skip(start).Take(expected.Count));
     }
 
+    /// <summary>
+    /// The Settings screen's Save button runs the view model's Save command; implemented as a
+    /// developer would, it changes a bound value, which the page shows.
+    /// </summary>
+    [WebFact]
+    public async Task ClickingSaveRunsTheViewModelsCommand()
+    {
+        var document = Sample("layout-demo") with { Name = "Layout demo commands" };
+        using var app = await GeneratedApp.StartAsync(document, BlazorExporter.Export, folder => File.WriteAllText(
+            Path.Combine(folder, "Components", "Pages", "SettingsViewModel.cs"),
+            "namespace LayoutDemoCommands.Components.Pages;\n\npublic partial class SettingsViewModel\n{\n    partial void OnSave() => Server = \"saved\";\n}\n"));
+        await using var browser = await LaunchAsync();
+        var page = await browser.NewPageAsync();
+        await page.GotoAsync(app.Url + "/settings");
+
+        // The page works once its interactive connection is up; keep clicking until then.
+        await ClickUntilAsync(page, "#SaveSettingsButton", async () => await page.Locator("#ServerTextBox").InputValueAsync() == "saved");
+    }
+
     /// <summary>The Settings screen's slider and progress bar are bound to the same value, Level.</summary>
     [WebFact]
     public async Task MovingTheSliderMovesTheProgressBarBoundToTheSameValue()

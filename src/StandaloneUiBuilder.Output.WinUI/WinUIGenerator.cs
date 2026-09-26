@@ -585,10 +585,14 @@ public static class WinUIGenerator
         {
             var e = EventFor(control.Type)!.Value;
             code.AppendLine();
-            var action = control.Properties.OpensScreen is { } id && document.FindScreen(id) is { } target
+            var opensOrCloses = control.Properties.OpensScreen is { } id && document.FindScreen(id) is { } target
                 ? $"new {ClassName(document, target)}().Activate();"
                 : control.Properties.ClosesScreen == true ? "Close();"
                 : null;
+
+            // A button's command runs before its action.
+            var steps = new[] { ViewModelCode.CommandStatement(control), opensOrCloses }.OfType<string>().ToList();
+            var action = steps.Count > 0 ? string.Join(Environment.NewLine + "        ", steps) : null;
             if (control.Type == ControlType.TabControl)
             {
                 // The clicked tab is the only one checked, and its page the only one shown.

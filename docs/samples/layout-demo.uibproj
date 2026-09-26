@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 14,
+  "schemaVersion": 15,
   "projectId": "5b7c2f4e-8d1a-4e6b-9f3c-2a7d8e9b0c11",
   "name": "Layout demo",
   "screens": [
@@ -807,7 +807,8 @@
           "width": 100,
           "height": 30,
           "properties": {
-            "text": "Save"
+            "text": "Save",
+            "command": "Save"
           },
           "anchor": [
             "right",

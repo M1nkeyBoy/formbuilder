@@ -7,7 +7,8 @@ namespace StandaloneUiBuilder.Output;
 /// <summary>
 /// Writes a screen's view model (see <see cref="DataBindings"/>): a partial class with one
 /// property per binding name, each starting from its first control's design value and raising
-/// PropertyChanged when it changes, and a partial On…Changed hook per property. Each target
+/// PropertyChanged when it changes, and a partial On…Changed hook per property; and one method
+/// per command a Button runs, calling a partial On… method the developer implements. Each target
 /// gives the C# type of each kind of value, which follows its controls.
 /// </summary>
 public static class ViewModelCode
@@ -71,6 +72,16 @@ public static class ViewModelCode
             code.AppendLine($"    partial void On{property.Name}Changed();");
         }
 
+        foreach (var command in DataBindings.Commands(screen))
+        {
+            var buttons = string.Join(", ", command.Buttons.Select(c => c.Name));
+            code.AppendLine();
+            code.AppendLine($"    /// <summary>Run by {buttons} when clicked; implement On{command.Name} in your part of the class.</summary>");
+            code.AppendLine($"    public void {command.Name}() => On{command.Name}();");
+            code.AppendLine();
+            code.AppendLine($"    partial void On{command.Name}();");
+        }
+
         code.AppendLine();
         code.AppendLine("    /// <summary>Raises PropertyChanged for a property.</summary>");
         code.AppendLine("    public void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>");
@@ -90,6 +101,10 @@ public static class ViewModelCode
         code.AppendLine("}");
         return code.ToString();
     }
+
+    /// <summary>The statement a button's click handler uses to run its command, if it has one.</summary>
+    public static string? CommandStatement(ControlDocument button) =>
+        button.Properties.Command is { } command ? $"ViewModel.{command}();" : null;
 
     /// <summary>The design's text of the property's first control, as a C# string literal.</summary>
     public static string TextLiteral(BoundProperty property) => Literal(property.First.Properties.Text ?? "");

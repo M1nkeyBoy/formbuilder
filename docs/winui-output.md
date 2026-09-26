@@ -73,6 +73,12 @@ follow the controls, as `x:Bind` needs: text is `string`, on or off `bool?`, a n
 a choice `string?` (the chosen item's text: shown through `SelectedValue`, and written back by
 the selection handler, since `x:Bind` cannot turn an item into text), a date `DateTimeOffset?`.
 
+A Button's Command field names a method of the view model, such as `Save`. The view model
+gets `public void Save()`, which calls a partial `OnSave()` for you to implement in your own part
+of the class; the button's generated click handler calls `ViewModel.Save()` after its hook and
+before its action (opening or closing a screen). A screen with only commands also has a view
+model.
+
 ## Tab order
 
 When the screen has a tab order of its own, each control Tab visits gets its place in it as

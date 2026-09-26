@@ -535,6 +535,11 @@ public static class BlazorGenerator
             }
 
             code.AppendLine($"        {HookName(control)}();");
+            if (ViewModelCode.CommandStatement(control) is { } command)
+            {
+                code.AppendLine($"        {command}");
+            }
+
             if (control.Properties.OpensScreen is { } id && document.FindScreen(id) is { } target)
             {
                 code.AppendLine($"        Navigation.NavigateTo({Literal(Route(document, target))});");

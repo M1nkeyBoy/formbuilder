@@ -36,6 +36,8 @@ them; everything else is left out and listed when the import finishes.
   control's binding. Its starting value is in the view model, which is not read, so the
   control starts from the builder's default. Names the builder does not allow, and names
   bound to different kinds of value, are dropped and listed.
+- **Commands:** a `ViewModel.Name();` call in a button's click handler, as the builder writes
+  it, becomes the button's command.
 - **Theme:** the main window's `ThemeMode`: `Dark` and `System` become the project's theme,
   anything else Light. (Text colours the builder added for contrast read back as the
   controls' own.)

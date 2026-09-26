@@ -448,6 +448,11 @@
                             <Label Content="Bindin_g" Target="{Binding ElementName=BindingBox}" Style="{StaticResource FieldLabel}" />
                             <TextBox x:Name="BindingBox" Style="{StaticResource FieldBox}" />
                         </DockPanel>
+                        <DockPanel x:Name="CommandRow" Style="{StaticResource FieldRow}"
+                                   ToolTip="A method of the screen's view model the button runs when clicked, such as Save; you write what it does in OnSave. Leave blank for none.">
+                            <Label Content="Co_mmand" Target="{Binding ElementName=CommandBox}" Style="{StaticResource FieldLabel}" />
+                            <TextBox x:Name="CommandBox" Style="{StaticResource FieldBox}" />
+                        </DockPanel>
                         <TextBlock x:Name="InspectorErrorText" Margin="10,4,10,6" TextWrapping="Wrap"
                                    Foreground="#FFC42B1C" Visibility="Collapsed" />
                         <TextBlock Style="{StaticResource PlaceholderText}" Margin="10,4,10,10"

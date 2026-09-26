@@ -74,7 +74,7 @@ public partial class MainWindow : Window
         foreach (var box in new[] { NameBox, XBox, YBox, WidthBox, HeightBox, TextValueBox, ItemsBox, ScreenWidthBox, ScreenHeightBox,
                                     RowBox, ColumnBox, RowSpanBox, ColumnSpanBox, SpacingBox, RowsBox, ColumnsBox,
                                     RowSizesBox, ColumnSizesBox, ScreenNameBox,
-                                    MinimumBox, MaximumBox, ValueBox, FontSizeBox, TextColorBox, BackgroundBox, BindingBox })
+                                    MinimumBox, MaximumBox, ValueBox, FontSizeBox, TextColorBox, BackgroundBox, BindingBox, CommandBox })
         {
             box.LostKeyboardFocus += (_, _) => CommitField(box);
             box.KeyDown += InspectorField_KeyDown;
@@ -427,6 +427,8 @@ public partial class MainWindow : Window
 
         BindingRow.Visibility = Show(definition.BindingKind is not null);
         SetField(BindingBox, properties.Binding ?? "");
+        CommandRow.Visibility = Show(definition.HasCommand);
+        SetField(CommandBox, properties.Command ?? "");
 
         IsCheckedRow.Visibility = definition.HasIsChecked ? Visibility.Visible : Visibility.Collapsed;
         IsCheckedBox.IsChecked = properties.IsChecked == true;
@@ -506,6 +508,7 @@ public partial class MainWindow : Window
             : box == FontSizeBox ? CommitFont(id)
             : box == TextColorBox || box == BackgroundBox ? editor.SetColors(id, TextColorBox.Text, BackgroundBox.Text)
             : box == BindingBox ? editor.SetBinding(id, box.Text)
+            : box == CommandBox ? editor.SetCommand(id, box.Text)
             : box == SpacingBox ? CommitWholeNumbers(values => editor.SetSpacing(id, values[0]), SpacingBox)
             : box == RowsBox || box == ColumnsBox ? CommitWholeNumbers(values => editor.SetGridSize(id, values[0], values[1]), RowsBox, ColumnsBox)
             : CommitBoundsField(control, box);

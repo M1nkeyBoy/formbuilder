@@ -170,6 +170,14 @@ public static partial class DocumentValidator
                 }
             }
 
+            foreach (var button in ControlTree.All(screen.Controls).Where(c => c.Properties.Command is not null))
+            {
+                if (DataBindings.ValidateCommand(screen, button, button.Properties.Command!) is { } commandError)
+                {
+                    screenErrors.Add($"Control \"{button.Name}\": {commandError}");
+                }
+            }
+
             foreach (var button in ControlTree.All(screen.Controls).Where(c => c.Properties.OpensScreen is not null || c.Properties.ClosesScreen == true))
             {
                 if (button.Properties.OpensScreen is { } target && document.FindScreen(target) is null)

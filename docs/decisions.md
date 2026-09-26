@@ -638,3 +638,21 @@ Choices made during the prototype slices that affect later work.
 - **Checked by** unit tests of every output and the import, and in the running apps: the
   browser test and the WinForms, WinUI and MAUI tests move the slider and check the progress
   bar follows; the WPF parity test gives the parsed window a stand-in view model.
+
+## Slice 33 — Button commands
+
+- **A Button can run a view model method** (`command`, format version 15). The view model
+  gets `public void Save() => OnSave();` and a partial `OnSave()` the developer implements
+  in their own part of the class, so the logic lives with the values it uses, not in the
+  window. An unimplemented command compiles away, as hooks do.
+- **Called from the click handler on every target**, after the button's hook and before
+  its action, rather than through each platform's command objects (`ICommand` in XAML): one
+  behaviour everywhere, no command classes to generate, and the order with hooks and
+  actions is plain to read. Enabling and disabling a button from the view model is left for
+  later.
+- **One set of names per view model.** Commands follow the binding rules, and a command's
+  method and hook must not clash with a property's or its change hook, ignoring case. Buttons
+  may share a command; a paste that would clash drops it.
+- **Checked by** unit tests of every target's handler order and the import, a browser test
+  and a WinForms test that implement `OnSave` as a developer would (setting a bound value)
+  and see it appear after clicking Save, and the CI builds of every exported sample.

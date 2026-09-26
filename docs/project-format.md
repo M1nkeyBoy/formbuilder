@@ -24,15 +24,16 @@ A complete example is in [`samples/customer-form.uibproj`](samples/customer-form
 | 12 | Adds `tabOrder` to screens. | None: Tab follows the order controls are in, as before. |
 | 13 | Adds the project's `theme`. | None: older projects are light, as before. |
 | 14 | Adds `binding` to controls with a value. | None: older controls are not bound. |
+| 15 | Adds `command` to Buttons. | None: older buttons run no command. |
 
-The builder reads versions 1 to 14 and always saves version 14. An older builder rejects a
+The builder reads versions 1 to 15 and always saves version 15. An older builder rejects a
 newer file with a clear message instead of silently dropping what it does not know.
 
-## Schema version 14
+## Schema version 15
 
 ```json
 {
-  "schemaVersion": 14,
+  "schemaVersion": 15,
   "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971",
   "name": "Customer form",
   "screens": [{
@@ -62,7 +63,7 @@ newer file with a clear message instead of silently dropping what it does not kn
 
 | Field | Type | Notes |
 |---|---|---|
-| `schemaVersion` | integer | Required. `14` when saved by this builder; `1` to `13` are still read. |
+| `schemaVersion` | integer | Required. `15` when saved by this builder; `1` to `14` are still read. |
 | `projectId` | GUID string | Required. Stable for the life of the project. |
 | `name` | string | Written as the file name (without extension) on save. |
 | `theme` | string | `"Light"` (the default, not written), `"Dark"`, or `"System"` to follow the computer's or browser's setting. See each output's Theme section. |
@@ -179,6 +180,11 @@ or `SetProperty`, and does not end in `ViewModel`. Controls on a screen that sha
 share the value, so their values must be of the same kind (text; on or off; a number; a
 chosen item; a date), and names on a screen differ in more than case. The first such control
 in screen order gives the property its starting value.
+
+A Button may have `command`: the name of a method of the view model it runs when clicked,
+after its hook and before any action. The same naming rules apply. Buttons may share a
+command. A command's method (`Save`) and its hook (`OnSave`) must not clash with a
+property's name or hook (`OnNameChanged`), ignoring case.
 
 Slider and ProgressBar have whole-number `minimum`, `maximum` and `value`: the minimum is less
 than the maximum, the value lies between them, and all are within ±1,000,000.

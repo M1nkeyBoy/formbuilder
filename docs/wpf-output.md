@@ -144,6 +144,12 @@ a DatePicker's `SelectedDate`. WPF cannot bind a PasswordBox's password, so its
 `PasswordChanged` handler copies the password into the view model (and not back). Types:
 text is `string`, on or off `bool`, a number `double`, a choice `string?`, a date `DateTime?`.
 
+A Button's Command field names a method of the view model, such as `Save`. The view model
+gets `public void Save()`, which calls a partial `OnSave()` for you to implement in your own part
+of the class; the button's generated click handler calls `ViewModel.Save()` after its hook and
+before its action (opening or closing a screen). A screen with only commands also has a view
+model.
+
 ## Responding to controls
 
 Every control you can interact with is wired to one event, and each has a *hook*: a partial
@@ -211,5 +217,5 @@ the old files. The builder never deletes files.
 
 ## Not generated yet
 
-Commands (a button bound to the view model), shared styles, and rows or columns sized to their content (`Auto`). Absolute positions suit fixed-size tools and dialogs; responsive layouts need the
+Shared styles, and rows or columns sized to their content (`Auto`). Absolute positions suit fixed-size tools and dialogs; responsive layouts need the
 layout-model work listed in the spec's "decisions to revisit".

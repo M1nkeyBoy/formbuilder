@@ -132,6 +132,12 @@ text, and its selection handler writes a new choice to the view model. Types: te
 `string`, on or off `bool`, a number `int`, a choice `string?`, and a date `DateTime`, starting
 from today, since a DateTimePicker always has a date.
 
+A Button's Command field names a method of the view model, such as `Save`. The view model
+gets `public void Save()`, which calls a partial `OnSave()` for you to implement in your own part
+of the class; the button's generated click handler calls `ViewModel.Save()` after its hook and
+before its action (opening or closing a screen). A screen with only commands also has a view
+model.
+
 ## Responding to controls
 
 As in WPF output, each control you can interact with has a hook: a partial method you can

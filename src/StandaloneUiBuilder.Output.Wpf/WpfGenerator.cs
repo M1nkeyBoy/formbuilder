@@ -658,13 +658,17 @@ public static class WpfGenerator
                 code.AppendLine($"        {HookName(control)}(e);");
                 code.AppendLine("    }");
             }
-            else if (ActionStatement(document, control) is { } action)
+            else if (ActionStatement(document, control) is not null || control.Properties.Command is not null)
             {
-                // The hook runs first, then the button's action from the design.
+                // The hook runs first, then the button's command, then its action from the design.
                 code.AppendLine($"    private void {HandlerName(control)}(object sender, {e.Args} e)");
                 code.AppendLine("    {");
                 code.AppendLine($"        {HookName(control)}(e);");
-                code.AppendLine($"        {action}");
+                foreach (var statement in new[] { Output.ViewModelCode.CommandStatement(control), ActionStatement(document, control) }.OfType<string>())
+                {
+                    code.AppendLine($"        {statement}");
+                }
+
                 code.AppendLine("    }");
             }
             else if (control.Type == ControlType.PasswordBox && control.Properties.Binding is { } binding)

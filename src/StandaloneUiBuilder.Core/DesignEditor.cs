@@ -533,6 +533,23 @@ public sealed partial class DesignEditor
     }
 
     /// <summary>
+    /// Makes a Button run a command of the screen's view model when clicked, or removes the
+    /// command (null or blank). One undo step.
+    /// </summary>
+    public string? SetCommand(Guid id, string? name)
+    {
+        name = string.IsNullOrWhiteSpace(name) ? null : name.Trim();
+        if (name is not null && FindControl(id) is { } control && ControlCatalog.Get(control.Type).HasCommand
+            && DataBindings.ValidateCommand(Screen, control, name) is { } error)
+        {
+            return error;
+        }
+
+        return EditProperties(id, d => d.HasCommand, "a command", p =>
+            p.Command == name ? p : p with { Command = name });
+    }
+
+    /// <summary>
     /// Puts a picture in an Image, from a PNG, JPEG, GIF or BMP file's bytes, or removes it
     /// (null). The picture is stored in the project.
     /// </summary>
@@ -881,14 +898,16 @@ public sealed partial class DesignEditor
 
         if (pasted.Count > 0)
         {
-            // A pasted binding stays unless this screen binds that name to another kind of value.
+            // A pasted binding or command stays unless it clashes with this screen's view model.
             var result = screen with { Controls = screen.Controls.AddRange(pasted) };
-            foreach (var bound in pasted.SelectMany(c => ControlTree.All([c])).Where(c => c.Properties.Binding is not null))
+            foreach (var bound in pasted.SelectMany(c => ControlTree.All([c])).Where(c => c.Properties.Binding is not null || c.Properties.Command is not null))
             {
-                if (DataBindings.Validate(result, bound, bound.Properties.Binding!) is not null)
-                {
-                    result = result with { Controls = ControlTree.Replace(result.Controls, bound.Id, c => c with { Properties = c.Properties with { Binding = null } }) };
-                }
+                var current = ControlTree.Find(result.Controls, bound.Id)!;
+                var binding = current.Properties.Binding is { } b && DataBindings.Validate(result, current, b) is null ? b : null;
+                current = current with { Properties = current.Properties with { Binding = binding } };
+                result = result with { Controls = ControlTree.Replace(result.Controls, bound.Id, _ => current) };
+                var command = current.Properties.Command is { } c && DataBindings.ValidateCommand(result, current, c) is null ? c : null;
+                result = result with { Controls = ControlTree.Replace(result.Controls, bound.Id, x => x with { Properties = x.Properties with { Command = command } }) };
             }
 
             Commit(Document.WithScreen(result));

@@ -72,6 +72,12 @@ the chosen item's text. A ProgressBar shows progress from 0 to 1, so a bound one
 the generated `RangeToProgressConverter` with the design's minimum and maximum. Types: text is
 `string`, on or off `bool`, a number `double`, a choice `string?`, a date `DateTime?`.
 
+A Button's Command field names a method of the view model, such as `Save`. The view model
+gets `public void Save()`, which calls a partial `OnSave()` for you to implement in your own part
+of the class; the button's generated click handler calls `ViewModel.Save()` after its hook and
+before its action (opening or closing a screen). A screen with only commands also has a view
+model.
+
 ## Tab order
 
 The screen's tab order is not exported: .NET 10's MAUI no longer has `TabIndex`, so Tab

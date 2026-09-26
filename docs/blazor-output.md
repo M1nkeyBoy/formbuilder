@@ -85,6 +85,12 @@ of its own field (see Control values and hooks). The page draws itself again aft
 event; after changing the view model from other code, call `StateHasChanged()`. Types: text
 is `string`, on or off `bool`, a number `int`, a choice `string?`, a date `DateOnly?`.
 
+A Button's Command field names a method of the view model, such as `Save`. The view model
+gets `public void Save()`, which calls a partial `OnSave()` for you to implement in your own part
+of the class; the button's generated click handler calls `ViewModel.Save()` after its hook and
+before its action (opening or closing a screen). A screen with only commands also has a view
+model.
+
 ## Tab order
 
 When the screen has a tab order of its own, each element Tab visits gets `tabindex` with its
@@ -126,6 +132,5 @@ to close its screen goes back to the previous page, since a web page cannot clos
 
 ## Not generated yet
 
-Styling beyond the browser's own control look, commands (a button bound to the view model),
-and anything that needs JavaScript of your own. Fonts and control chrome are the
+Styling beyond the browser's own control look, and anything that needs JavaScript of your own. Fonts and control chrome are the
 browser's, so text sits slightly differently than in WPF.

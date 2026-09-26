@@ -114,10 +114,11 @@ public static partial class WpfImporter
 
         // Button actions from the builder's own event code: which window a button opens.
         var byClass = screens.ToDictionary(s => s.ClassName, s => s.Screen.Id, StringComparer.Ordinal);
-        var linked = screens.Select(s => s.EventsCode is null ? s.Screen : s.Screen with
+        // And the view model command each button runs, kept where it fits the view model.
+        var linked = screens.Select(s => s.EventsCode is null ? s.Screen : KeepValidCommands(s.Screen with
         {
-            Controls = s.Screen.Controls.ConvertAll(c => WithActions(c, ReadActions(s.EventsCode), byClass)),
-        }).ToImmutableList();
+            Controls = s.Screen.Controls.ConvertAll(c => WithCommands(WithActions(c, ReadActions(s.EventsCode), byClass), ReadCommands(s.EventsCode))),
+        }, warnings)).ToImmutableList();
 
         var title = (string?)parsed[0].Root.Attribute("Title");
         var document = ProjectDocument.CreateBlank() with
@@ -794,6 +795,46 @@ public static partial class WpfImporter
 
         taken.Add(unique);
         return unique;
+    }
+
+    [GeneratedRegex(@"ViewModel\.([A-Za-z_][A-Za-z0-9_]*)\(\);")]
+    private static partial Regex CommandCall();
+
+    /// <summary>The view model command each button's generated click handler runs, by button name.</summary>
+    private static Dictionary<string, string> ReadCommands(string code)
+    {
+        var commands = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (Match handler in ClickHandler().Matches(code))
+        {
+            if (CommandCall().Match(handler.Groups["body"].Value) is { Success: true } call)
+            {
+                commands[handler.Groups[1].Value] = call.Groups[1].Value;
+            }
+        }
+
+        return commands;
+    }
+
+    private static ControlDocument WithCommands(ControlDocument control, Dictionary<string, string> commands) => control with
+    {
+        Properties = control.Type == ControlType.Button && commands.TryGetValue(control.Name, out var command)
+            ? control.Properties with { Command = command }
+            : control.Properties,
+        Children = control.Children?.ConvertAll(child => WithCommands(child, commands)),
+    };
+
+    private static ScreenDocument KeepValidCommands(ScreenDocument screen, List<string> warnings)
+    {
+        foreach (var button in ControlTree.All(screen.Controls).Where(c => c.Properties.Command is not null).ToList())
+        {
+            if (DataBindings.ValidateCommand(screen, button, button.Properties.Command!) is { } error)
+            {
+                warnings.Add($"Left out the command of {button.Name}: {error}");
+                screen = screen with { Controls = ControlTree.Replace(screen.Controls, button.Id, c => c with { Properties = c.Properties with { Command = null } }) };
+            }
+        }
+
+        return screen;
     }
 
     private static ControlDocument WithActions(ControlDocument control, Dictionary<string, string?> actions, Dictionary<string, string> screenByClass) => control with

@@ -807,22 +807,29 @@ public static class WinFormsGenerator
                 code.AppendLine($"        {HookName(control)}(e);");
                 code.AppendLine("    }");
             }
-            else if (control.Properties.OpensScreen is { } id && document.FindScreen(id) is { } target)
+            else if (control.Properties.Command is not null
+                || control.Properties.OpensScreen is { } opens && document.FindScreen(opens) is not null
+                || control.Properties.ClosesScreen == true)
             {
-                // The hook runs first, then the button's action from the design.
+                // The hook runs first, then the button's command, then its action from the design.
                 code.AppendLine($"    private void {HandlerName(control)}(object? sender, System.EventArgs e)");
                 code.AppendLine("    {");
                 code.AppendLine($"        {HookName(control)}(e);");
-                code.AppendLine($"        using var form = new {ClassName(document, target)}();");
-                code.AppendLine("        form.ShowDialog(this);");
-                code.AppendLine("    }");
-            }
-            else if (control.Properties.ClosesScreen == true)
-            {
-                code.AppendLine($"    private void {HandlerName(control)}(object? sender, System.EventArgs e)");
-                code.AppendLine("    {");
-                code.AppendLine($"        {HookName(control)}(e);");
-                code.AppendLine("        Close();");
+                if (ViewModelCode.CommandStatement(control) is { } command)
+                {
+                    code.AppendLine($"        {command}");
+                }
+
+                if (control.Properties.OpensScreen is { } id && document.FindScreen(id) is { } target)
+                {
+                    code.AppendLine($"        using var form = new {ClassName(document, target)}();");
+                    code.AppendLine("        form.ShowDialog(this);");
+                }
+                else if (control.Properties.ClosesScreen == true)
+                {
+                    code.AppendLine("        Close();");
+                }
+
                 code.AppendLine("    }");
             }
             else if (control.Type is ControlType.ComboBox or ControlType.ListBox && control.Properties.Binding is not null)

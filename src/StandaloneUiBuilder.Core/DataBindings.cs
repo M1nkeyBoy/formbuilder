@@ -13,6 +13,9 @@ public sealed record BoundProperty(string Name, BindingKind Kind, IReadOnlyList<
     public bool IsSet => Controls.Any(c => !ControlCatalog.Get(c.Type).ShowsBindingOnly);
 }
 
+/// <summary>A command of a screen's view model: its name and the buttons that run it, in screen order.</summary>
+public sealed record BoundCommand(string Name, IReadOnlyList<ControlDocument> Buttons);
+
 /// <summary>
 /// Data binding: a control's value can be bound to a named property of its screen's view model,
 /// a class generated with the screen that raises a change notification when a property
@@ -36,9 +39,17 @@ public static partial class DataBindings
             .Select(g => new BoundProperty(g.Key, ControlCatalog.Get(g.First().Type).BindingKind!.Value, g.ToList()))
             .ToList();
 
-    /// <summary>True if any control on the screen is bound, so the screen has a view model.</summary>
+    /// <summary>The screen's view model commands, in the order their first buttons come.</summary>
+    public static IReadOnlyList<BoundCommand> Commands(ScreenDocument screen) =>
+        ControlTree.All(screen.Controls)
+            .Where(c => c.Properties.Command is not null && ControlCatalog.Get(c.Type).HasCommand)
+            .GroupBy(c => c.Properties.Command!, StringComparer.Ordinal)
+            .Select(g => new BoundCommand(g.Key, g.ToList()))
+            .ToList();
+
+    /// <summary>True if any control on the screen is bound or runs a command, so the screen has a view model.</summary>
     public static bool HasViewModel(ScreenDocument screen) =>
-        ControlTree.All(screen.Controls).Any(c => c.Properties.Binding is not null);
+        ControlTree.All(screen.Controls).Any(c => c.Properties.Binding is not null || c.Properties.Command is not null);
 
     /// <summary>Checks a proposed binding for a control; returns an error message or null.</summary>
     public static string? Validate(ScreenDocument screen, ControlDocument control, string name)
@@ -48,35 +59,86 @@ public static partial class DataBindings
             return $"A {control.Type} has no value to bind.";
         }
 
-        if (!PropertyName().IsMatch(name))
+        if (CheckName(name, "A binding") is { } error)
         {
-            return "A binding must start with a capital letter and contain only letters, digits and underscores.";
+            return error;
         }
 
-        if (Reserved.Contains(name) || name.EndsWith("ViewModel", StringComparison.Ordinal))
-        {
-            return $"\"{name}\" is used by the generated view model; choose another name.";
-        }
-
-        // The view model's properties differ in more than case, for targets that ignore it.
         foreach (var other in ControlTree.All(screen.Controls))
         {
-            if (other.Id == control.Id || other.Properties.Binding is not { } otherName)
-            {
-                continue;
-            }
-
-            if (otherName != name && string.Equals(otherName, name, StringComparison.OrdinalIgnoreCase))
-            {
-                return $"\"{name}\" differs from the binding \"{otherName}\" only in case.";
-            }
-
-            if (otherName == name && ControlCatalog.Get(other.Type).BindingKind != kind)
+            if (other.Id != control.Id && other.Properties.Binding == name && ControlCatalog.Get(other.Type).BindingKind != kind)
             {
                 return $"\"{name}\" is bound to {other.Name}, a {other.Type}, whose value is not of the same kind.";
             }
         }
 
+        // The property and its change hook; controls bound to the same name share them.
+        return Clash(screen, control, [name, $"On{name}Changed"], (isCommand, other) => !isCommand && other == name);
+    }
+
+    /// <summary>Checks a proposed command for a Button; returns an error message or null.</summary>
+    public static string? ValidateCommand(ScreenDocument screen, ControlDocument control, string name)
+    {
+        if (!ControlCatalog.Get(control.Type).HasCommand)
+        {
+            return $"A {control.Type} has no command.";
+        }
+
+        // The method and its hook; buttons that run the same command share them.
+        return CheckName(name, "A command") ?? Clash(screen, control, [name, $"On{name}"], (isCommand, other) => isCommand && other == name);
+    }
+
+    private static string? CheckName(string name, string what)
+    {
+        if (!PropertyName().IsMatch(name))
+        {
+            return $"{what} must start with a capital letter and contain only letters, digits and underscores.";
+        }
+
+        return Reserved.Contains(name) || name.EndsWith("ViewModel", StringComparison.Ordinal)
+            ? $"\"{name}\" is used by the generated view model; choose another name."
+            : null;
+    }
+
+    /// <summary>
+    /// Whether members the name would add to the view model clash with those of the screen's
+    /// other bindings and commands, ignoring case (for targets that do); <paramref name="shared"/>
+    /// says which other names are the same binding or command, whose members are shared.
+    /// </summary>
+    private static string? Clash(ScreenDocument screen, ControlDocument control, string[] members, Func<bool, string, bool> shared)
+    {
+        foreach (var other in ControlTree.All(screen.Controls).Where(c => c.Id != control.Id))
+        {
+            foreach (var (isCommand, otherName, otherMembers) in MembersOf(other))
+            {
+                if (shared(isCommand, otherName))
+                {
+                    continue;
+                }
+
+                if (otherMembers.FirstOrDefault(m => members.Contains(m, StringComparer.OrdinalIgnoreCase)) is { } taken)
+                {
+                    var owner = isCommand ? $"the command \"{otherName}\" of {other.Name}" : $"the binding \"{otherName}\" of {other.Name}";
+                    return taken == otherName && string.Equals(members[0], otherName, StringComparison.OrdinalIgnoreCase) && members[0] != otherName
+                        ? $"\"{members[0]}\" differs from {owner} only in case."
+                        : $"\"{members[0]}\" would clash with {owner} in the view model.";
+                }
+            }
+        }
+
         return null;
+    }
+
+    private static IEnumerable<(bool IsCommand, string Name, string[] Members)> MembersOf(ControlDocument control)
+    {
+        if (control.Properties.Binding is { } binding)
+        {
+            yield return (false, binding, [binding, $"On{binding}Changed"]);
+        }
+
+        if (control.Properties.Command is { } command)
+        {
+            yield return (true, command, [command, $"On{command}"]);
+        }
     }
 }

@@ -55,6 +55,10 @@ public sealed class WinFormsOutputTests
         }
 
         var secondScreen = document.Screens.Skip(1).FirstOrDefault();
+        if (secondScreen is not null && BindingCheck.HasSaveCommand(secondScreen))
+        {
+            BindingCheck.ImplementSaveCommand(folder, projectName);
+        }
 
         var exe = Build(folder, projectName);
 
@@ -102,6 +106,11 @@ public sealed class WinFormsOutputTests
                 if (BindingCheck.Applies(secondScreen))
                 {
                     BindingCheck.AssertSliderMovesProgress(second);
+                }
+
+                if (BindingCheck.HasSaveCommand(secondScreen))
+                {
+                    BindingCheck.AssertSaveRunsTheCommand(second);
                 }
 
                 EditorSession.WaitFor(() => second.FindFirstDescendant(cf => cf.ByAutomationId("CloseSettingsButton")), "Close button").Click();
