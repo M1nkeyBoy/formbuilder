@@ -56,9 +56,8 @@ public sealed class LibraryUiTests : IDisposable
 
         // The preview host draws it as it looks; until then it is a labelled box.
         var surface = session.ById("Surface");
-        EditorSession.WaitUntil(
-            () => surface.FindFirstDescendant(session.Find.ByAutomationId("IntegerUpDown1").And(session.Find.ByControlType(FlaUI.Core.Definitions.ControlType.Image))) is not null,
-            () => "The IntegerUpDown was not drawn.", TimeSpan.FromMinutes(1));
+        bool Drawn() => surface.FindFirstDescendant(session.Find.ByAutomationId("IntegerUpDown1").And(session.Find.ByControlType(FlaUI.Core.Definitions.ControlType.Image))) is not null;
+        EditorSession.WaitUntil(Drawn, () => "The IntegerUpDown was not drawn.", TimeSpan.FromMinutes(1));
 
         // Its properties are in the inspector's Library section.
         session.TypeInto("LibraryFormatString", "N0");
@@ -67,6 +66,9 @@ public sealed class LibraryUiTests : IDisposable
         EditorSession.WaitUntil(() => session.ById("InspectorErrorText").Name.Contains("MaxLength must be a whole number", StringComparison.Ordinal),
             () => $"Message: {session.ById("InspectorErrorText").Name}");
         session.TypeInto("LibraryMaxLength", "6");
+
+        // Drawn again with its new values.
+        EditorSession.WaitUntil(Drawn, () => "The IntegerUpDown was not drawn again.", TimeSpan.FromMinutes(1));
         session.Screenshot("39-library-control");
 
         // Undo takes the value back off; the project remembers the library.
