@@ -146,9 +146,12 @@ Studio.
 - **Update to newest** or **Remove** a library in the same window. A library in use cannot be
   removed until its controls are deleted.
 
-The builder only reads a library; none of its code runs in the builder. Until the builder
-draws them, library controls show on the canvas as labelled boxes. Changing the project's
-platform removes its libraries, since each is for one platform; Undo brings them back.
+In a WPF or Windows Forms project, the canvas shows library controls as they look, drawn by
+a separate process, so a library's code never runs in the editor itself; they appear as
+labelled boxes until the drawing arrives, or if it fails (the box's tooltip says why). In
+Preview they are pictures, not live controls. WinUI, .NET MAUI and Blazor library controls
+are labelled boxes; the exported app shows the real ones. Changing the project's platform
+removes its libraries, since each is for one platform; Undo brings them back.
 
 ## Export
 

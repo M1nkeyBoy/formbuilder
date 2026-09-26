@@ -37,6 +37,8 @@
     <ProjectReference Include="..\..\src\StandaloneUiBuilder\StandaloneUiBuilder.csproj" />
     <ProjectReference Include="..\..\src\StandaloneUiBuilder.Output.WinUI\StandaloneUiBuilder.Output.WinUI.csproj" />
     <ProjectReference Include="..\..\src\StandaloneUiBuilder.Output.Maui\StandaloneUiBuilder.Output.Maui.csproj" />
+    <!-- A small library the preview host draws controls from. -->
+    <ProjectReference Include="..\StandaloneUiBuilder.SampleControls\StandaloneUiBuilder.SampleControls.csproj" />
   </ItemGroup>
 
 </Project>

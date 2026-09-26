@@ -784,10 +784,36 @@ Choices made during the prototype slices that affect later work.
   components (services, theme and script) and MAUI controls (`ConfigureSyncfusionCore`) need.
 - **A library exists on one platform**, so libraries need a platform, and changing the
   platform removes them and the controls placed from them, after asking; Undo puts them back.
-- **The canvas shows a library control as a labelled box** until Slice 40 draws the real one.
+- **The canvas shows a library control as a labelled box** (Slice 40 draws WPF and Windows
+  Forms ones).
 - **Values are checked twice**: when edited (numbers must fit the type, choices must be
   members), and when a file is read, since they end up in code.
 - **Checked by** tests that scan a sample library of WPF, Windows Forms and Blazor controls,
   load it as a package from a folder feed, edit and save library controls, and check every
   target's output; and on Windows, by adding the Extended WPF Toolkit from nuget.org in the
   editor, and exporting, building and running a WPF app that uses it.
+
+## Slice 40 — Library controls drawn as they look
+
+- **WPF and Windows Forms library controls are drawn for real**, as Visual Studio's designer
+  draws them: the control is created, given the design's values and size, and pictured, in
+  the project's theme. The canvas shows the picture, at twice the design size so it stays
+  sharp when zoomed. In Preview it is a picture too; the exported app has the live control.
+- **In a process of its own**: the editor starts its own program with `--preview-host` and
+  sends it one request per line (the control, its values and size, and the library's
+  assemblies); it answers with a PNG. A library's code runs only there, so a control that
+  throws, hangs (30 seconds) or crashes the process leaves the editor and the design as they
+  were; the host is restarted for the next drawing. Using the editor's own program keeps the
+  installer and the single-file release as they are.
+- **Asynchronous**: a control is a labelled box until its drawing arrives, then the canvas is
+  redrawn (not in the middle of a drag). Drawings are kept by everything that affects them,
+  so moving a control needs none, and changing a value or its size draws it again. A control
+  that cannot be drawn stays a box whose tooltip says why.
+- **Licences**: a Syncfusion key in the project is registered in the host first, as in the
+  exported app; without one, Syncfusion shows its own licence message.
+- **WinUI, .NET MAUI and Blazor controls stay labelled boxes.** They need their own runtimes
+  (the Windows App SDK, MAUI's handlers, a browser), which a WPF editor cannot host; Visual
+  Studio has no designer for them either.
+- **Checked by** a test that drives the host directly (a WPF and a Windows Forms control from
+  the sample library, a type that does not exist, and the host ending when its input
+  closes), and the library UI test, which waits for the real IntegerUpDown on the canvas.

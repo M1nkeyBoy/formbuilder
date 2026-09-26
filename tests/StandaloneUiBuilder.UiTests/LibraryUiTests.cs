@@ -54,6 +54,12 @@ public sealed class LibraryUiTests : IDisposable
         EditorSession.WaitUntil(() => session.Field("NameBox").Text == "IntegerUpDown1", () => $"Selected {session.Field("NameBox").Text}");
         Assert.Equal("IntegerUpDown · Main", session.ById("TypeText").Name);
 
+        // The preview host draws it as it looks; until then it is a labelled box.
+        var surface = session.ById("Surface");
+        EditorSession.WaitUntil(
+            () => surface.FindFirstDescendant(session.Find.ByAutomationId("IntegerUpDown1").And(session.Find.ByControlType(FlaUI.Core.Definitions.ControlType.Image))) is not null,
+            () => "The IntegerUpDown was not drawn.", TimeSpan.FromMinutes(1));
+
         // Its properties are in the inspector's Library section.
         session.TypeInto("LibraryFormatString", "N0");
         EditorSession.WaitUntil(() => session.Status.Length > 0 && session.Field("LibraryFormatString").Text == "N0", () => $"Format: {session.Field("LibraryFormatString").Text}");

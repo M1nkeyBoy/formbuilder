@@ -104,6 +104,9 @@ internal static class ControlFactory
     /// <summary>The drawing a library control gets on the canvas, when nothing better draws it.</summary>
     public static Func<ControlDocument, FrameworkElement?>? LibraryRenderer { get; set; }
 
+    /// <summary>Why a library control is shown as a box, for its tooltip; null when there is nothing to say.</summary>
+    public static Func<ControlDocument, string?>? LibraryNote { get; set; }
+
     /// <summary>
     /// A library control: drawn by <see cref="LibraryRenderer"/> when it can, otherwise a
     /// labelled box with the control's type and its text, if it has one.
@@ -119,7 +122,7 @@ internal static class ControlFactory
         var name = type[(type.LastIndexOf('.') + 1)..];
         var text = control.Properties.LibrarySettings?.FirstOrDefault(s => s.Name is "Content" or "Text" or "Label" && s.Kind == LibraryValueKind.Text)?.Value;
         var accent = Color.FromRgb(0x63, 0x5B, 0xDF);
-        var box = new Grid { ClipToBounds = true, ToolTip = type };
+        var box = new Grid { ClipToBounds = true, ToolTip = LibraryNote?.Invoke(control) is { } note ? $"{type}{Environment.NewLine}{note}" : type };
         box.Children.Add(new System.Windows.Shapes.Rectangle
         {
             Fill = new SolidColorBrush(Color.FromArgb(0x1C, accent.R, accent.G, accent.B)),

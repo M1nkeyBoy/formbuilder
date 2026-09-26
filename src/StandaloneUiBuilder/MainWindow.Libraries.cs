@@ -20,6 +20,38 @@ public partial class MainWindow
 
     private const string DefaultChoice = "(library default)";
 
+    private Preview.LibraryPreview? libraryPreview;
+    private readonly System.Windows.Threading.DispatcherTimer previewRedraw = new() { Interval = TimeSpan.FromMilliseconds(80) };
+
+    /// <summary>
+    /// WPF and Windows Forms library controls are drawn as they look, by the preview host; the
+    /// canvas is redrawn as drawings arrive (a few at once make one redraw).
+    /// </summary>
+    private void SetUpLibraryPreview()
+    {
+        libraryPreview = new Preview.LibraryPreview(() => editor.Document, Dispatcher);
+        Design.ControlFactory.LibraryRenderer = libraryPreview.Draw;
+        Design.ControlFactory.LibraryNote = control => editor.Document.Platform is ProjectPlatform.Wpf or ProjectPlatform.WinForms
+            ? libraryPreview.ErrorFor(control) is { } error ? $"Not drawn: {error}" : null
+            : $"The builder draws {editor.Document.Platform.DisplayName()} controls as boxes; the exported app shows the real one.";
+        previewRedraw.Tick += (_, _) =>
+        {
+            // Not in the middle of a drag, which a redraw would end.
+            if (Mouse.LeftButton == MouseButtonState.Pressed)
+            {
+                return;
+            }
+
+            previewRedraw.Stop();
+            RenderSurface();
+        };
+        libraryPreview.Updated += (_, _) =>
+        {
+            previewRedraw.Stop();
+            previewRedraw.Start();
+        };
+    }
+
     /// <summary>
     /// Shows the Library section for a library control: a field for each property it offers,
     /// empty (or the library default) until the design sets a value.

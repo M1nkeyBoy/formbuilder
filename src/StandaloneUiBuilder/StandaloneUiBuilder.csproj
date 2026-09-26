@@ -6,9 +6,17 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <!-- For drawing Windows Forms library controls in the preview host (Preview/PreviewHost). -->
+    <UseWindowsForms>true</UseWindowsForms>
     <!-- Lets the WPF project compile on non-Windows build agents; it still only runs on Windows. -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Windows Forms' names (Control, Button, Point) would clash with WPF's everywhere. -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- Lets the Windows tests compare generated WPF output with the designer's controls. -->

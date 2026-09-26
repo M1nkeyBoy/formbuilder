@@ -60,6 +60,7 @@ public partial class MainWindow : Window
 
         SetUpToolbox();
         SetUpPlatformMenus();
+        SetUpLibraryPreview();
         AddHandler(Keyboard.GotKeyboardFocusEvent, new KeyboardFocusChangedEventHandler(Window_GotKeyboardFocus), handledEventsToo: true);
         Surface.ControlClicked += Surface_ControlClicked;
         Surface.ControlClickCompleted += Surface_ControlClickCompleted;
@@ -154,7 +155,7 @@ public partial class MainWindow : Window
 
         RefreshScreenTabs();
         selection.RemoveAll(id => editor.FindControl(id) is null);
-        Surface.Render(editor.Screen, selection, isPreview, PreviewButton_Clicked, editor.Document.Theme);
+        RenderSurface();
         LightThemeMenuItem.IsChecked = editor.Document.Theme == ProjectTheme.Light;
         DarkThemeMenuItem.IsChecked = editor.Document.Theme == ProjectTheme.Dark;
         SystemThemeMenuItem.IsChecked = editor.Document.Theme == ProjectTheme.System;
@@ -163,12 +164,18 @@ public partial class MainWindow : Window
             tabOrderNext = null;
         }
 
-        Surface.ShowTabOrder(tabOrderNext is null ? null : TabSequence.Resolve(editor.Screen).Select(c => c.Id).ToList(), tabOrderNext ?? 0);
         SetTabOrderMenuItem.IsChecked = tabOrderNext is not null;
         RefreshInspector();
         Title = $"{ProjectDisplayName}{(editor.IsDirty ? " ●" : "")} — {AppTitle}";
         RefreshStudio();
         CommandManager.InvalidateRequerySuggested();
+    }
+
+    /// <summary>Draws the current screen on the canvas, with the tab order when it is being set.</summary>
+    private void RenderSurface()
+    {
+        Surface.Render(editor.Screen, selection, isPreview, PreviewButton_Clicked, editor.Document.Theme);
+        Surface.ShowTabOrder(tabOrderNext is null ? null : TabSequence.Resolve(editor.Screen).Select(c => c.Id).ToList(), tabOrderNext ?? 0);
     }
 
     private void Select(Guid? id) => SetSelection(id is { } value ? [value] : []);
@@ -1208,6 +1215,7 @@ public partial class MainWindow : Window
         base.OnClosed(e);
 
         // A normal close: the user has saved or chosen to discard, so no draft is needed.
+        libraryPreview?.Dispose();
         draftTimer.Stop();
         recoverySession?.DeleteDraft();
         recoverySession?.Dispose();

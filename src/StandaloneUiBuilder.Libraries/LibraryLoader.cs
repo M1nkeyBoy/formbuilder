@@ -51,6 +51,37 @@ public static class LibraryLoader
             throw new LibraryException($"There is no package called {id}. Check the name on nuget.org.");
         }
 
+        var (nuspec, scan, references) = await ResolveAsync(cache, id, version, platform, progress, cancellationToken).ConfigureAwait(false);
+        if (scan.Count == 0)
+        {
+            throw new LibraryException($"{nuspec.Id} {version} has nothing for {platform.DisplayName()}. Check that it is a {platform.DisplayName()} package.");
+        }
+
+        progress?.Report($"Finding the controls in {nuspec.Id}…");
+        var controls = ControlScanner.Scan(platform, scan, references);
+        if (controls.Count == 0)
+        {
+            throw new LibraryException($"{nuspec.Id} {version} has no {platform.DisplayName()} controls the builder can place.");
+        }
+
+        return new LibraryPackage { Id = nuspec.Id.Length > 0 ? nuspec.Id : id, Version = version, Controls = [.. controls] };
+    }
+
+    /// <summary>
+    /// Every assembly a library brings for the platform, its dependencies' included, downloading
+    /// what is not stored yet: what drawing its controls needs.
+    /// </summary>
+    public static async Task<IReadOnlyList<string>> AssembliesAsync(
+        PackageCache cache, LibraryPackage package, ProjectPlatform platform, CancellationToken cancellationToken = default) =>
+        (await ResolveAsync(cache, package.Id, package.Version, platform, progress: null, cancellationToken).ConfigureAwait(false)).References;
+
+    /// <summary>
+    /// The package's .nuspec, the assemblies whose controls it offers, and every assembly it
+    /// brings (theirs and its dependencies').
+    /// </summary>
+    private static async Task<(Nuspec Nuspec, List<string> Scan, List<string> References)> ResolveAsync(
+        PackageCache cache, string id, string version, ProjectPlatform platform, IProgress<string>? progress, CancellationToken cancellationToken)
+    {
         progress?.Report($"Downloading {id} {version}…");
         var folder = await cache.GetAsync(id, version, cancellationToken).ConfigureAwait(false);
         var nuspec = PackageCache.ReadNuspec(folder);
@@ -94,19 +125,7 @@ public static class LibraryLoader
             Enqueue(PackageCache.ReadNuspec(dependencyFolder), depth + 1);
         }
 
-        if (scan.Count == 0)
-        {
-            throw new LibraryException($"{nuspec.Id} {version} has nothing for {platform.DisplayName()}. Check that it is a {platform.DisplayName()} package.");
-        }
-
-        progress?.Report($"Finding the controls in {nuspec.Id}…");
-        var controls = ControlScanner.Scan(platform, scan, references);
-        if (controls.Count == 0)
-        {
-            throw new LibraryException($"{nuspec.Id} {version} has no {platform.DisplayName()} controls the builder can place.");
-        }
-
-        return new LibraryPackage { Id = nuspec.Id.Length > 0 ? nuspec.Id : id, Version = version, Controls = [.. controls] };
+        return (nuspec, scan, references);
 
         void Enqueue(Nuspec spec, int depth)
         {

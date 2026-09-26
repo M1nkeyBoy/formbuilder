@@ -16,8 +16,9 @@ its menus, Save and Export. It follows Windows' light or dark app setting.
   it; any platform exports to all five with the built-in controls.
 - **Control libraries.** Project > Libraries adds NuGet packages of controls, such as
   Syncfusion or the Extended WPF Toolkit, to a project for one platform. Their controls join
-  the toolbox, the inspector sets their properties, and exports reference the packages. The
-  builder reads the packages' metadata; their code never runs in it.
+  the toolbox, the inspector sets their properties, and exports reference the packages. WPF
+  and Windows Forms library controls are drawn on the canvas as they look, by a separate
+  process, so a library's code never runs in the editor itself.
 - **Find and arrange.** Search the toolbox, grouped into essentials, containers and more
   controls. The Layers tab lists the screen's controls, inside their containers; choosing one
   selects it on the canvas. The action bar switches Design and Preview, undoes and redoes,

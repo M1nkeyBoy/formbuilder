@@ -343,7 +343,7 @@ internal sealed class DesignSurface : Grid
     }
 
     /// <summary>Whether Windows is set to show apps in dark mode.</summary>
-    private static bool WindowsAppsUseDarkMode()
+    internal static bool WindowsAppsUseDarkMode()
     {
         using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
         return key?.GetValue("AppsUseLightTheme") is int value && value == 0;
