@@ -294,6 +294,7 @@
                                        Text="Drag a control onto the canvas. Or select one, then click the canvas or press Enter." />
                             <ListBox x:Name="ToolboxList" Margin="0,4,0,0"
                                      AutomationProperties.Name="Toolbox"
+                                     IsSynchronizedWithCurrentItem="False"
                                      ItemContainerStyle="{StaticResource ToolboxTile}"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                      PreviewMouseLeftButtonDown="ToolboxList_PreviewMouseLeftButtonDown"
@@ -325,6 +326,7 @@
                     </TabItem>
                     <TabItem Header="Layers" AutomationProperties.Name="Layers">
                         <ListBox x:Name="LayersList" Margin="8" SelectionMode="Extended" AutomationProperties.Name="Layers"
+                                 VirtualizingPanel.IsVirtualizing="False" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  ItemContainerStyle="{StaticResource LayerItem}" SelectionChanged="LayersList_SelectionChanged">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>

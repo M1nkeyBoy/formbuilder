@@ -91,14 +91,21 @@ internal sealed class EditorSession : IDisposable
 
     /// <summary>
     /// Scrolls an element into view if it is out of sight in a scrolling panel (the toolbox,
-    /// the inspector, a list), so clicks land on it: a list item scrolls itself; anything
-    /// else is focused, and the editor brings what has focus into view.
+    /// the inspector, a list), so clicks land on it: a list item (or the item holding the
+    /// element) scrolls itself; anything else is focused, and the editor brings what has focus
+    /// into view.
     /// </summary>
     private static AutomationElement Reveal(AutomationElement element)
     {
         if (element.Properties.IsOffscreen.ValueOrDefault)
         {
-            if (element.Patterns.ScrollItem.TryGetPattern(out var scrollItem))
+            var item = element;
+            for (var depth = 0; item is not null && depth < 4 && !item.Patterns.ScrollItem.IsSupported; depth++)
+            {
+                item = item.Parent;
+            }
+
+            if (item is not null && item.Patterns.ScrollItem.TryGetPattern(out var scrollItem))
             {
                 scrollItem.ScrollIntoView();
             }

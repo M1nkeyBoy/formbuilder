@@ -31,7 +31,7 @@ public sealed class StudioUiTests : IDisposable
         EditorSession.WaitUntil(() => toolbox.FindFirstDescendant(session.Find.ByName("TextBox")) is not null, () => "The toolbox did not show every control again.");
 
         // Layers lists the screen's controls; choosing one selects it.
-        session.Window.FindFirstDescendant(session.Find.ByName("Layers").And(session.Find.ByControlType(FlaUI.Core.Definitions.ControlType.TabItem))).Click();
+        session.Window.FindFirstDescendant(session.Find.ByName("Layers").And(session.Find.ByControlType(FlaUI.Core.Definitions.ControlType.TabItem)))!.Click();
         var layers = session.ById("LayersList");
         EditorSession.Within(layers, session.Find.ByName("LogoImage"), "the LogoImage layer").Click();
         EditorSession.WaitUntil(() => session.Field("NameBox").Text == "LogoImage", () => $"Selected {session.Field("NameBox").Text}");
