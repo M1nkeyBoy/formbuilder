@@ -602,8 +602,10 @@ Choices made during the prototype slices that affect later work.
 - **The canvas and Preview show the theme** by drawing the controls with the same Fluent
   dictionaries the generated WPF window uses (for System, in the colours Windows is set to).
 - **Readable text on the design's own colours.** A background the design sets is kept in
-  every theme, so light text would disappear on a light panel. Text drawn on such a
-  background, with no colour of its own, gets black or white, whichever stands out; the
+  every theme, so light text would disappear on a light panel. Text on such a background,
+  with no colour of its own, gets black or white, whichever stands out, and controls inside
+  a coloured container take its background too: Fluent's text boxes and buttons are
+  see-through while a browser's are not, and this way the panel looks the same in both. The
   editor and every output apply the same rule (`ThemeContrast`).
 - **Checked by** unit tests of each output, a WPF parity test in the dark theme (layout
   only, since Fluent's fonts and padding differ from the designer's classic controls), a

@@ -151,10 +151,14 @@ public class ThemeTests
         Assert.Equal("#F3F6FA", Find(dark, "SettingsGrid").Properties.Background);
         Assert.Null(Find(dark, "SettingsGrid").Properties.Foreground);
 
-        // Labels and check boxes in the light grid get black text; text boxes draw their own background.
+        // Controls in the light grid get black text, and the grid's background: some themes'
+        // text boxes are see-through, others not.
         Assert.Equal("#000000", Find(dark, "ServerLabel").Properties.Foreground);
         Assert.Equal("#000000", Find(dark, "SecureCheckBox").Properties.Foreground);
-        Assert.Null(Find(dark, "ServerTextBox").Properties.Foreground);
+        Assert.Equal(("#000000", "#F3F6FA"), (Find(dark, "ServerTextBox").Properties.Foreground, Find(dark, "ServerTextBox").Properties.Background));
+
+        // Controls on the theme's own background are left alone.
+        Assert.Equal(Find(settings, "StartDatePicker"), Find(dark, "StartDatePicker"));
 
         // A control's own background counts, and a colour of its own stands.
         Assert.Equal(Find(settings, "SettingsLabel").Properties.Foreground, Find(dark, "SettingsLabel").Properties.Foreground);

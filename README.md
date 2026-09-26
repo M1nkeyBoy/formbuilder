@@ -45,7 +45,8 @@ choices are recorded in `docs/decisions.md`.
   for the whole project. The canvas and Preview draw in it, and every export uses its
   target's own theming (WPF's Fluent theme, Windows Forms' colour mode, WinUI's and MAUI's
   app themes, CSS `color-scheme`). Text on a background you set gets black or white,
-  whichever stands out, so it stays readable.
+  whichever stands out, and controls in a coloured panel share its colour, so it stays
+  readable.
 - **Work with several controls.** Ctrl+click, or drag a box across empty canvas, to select
   several controls; drag, nudge (arrow keys, Shift for a grid step), copy, cut, paste,
   duplicate (Ctrl+D) or delete them together. Ctrl+A selects all. The Format menu aligns

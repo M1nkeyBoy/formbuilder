@@ -124,9 +124,9 @@ A Light project uses WPF's usual look. Dark and System projects use WPF's Fluent
 each window gets `ThemeMode="Dark"` or `ThemeMode="System"` (the latter follows Windows'
 app mode), and every control gets `MinWidth="0" MinHeight="0"`, since Fluent's styles
 would otherwise make some controls larger than the design (a text box at least 32 high).
-Text drawn on a background the design sets (a control's own, or the container behind a label,
-check box, radio button or group title) gets black or white, whichever stands out, unless it
-has a text colour of its own, so it stays readable in a dark theme.
+On a background the design sets (a control's own, or its container's), text gets black or
+white, whichever stands out, unless it has a text colour of its own, and controls inside such
+a container take its background; so the design's own colours read the same in a dark theme.
 
 ## Responding to controls
 

@@ -53,9 +53,9 @@ is the first screen).
 The generated `App.g.cs` sets `UserAppTheme` to `Light` or `Dark`, or to `Unspecified` for
 System, which follows the device. The drawn TabControls and group frames use
 `AppThemeBinding` colours, so they suit either.
-Text drawn on a background the design sets (a control's own, or the container behind a label,
-check box, radio button or group title) gets black or white, whichever stands out, unless it
-has a text colour of its own, so it stays readable in a dark theme.
+On a background the design sets (a control's own, or its container's), text gets black or
+white, whichever stands out, unless it has a text colour of its own, and controls inside such
+a container take its background; so the design's own colours read the same in a dark theme.
 
 ## Tab order
 

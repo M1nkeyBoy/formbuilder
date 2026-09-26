@@ -67,9 +67,9 @@ other screen is named after itself, with its name in lower case as its address.
 `uib.css` gives the page's colours as CSS variables, with `color-scheme` so the browser
 draws its own inputs and buttons to match. A Dark project is dark; a System project is dark
 only when the browser asks for it (`prefers-color-scheme: dark`).
-Text drawn on a background the design sets (a control's own, or the container behind a label,
-check box, radio button or group title) gets black or white, whichever stands out, unless it
-has a text colour of its own, so it stays readable in a dark theme.
+On a background the design sets (a control's own, or its container's), text gets black or
+white, whichever stands out, unless it has a text colour of its own, and controls inside such
+a container take its background; so the design's own colours read the same in a dark theme.
 
 ## Tab order
 

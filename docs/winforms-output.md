@@ -112,9 +112,9 @@ A Light project uses Windows Forms' usual colours. For Dark and System the main 
 designer file gets a static constructor that calls `Application.SetColorMode` with
 `SystemColorMode.Dark` or `SystemColorMode.System` before the first window opens. Windows
 Forms marks dark mode as experimental (`WFO5001`), which the generated code acknowledges.
-Text drawn on a background the design sets (a control's own, or the container behind a label,
-check box, radio button or group title) gets black or white, whichever stands out, unless it
-has a text colour of its own, so it stays readable in a dark theme.
+On a background the design sets (a control's own, or its container's), text gets black or
+white, whichever stands out, unless it has a text colour of its own, and controls inside such
+a container take its background; so the design's own colours read the same in a dark theme.
 
 ## Responding to controls
 

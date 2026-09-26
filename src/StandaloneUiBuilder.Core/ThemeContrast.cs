@@ -3,10 +3,12 @@ namespace StandaloneUiBuilder.Core;
 /// <summary>
 /// Keeps text readable where the design sets a background. In the dark theme (and the system
 /// theme, which may be dark) text takes the theme's light colour, which would be lost on a
-/// light background the design chose. So text drawn on a background of the design's own (the
-/// control's, or for a label, check box, radio button or group title, the nearest container's)
-/// gets black or white, whichever stands out, unless it has a text colour of its own. The
-/// editor and every output apply this to a screen before drawing or writing it.
+/// light background the design chose. So a control that shows text on a background of the
+/// design's own (the control's, or else the nearest container's) gets black or white text,
+/// whichever stands out, unless it has a text colour of its own. A control inside such a
+/// container also takes the container's background, since some themes' text boxes and buttons
+/// are see-through and others are not; this way it looks the same everywhere. The editor and
+/// every output apply this to a screen before drawing or writing it.
 /// </summary>
 public static class ThemeContrast
 {
@@ -27,10 +29,17 @@ public static class ThemeContrast
     {
         var properties = control.Properties;
         var definition = ControlCatalog.Get(control.Type);
-        var surface = properties.Background ?? (DrawsOnWhatIsBehind(control.Type) ? behind : null);
-        if (surface is not null && properties.Foreground is null && definition.HasFont)
+        var surface = properties.Background ?? behind;
+        if (surface is not null && definition.HasFont)
         {
-            control = control with { Properties = properties with { Foreground = ContrastingText(surface) } };
+            control = control with
+            {
+                Properties = properties with
+                {
+                    Background = properties.Background ?? (definition.HasBackground ? behind : null),
+                    Foreground = properties.Foreground ?? ContrastingText(surface),
+                },
+            };
         }
 
         // A TabControl's pages are drawn on its frame, in the theme's colours.
@@ -39,8 +48,4 @@ public static class ThemeContrast
             ? control with { Children = children.ConvertAll(child => Apply(child, inside)) }
             : control;
     }
-
-    /// <summary>Types whose text is drawn straight onto what is behind them.</summary>
-    private static bool DrawsOnWhatIsBehind(ControlType type) =>
-        type is ControlType.Label or ControlType.CheckBox or ControlType.RadioButton or ControlType.GroupBox;
 }
