@@ -81,7 +81,21 @@ public static partial class ProjectExporter
 
             var rootNamespace = existing ?? defaultNamespace;
 
-            foreach (var file in generate(rootNamespace))
+            // Nothing is written if a file the builder rewrites is one it did not write, such as a
+            // view model part the developer wrote by hand before giving the screen code in the builder.
+            var files = generate(rootNamespace);
+            foreach (var file in files.Where(f => f.Regenerate && f.Bytes is null && f.RelativePath != guardedFile))
+            {
+                var existingPath = Path.Combine(folder, file.RelativePath);
+                if (File.Exists(existingPath) && !File.ReadAllText(existingPath).Contains(GeneratedMarker, StringComparison.Ordinal))
+                {
+                    throw new ExportException(
+                        $"\"{existingPath}\" was not created by Standalone UI Builder, so it was not replaced. "
+                        + "Move its code into the builder, or move the file, and export again.");
+                }
+            }
+
+            foreach (var file in files)
             {
                 var path = Path.Combine(folder, file.RelativePath);
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);

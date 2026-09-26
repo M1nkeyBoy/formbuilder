@@ -129,6 +129,11 @@ public static class MauiGenerator
                 files.Add(new(ViewModelCode.FileName(document, screen), ViewModel(document, screen, rootNamespace), Regenerate: true));
             }
 
+            if (ViewModelCode.UserCode(document, screen, rootNamespace) is { } userCode)
+            {
+                files.Add(new(ViewModelCode.CodeFileName(document, screen), userCode, Regenerate: true));
+            }
+
             foreach (var image in ControlTree.All(screen.Controls))
             {
                 if (image.Properties.ImageData is { } data && ImageFile.TryDecode(data, out var bytes))

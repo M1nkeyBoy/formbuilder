@@ -134,16 +134,14 @@ public sealed class BlazorOutputTests
     }
 
     /// <summary>
-    /// The Settings screen's Save button runs the view model's Save command; implemented as a
-    /// developer would, it changes a bound value, which the page shows.
+    /// The Settings screen's Save button runs the view model's Save command, which the screen's
+    /// code, written in the builder, implements by changing a bound value that the page shows.
     /// </summary>
     [WebFact]
     public async Task ClickingSaveRunsTheViewModelsCommand()
     {
         var document = Sample("layout-demo") with { Name = "Layout demo commands" };
-        using var app = await GeneratedApp.StartAsync(document, BlazorExporter.Export, folder => File.WriteAllText(
-            Path.Combine(folder, "Components", "Pages", "SettingsViewModel.cs"),
-            "namespace LayoutDemoCommands.Components.Pages;\n\npublic partial class SettingsViewModel\n{\n    partial void OnSave() => Server = \"saved\";\n}\n"));
+        using var app = await GeneratedApp.StartAsync(document, BlazorExporter.Export);
         await using var browser = await LaunchAsync();
         var page = await browser.NewPageAsync();
         await page.GotoAsync(app.Url + "/settings");

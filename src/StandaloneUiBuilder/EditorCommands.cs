@@ -67,6 +67,13 @@ public static class EditorCommands
         nameof(TabOrderByPosition),
         typeof(EditorCommands));
 
+    /// <summary>Opens the current screen's view model code.</summary>
+    public static RoutedUICommand EditCode { get; } = new(
+        "_Code…",
+        nameof(EditCode),
+        typeof(EditorCommands),
+        [new KeyGesture(Key.F7)]);
+
     /// <summary>Chooses the project's theme; the parameter is Light, Dark or System.</summary>
     public static RoutedUICommand SetTheme { get; } = new(
         "Theme",

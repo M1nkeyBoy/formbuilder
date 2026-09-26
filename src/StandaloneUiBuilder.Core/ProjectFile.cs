@@ -21,6 +21,9 @@ public static partial class ProjectFile
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         WriteIndented = true,
+
+        // Text and code are written as they read (=> and "quotes", not \u003E): the file is not HTML.
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         Converters = { new AnchorEdgesJsonConverter(), new JsonStringEnumConverter(allowIntegerValues: false) },
     };
 

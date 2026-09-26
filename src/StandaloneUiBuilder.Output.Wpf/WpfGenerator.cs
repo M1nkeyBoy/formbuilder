@@ -130,6 +130,11 @@ public static class WpfGenerator
             {
                 files.Add(new(Output.ViewModelCode.FileName(document, screen), ViewModelCode(document, screen, rootNamespace), Regenerate: true));
             }
+
+            if (Output.ViewModelCode.UserCode(document, screen, rootNamespace) is { } userCode)
+            {
+                files.Add(new(Output.ViewModelCode.CodeFileName(document, screen), userCode, Regenerate: true));
+            }
         }
 
         files.AddRange(CodeNames.ImageFiles(document));

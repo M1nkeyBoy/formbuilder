@@ -62,6 +62,7 @@
         <CommandBinding Command="{x:Static local:EditorCommands.TabOrderByPosition}" Executed="TabOrderByPosition_Executed" CanExecute="Designing_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.ResetTabOrder}" Executed="ResetTabOrder_Executed" CanExecute="ResetTabOrder_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.SetTheme}" Executed="SetTheme_Executed" CanExecute="Designing_CanExecute" />
+        <CommandBinding Command="{x:Static local:EditorCommands.EditCode}" Executed="EditCode_Executed" CanExecute="Designing_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.AddScreen}" Executed="AddScreen_Executed" CanExecute="Designing_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.DuplicateScreen}" Executed="DuplicateScreen_Executed" CanExecute="Designing_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.DeleteScreen}" Executed="DeleteScreen_Executed" CanExecute="DeleteScreen_CanExecute" />
@@ -132,6 +133,8 @@
                 <MenuItem Command="{x:Static local:EditorCommands.AddScreen}" InputGestureText="Ctrl+Shift+N" />
                 <MenuItem Command="{x:Static local:EditorCommands.DuplicateScreen}" />
                 <MenuItem Command="{x:Static local:EditorCommands.DeleteScreen}" />
+                <Separator />
+                <MenuItem Command="{x:Static local:EditorCommands.EditCode}" InputGestureText="F7" />
                 <Separator />
                 <MenuItem Command="{x:Static local:EditorCommands.MoveScreenEarlier}" />
                 <MenuItem Command="{x:Static local:EditorCommands.MoveScreenLater}" />

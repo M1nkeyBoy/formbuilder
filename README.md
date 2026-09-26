@@ -47,6 +47,9 @@ choices are recorded in `docs/decisions.md`.
   controls that share a name share the value. A Button's Command field names a view model
   method, such as Save, that its click runs; you write what it does in OnSave. Its Enabled
   when field names an on-or-off property, such as CanSave, that enables it.
+- **Code.** Screen > Code (F7) edits the screen's view model code, such as what OnSave
+  does, with a list of the hooks you can write. It is saved in the project and every export
+  writes it into the view model.
 - **Light and dark themes.** Project > Theme chooses Light, Dark, or Follow Windows or Browser
   for the whole project. The canvas and Preview draw in it, and every export uses its
   target's own theming (WPF's Fluent theme, Windows Forms' colour mode, WinUI's and MAUI's

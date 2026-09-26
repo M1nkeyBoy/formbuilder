@@ -26,15 +26,16 @@ A complete example is in [`samples/customer-form.uibproj`](samples/customer-form
 | 14 | Adds `binding` to controls with a value. | None: older controls are not bound. |
 | 15 | Adds `command` to Buttons. | None: older buttons run no command. |
 | 16 | Adds `enabledBinding` to Buttons. | None: older buttons are always enabled. |
+| 17 | Adds `code` to screens. | None: older screens have no code. |
 
-The builder reads versions 1 to 16 and always saves version 16. An older builder rejects a
+The builder reads versions 1 to 17 and always saves version 17. An older builder rejects a
 newer file with a clear message instead of silently dropping what it does not know.
 
-## Schema version 16
+## Schema version 17
 
 ```json
 {
-  "schemaVersion": 16,
+  "schemaVersion": 17,
   "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971",
   "name": "Customer form",
   "screens": [{
@@ -64,7 +65,7 @@ newer file with a clear message instead of silently dropping what it does not kn
 
 | Field | Type | Notes |
 |---|---|---|
-| `schemaVersion` | integer | Required. `16` when saved by this builder; `1` to `15` are still read. |
+| `schemaVersion` | integer | Required. `17` when saved by this builder; `1` to `16` are still read. |
 | `projectId` | GUID string | Required. Stable for the life of the project. |
 | `name` | string | Written as the file name (without extension) on save. |
 | `theme` | string | `"Light"` (the default, not written), `"Dark"`, or `"System"` to follow the computer's or browser's setting. See each output's Theme section. |
@@ -78,6 +79,7 @@ newer file with a clear message instead of silently dropping what it does not kn
 | `name` | string | `"Main"` | Letter or underscore first, then letters, digits or underscores. Unique within the project, ignoring case. It names the screen's generated window (`SettingsWindow`, `SettingsForm`). |
 | `width`, `height` | integer | 800, 600 | Design size in DIPs; must be positive. |
 | `gridSize` | integer | 10 | Grid spacing in DIPs; must be positive. |
+| `code` | string | none | C# members of the screen's view model, written in the builder (Screen > Code); lines separated by `\n`. Omitted when there is none. |
 | `controls` | array | empty | Draw order: later controls are drawn on top. |
 | `tabOrder` | array of control IDs | omitted | The order Tab visits the controls that take input (Button, TextBox, PasswordBox, CheckBox, RadioButton, ComboBox, ListBox, Slider, DatePicker, TabControl), each once. Controls it does not list follow in their usual order: `controls` order, with a container's controls in its place. Omitted when it would be that usual order anyway. |
 

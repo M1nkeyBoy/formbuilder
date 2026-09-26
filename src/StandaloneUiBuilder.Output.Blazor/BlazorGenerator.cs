@@ -153,6 +153,11 @@ public static class BlazorGenerator
             {
                 files.Add(new(PagePath(ViewModelCode.ClassName(document, screen), ".g.cs"), ViewModel(document, screen, rootNamespace), Regenerate: true));
             }
+
+            if (ViewModelCode.UserCode(document, screen, rootNamespace + PagesNamespaceSuffix) is { } userCode)
+            {
+                files.Add(new(PagePath(ViewModelCode.ClassName(document, screen), ".cs"), userCode, Regenerate: true));
+            }
         }
 
         files.AddRange(CodeNames.ImageFiles(document, folder: "wwwroot/"));

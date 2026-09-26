@@ -8,7 +8,7 @@ internal static class Unbound
     /// <summary>The document with every binding and command removed.</summary>
     public static ProjectDocument Of(ProjectDocument document) => document with
     {
-        Screens = document.Screens.ConvertAll(s => s with { Controls = s.Controls.ConvertAll(Strip) }),
+        Screens = document.Screens.ConvertAll(s => s with { Code = null, Controls = s.Controls.ConvertAll(Strip) }),
     };
 
     private static ControlDocument Strip(ControlDocument control) => control with

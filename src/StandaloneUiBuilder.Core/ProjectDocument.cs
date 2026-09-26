@@ -11,10 +11,10 @@ public sealed record ProjectDocument
     /// <summary>
     /// The format version this builder writes. Older versions (1: no anchors, 2: no containers,
     /// 3: no grid spans, 4: no sized grid rows and columns, 5: one screen, 6: the first seven
-    /// control types only, 7: no button actions, 8: no fonts or colours, 9: no images, 10: no tab controls, 11: no tab order, 12: no theme, 13: no data binding, 14: no commands, 15: no enabled bindings) are still
+    /// control types only, 7: no button actions, 8: no fonts or colours, 9: no images, 10: no tab controls, 11: no tab order, 12: no theme, 13: no data binding, 14: no commands, 15: no enabled bindings, 16: no screen code) are still
     /// read. See docs/project-format.md for the history.
     /// </summary>
-    public const int CurrentSchemaVersion = 16;
+    public const int CurrentSchemaVersion = 17;
 
     public const int OldestSupportedSchemaVersion = 1;
     public const string DefaultName = "Untitled";
@@ -77,6 +77,12 @@ public sealed record ScreenDocument
     public int Height { get; init; } = DefaultHeight;
 
     public int GridSize { get; init; } = DefaultGridSize;
+
+    /// <summary>
+    /// C# members of the screen's view model written in the builder, such as the command and
+    /// change hooks it implements; null for none. See <see cref="DataBindings.Hooks"/>.
+    /// </summary>
+    public string? Code { get; init; }
 
     /// <summary>Controls in draw order: later entries are drawn on top.</summary>
     public ImmutableList<ControlDocument> Controls { get; init; } = ImmutableList<ControlDocument>.Empty;

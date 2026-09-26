@@ -1302,6 +1302,15 @@ public partial class MainWindow : Window
         StatusText.Text = changed ? "Tab now goes top to bottom, left to right" : "Tab already goes top to bottom, left to right";
     }
 
+    private void EditCode_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        var screen = editor.Screen;
+        if (CodeWindow.Edit(this, screen, Output.ViewModelCode.ClassName(editor.Document, screen)) is { } code)
+        {
+            StatusText.Text = editor.SetScreenCode(code) ? $"Code of {screen.Name} changed" : "Code unchanged";
+        }
+    }
+
     private void SetTheme_Executed(object sender, ExecutedRoutedEventArgs e)
     {
         var theme = Enum.Parse<ProjectTheme>((string)e.Parameter);

@@ -758,6 +758,24 @@ public sealed partial class DesignEditor
         return copy;
     }
 
+    /// <summary>
+    /// Replaces the current screen's view model code (blank for none); one undo step. Returns
+    /// false if it is unchanged. Trailing spaces and blank lines are dropped.
+    /// </summary>
+    public bool SetScreenCode(string? code)
+    {
+        var lines = (code ?? "").Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n').Select(l => l.TrimEnd());
+        var tidy = string.Join("\n", lines).Trim('\n');
+        var value = tidy.Trim().Length == 0 ? null : tidy;
+        if (Screen.Code == value)
+        {
+            return false;
+        }
+
+        Commit(Document.WithScreen(Screen with { Code = value }));
+        return true;
+    }
+
     /// <summary>Chooses the project's theme; one undo step. Returns false if it was already chosen.</summary>
     public bool SetTheme(ProjectTheme theme)
     {

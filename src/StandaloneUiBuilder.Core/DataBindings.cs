@@ -16,6 +16,13 @@ public sealed record BoundProperty(string Name, BindingKind Kind, IReadOnlyList<
     public bool IsSet => Controls.Any(c => !ControlCatalog.Get(c.Type).ShowsBindingOnly);
 }
 
+/// <summary>A partial method of a screen's view model that the screen's code can implement.</summary>
+public sealed record ViewModelHook(string Name, string Description)
+{
+    /// <summary>An empty implementation to start from.</summary>
+    public string Stub => $"partial void {Name}()\n{{\n}}\n";
+}
+
 /// <summary>A command of a screen's view model: its name and the buttons that run it, in screen order.</summary>
 public sealed record BoundCommand(string Name, IReadOnlyList<ControlDocument> Buttons);
 
@@ -68,9 +75,25 @@ public static partial class DataBindings
             .Select(g => new BoundCommand(g.Key, g.ToList()))
             .ToList();
 
-    /// <summary>True if any control on the screen is bound or runs a command, so the screen has a view model.</summary>
+    /// <summary>True if any control on the screen is bound or runs a command, or the screen has code, so it has a view model.</summary>
     public static bool HasViewModel(ScreenDocument screen) =>
-        ControlTree.All(screen.Controls).Any(c => c.Properties.Binding is not null || c.Properties.Command is not null || c.Properties.EnabledBinding is not null);
+        !string.IsNullOrWhiteSpace(screen.Code)
+        || ControlTree.All(screen.Controls).Any(c => c.Properties.Binding is not null || c.Properties.Command is not null || c.Properties.EnabledBinding is not null);
+
+    /// <summary>
+    /// The partial methods of the screen's view model its code can implement: each command's
+    /// On… method, run when a button is clicked, and each property's On…Changed method, run
+    /// when its value changes.
+    /// </summary>
+    public static IReadOnlyList<ViewModelHook> Hooks(ScreenDocument screen) =>
+        [
+            .. Commands(screen).Select(c => new ViewModelHook($"On{c.Name}", $"Runs when {string.Join(" or ", c.Buttons.Select(b => b.Name))} is clicked.")),
+            .. Properties(screen).Select(p => new ViewModelHook($"On{p.Name}Changed", $"Runs when {p.Name} changes.")),
+        ];
+
+    /// <summary>True if the code implements the hook: a method of that name is declared in it.</summary>
+    public static bool Implements(string? code, ViewModelHook hook) =>
+        code is not null && Regex.IsMatch(code, $@"\bvoid\s+{hook.Name}\s*\(");
 
     /// <summary>Checks a proposed binding for a control; returns an error message or null.</summary>
     public static string? Validate(ScreenDocument screen, ControlDocument control, string name)

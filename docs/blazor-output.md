@@ -95,6 +95,14 @@ A Button's Enabled when field names an on-or-off property of the view model, suc
 `CanSave`: the button is enabled only while it is on. A CheckBox bound to the same name turns it
 on and off, or your code can set it; a property only buttons use starts on. The button gets `disabled="@(!ViewModel.CanSave)"`.
 
+The screen's code, written in the builder (Screen > Code, F7), is exported as
+`{Screen}ViewModel.cs`, another part of the view model class, and rewritten on every export:
+edit it in the builder. Using directives at its start go above the namespace. The export
+stops, and writes nothing, if a file it would rewrite was not written by the builder, such as
+a view model part written by hand before the screen had code; move that code into the builder.
+The code is shared by every target, so where types differ (a number is `int` in WinForms and
+Blazor, `double` elsewhere) write code that suits both, such as `Level = 5;`.
+
 ## Tab order
 
 When the screen has a tab order of its own, each element Tab visits gets `tabindex` with its

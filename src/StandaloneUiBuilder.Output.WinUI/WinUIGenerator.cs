@@ -124,6 +124,11 @@ public static class WinUIGenerator
             {
                 files.Add(new(ViewModelCode.FileName(document, screen), ViewModel(document, screen, rootNamespace), Regenerate: true));
             }
+
+            if (ViewModelCode.UserCode(document, screen, rootNamespace) is { } userCode)
+            {
+                files.Add(new(ViewModelCode.CodeFileName(document, screen), userCode, Regenerate: true));
+            }
         }
 
         files.AddRange(CodeNames.ImageFiles(document));

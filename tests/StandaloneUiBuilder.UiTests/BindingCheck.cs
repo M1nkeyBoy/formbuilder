@@ -6,14 +6,13 @@ namespace StandaloneUiBuilder.UiTests;
 /// <summary>Checks a running layout demo's Settings screen, whose slider and progress bar are bound to the same value.</summary>
 internal static class BindingCheck
 {
-    /// <summary>True if the screen's Save button runs the Save command, as the layout demo's does.</summary>
+    /// <summary>
+    /// True if the screen's Save button runs the Save command and the screen's code implements
+    /// it by setting Server to "saved", as the layout demo's does.
+    /// </summary>
     public static bool HasSaveCommand(ScreenDocument screen) =>
-        ControlTree.All(screen.Controls).Any(c => c.Name == "SaveSettingsButton" && c.Properties.Command == "Save");
-
-    /// <summary>Implements the Save command as a developer would, in their own part of the view model.</summary>
-    public static void ImplementSaveCommand(string folder, string rootNamespace) => File.WriteAllText(
-        Path.Combine(folder, "SettingsViewModel.cs"),
-        $"namespace {rootNamespace};\n\npublic partial class SettingsViewModel\n{{\n    partial void OnSave() => Server = \"saved\";\n}}\n");
+        ControlTree.All(screen.Controls).Any(c => c.Name == "SaveSettingsButton" && c.Properties.Command == "Save")
+        && screen.Code?.Contains("OnSave() => Server = \"saved\";", StringComparison.Ordinal) == true;
 
     /// <summary>Clicking Save runs the command, whose change to Server shows in the bound text box.</summary>
     public static void AssertSaveRunsTheCommand(AutomationElement window)

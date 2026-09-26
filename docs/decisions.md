@@ -669,3 +669,23 @@ Choices made during the prototype slices that affect later work.
   so `IsEnabled` goes through a generated `IsTrue` function in the `x:Bind`.
 - **Checked by** unit tests, the import, and the running apps: the browser, WinForms, WinUI
   and MAUI tests clear the check box, see Save disabled, and check it again.
+
+## Slice 35 — Code in the builder
+
+- **The view model's code lives in the project** (`code` on each screen, format version 17):
+  what OnSave does, what happens when a value changes, and any members of the developer's
+  own. Everything about a screen is then in one file, and one export of the project gives
+  every target the same behaviour. It is C# for the view model only; window code-behind
+  stays in the exported project's own files, where hooks are implemented as before.
+- **A plain code window, not an IDE.** Screen > Code (F7) shows the code in a monospaced
+  editor, what the view model offers (its properties and commands), and the hooks it can
+  implement, ticked when written; double-clicking one starts it. Errors show when the
+  exported project is built, as for any code; a compiler in the editor, syntax colouring
+  and completion are left for later (they would need Roslyn and an editor control).
+- **Written as a builder-owned file**, `{Screen}ViewModel.cs`, rewritten on every export like
+  the other generated files. A rewritten file that the builder did not write, such as a
+  hand-written part from before, stops the export before anything is written, so no code is
+  ever lost. Project files now also write text as it reads (`=>`, quotes) rather than with
+  JSON's HTML-safe escapes.
+- **Checked by** unit tests, a UI test of the window, and the running apps: the layout demo's
+  Settings code implements OnSave, which the browser and WinForms tests run by clicking Save.
