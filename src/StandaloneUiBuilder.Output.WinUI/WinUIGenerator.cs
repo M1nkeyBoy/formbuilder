@@ -132,6 +132,8 @@ public static class WinUIGenerator
 
     public static string WindowXaml(ProjectDocument document, ScreenDocument screen, string rootNamespace)
     {
+        // Text on the design's own backgrounds stays readable in a dark theme.
+        screen = ThemeContrast.Apply(document.Theme, screen);
         var className = ClassName(document, screen);
         var xaml = new StringBuilder();
         xaml.AppendLine($"<!-- {ProjectExporter.GeneratedMarker} from \"{Comment(document.Name)}\". This file is replaced on every export;");
@@ -147,7 +149,9 @@ public static class WinUIGenerator
         var size = resizable
             ? $"MinWidth=\"{Number(screen.Width)}\" MinHeight=\"{Number(screen.Height)}\""
             : $"Width=\"{Number(screen.Width)}\" Height=\"{Number(screen.Height)}\" HorizontalAlignment=\"Left\" VerticalAlignment=\"Top\"";
-        xaml.AppendLine($"    <Grid {size} Background=\"{{ThemeResource ApplicationPageBackgroundThemeBrush}}\">");
+        // Light and Dark fix the window's theme; System leaves it following Windows.
+        var theme = document.Theme == ProjectTheme.System ? "" : $" RequestedTheme=\"{document.Theme}\"";
+        xaml.AppendLine($"    <Grid {size}{theme} Background=\"{{ThemeResource ApplicationPageBackgroundThemeBrush}}\">");
         foreach (var control in screen.Controls)
         {
             AppendElement(xaml, screen, control, RootLayout(screen, control), depth: 2);

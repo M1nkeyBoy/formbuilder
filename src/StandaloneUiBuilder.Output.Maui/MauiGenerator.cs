@@ -140,6 +140,8 @@ public static class MauiGenerator
 
     public static string PageXaml(ProjectDocument document, ScreenDocument screen, string rootNamespace)
     {
+        // Text on the design's own backgrounds stays readable in a dark theme.
+        screen = ThemeContrast.Apply(document.Theme, screen);
         var className = ClassName(document, screen);
         var title = screen.Id == document.MainScreen.Id ? document.Name : screen.Name;
         var xaml = new StringBuilder();
@@ -379,7 +381,7 @@ public static class MauiGenerator
         var (left, top, right, bottom) = ContainerLayout.GroupBoxInset;
         xaml.AppendLine($"{indent}<Grid x:Name=\"{group.Name}\" {string.Join(" ", layout)}>");
         var fill = properties.Background is { } background ? $" BackgroundColor=\"{background}\"" : "";
-        xaml.AppendLine($"{indent}    <Border Margin=\"0,8,0,0\" Stroke=\"#D5DFE5\" StrokeThickness=\"1\" StrokeShape=\"RoundRectangle 4\"{fill} />");
+        xaml.AppendLine($"{indent}    <Border Margin=\"0,8,0,0\" Stroke=\"{ThemeBinding(LineColor)}\" StrokeThickness=\"1\" StrokeShape=\"RoundRectangle 4\"{fill} />");
         var titleStyle = string.Concat(StyleAttributes(group, background: false).Select(a => " " + a));
         xaml.AppendLine($"{indent}    <Label Text=\"{Attribute(properties.Text ?? "")}\" Margin=\"6,0,0,0\" Padding=\"3,0\" HorizontalOptions=\"Start\" VerticalOptions=\"Start\" BackgroundColor=\"{{AppThemeBinding Light=White, Dark=Black}}\"{titleStyle} />");
         var stack = properties.Orientation == StackOrientation.Horizontal ? "HorizontalStackLayout" : "VerticalStackLayout";
@@ -399,9 +401,12 @@ public static class MauiGenerator
         xaml.AppendLine($"{indent}</Grid>");
     }
 
-    /// <summary>The colours of a chosen tab and of the others.</summary>
-    private const string SelectedTabColor = "#FFFFFF";
-    private const string TabColor = "#F0F0F0";
+    /// <summary>The colours of a chosen tab, of the others, and of frames, in the light and dark themes.</summary>
+    private static readonly (string Light, string Dark) SelectedTabColor = ("#FFFFFF", "#2B2B2B");
+    private static readonly (string Light, string Dark) TabColor = ("#F0F0F0", "#1C1C1C");
+    private static readonly (string Light, string Dark) LineColor = ("#D5DFE5", "#4A4A4A");
+
+    private static string ThemeBinding((string Light, string Dark) color) => $"{{AppThemeBinding Light={color.Light}, Dark={color.Dark}}}";
 
     /// <summary>
     /// A TabControl, which MAUI does not have within a page: a frame under a row of buttons,
@@ -415,14 +420,14 @@ public static class MauiGenerator
         var shown = ContainerLayout.ShownTab(tabs);
         var (left, top, right, bottom) = ContainerLayout.TabControlInset;
         xaml.AppendLine($"{indent}<Grid x:Name=\"{tabs.Name}\" {string.Join(" ", layout)}>");
-        xaml.AppendLine($"{indent}    <Border Margin=\"0,28,0,0\" Stroke=\"#D5DFE5\" StrokeThickness=\"1\" StrokeShape=\"RoundRectangle 4\" />");
+        xaml.AppendLine($"{indent}    <Border Margin=\"0,28,0,0\" Stroke=\"{ThemeBinding(LineColor)}\" StrokeThickness=\"1\" StrokeShape=\"RoundRectangle 4\" />");
         if (pages.Count > 0)
         {
             xaml.AppendLine($"{indent}    <HorizontalStackLayout Spacing=\"2\" VerticalOptions=\"Start\" HeightRequest=\"28\">");
             for (var i = 0; i < pages.Count; i++)
             {
-                var color = i == shown ? SelectedTabColor : TabColor;
-                xaml.AppendLine($"{indent}        <Button Text=\"{Attribute(pages[i].Properties.Text ?? "")}\" HeightRequest=\"28\" MinimumHeightRequest=\"0\" MinimumWidthRequest=\"0\" Padding=\"10,0\" CornerRadius=\"3\" BorderColor=\"#D5DFE5\" BorderWidth=\"1\" TextColor=\"Black\" BackgroundColor=\"{color}\" Clicked=\"{HandlerName(tabs)}\" />");
+                var color = ThemeBinding(i == shown ? SelectedTabColor : TabColor);
+                xaml.AppendLine($"{indent}        <Button Text=\"{Attribute(pages[i].Properties.Text ?? "")}\" HeightRequest=\"28\" MinimumHeightRequest=\"0\" MinimumWidthRequest=\"0\" Padding=\"10,0\" CornerRadius=\"3\" BorderColor=\"{ThemeBinding(LineColor)}\" BorderWidth=\"1\" TextColor=\"{{AppThemeBinding Light=Black, Dark=White}}\" BackgroundColor=\"{color}\" Clicked=\"{HandlerName(tabs)}\" />");
             }
 
             xaml.AppendLine($"{indent}    </HorizontalStackLayout>");
@@ -521,7 +526,8 @@ public static class MauiGenerator
                 code.AppendLine("        var index = tabs.Children.IndexOf((IView)sender!);");
                 code.AppendLine("        for (var i = 0; i < tabs.Children.Count; i++)");
                 code.AppendLine("        {");
-                code.AppendLine($"            ((Button)tabs.Children[i]).BackgroundColor = Color.FromArgb(i == index ? \"{SelectedTabColor}\" : \"{TabColor}\");");
+                code.AppendLine($"            var (light, dark) = i == index ? (\"{SelectedTabColor.Light}\", \"{SelectedTabColor.Dark}\") : (\"{TabColor.Light}\", \"{TabColor.Dark}\");");
+                code.AppendLine("            ((Button)tabs.Children[i]).SetAppThemeColor(VisualElement.BackgroundColorProperty, Color.FromArgb(light), Color.FromArgb(dark));");
                 code.AppendLine("        }");
                 code.AppendLine();
                 var pages = control.Children ?? [];
@@ -608,17 +614,24 @@ public static class MauiGenerator
 
             public partial class App
             {
-                /// <summary>The app's window, showing the first screen at its design size.</summary>
-                private static Window CreateMainWindow() => new(new {{MainPageClassName}}())
+                /// <summary>The app's window, showing the first screen at its design size, in the project's theme.</summary>
+                private static Window CreateMainWindow()
                 {
-                    Title = {{Literal(document.Name)}},
-                    Width = {{Number(screen.Width + WindowFrameWidth)}},
-                    Height = {{Number(screen.Height + WindowFrameHeight)}},
-                };
+                    Current!.UserAppTheme = AppTheme.{{AppTheme(document.Theme)}};
+                    return new(new {{MainPageClassName}}())
+                    {
+                        Title = {{Literal(document.Name)}},
+                        Width = {{Number(screen.Width + WindowFrameWidth)}},
+                        Height = {{Number(screen.Height + WindowFrameHeight)}},
+                    };
+                }
             }
 
             """;
     }
+
+    /// <summary>MAUI's name for a theme; Unspecified follows the device.</summary>
+    private static string AppTheme(ProjectTheme theme) => theme == ProjectTheme.System ? "Unspecified" : theme.ToString();
 
     /// <summary>What a Windows window adds around its page: borders and the title bar.</summary>
     public const int WindowFrameWidth = 16;

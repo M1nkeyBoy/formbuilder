@@ -50,6 +50,14 @@ some control follows the right or bottom edge). The differences come from WinUI 
 Hooks work as in the WPF output: implement `partial void OnSaveButtonClick(RoutedEventArgs e)`
 in the window's `.xaml.cs` file.
 
+## Theme
+
+A Light or Dark project sets `RequestedTheme` on each window's content; a System project
+leaves it out, so windows follow Windows' app mode.
+Text drawn on a background the design sets (a control's own, or the container behind a label,
+check box, radio button or group title) gets black or white, whichever stands out, unless it
+has a text colour of its own, so it stays readable in a dark theme.
+
 ## Tab order
 
 When the screen has a tab order of its own, each control Tab visits gets its place in it as

@@ -61,6 +61,7 @@
         <CommandBinding Command="{x:Static local:EditorCommands.SetTabOrder}" Executed="SetTabOrder_Executed" CanExecute="Designing_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.TabOrderByPosition}" Executed="TabOrderByPosition_Executed" CanExecute="Designing_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.ResetTabOrder}" Executed="ResetTabOrder_Executed" CanExecute="ResetTabOrder_CanExecute" />
+        <CommandBinding Command="{x:Static local:EditorCommands.SetTheme}" Executed="SetTheme_Executed" CanExecute="Designing_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.AddScreen}" Executed="AddScreen_Executed" CanExecute="Designing_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.DuplicateScreen}" Executed="DuplicateScreen_Executed" CanExecute="Designing_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.DeleteScreen}" Executed="DeleteScreen_Executed" CanExecute="DeleteScreen_CanExecute" />
@@ -137,6 +138,13 @@
                 <Separator />
                 <MenuItem Command="{x:Static local:EditorCommands.PreviousScreen}" InputGestureText="Ctrl+PgUp" />
                 <MenuItem Command="{x:Static local:EditorCommands.NextScreen}" InputGestureText="Ctrl+PgDn" />
+            </MenuItem>
+            <MenuItem Header="_Project">
+                <MenuItem Header="_Theme">
+                    <MenuItem x:Name="LightThemeMenuItem" Header="_Light" Command="{x:Static local:EditorCommands.SetTheme}" CommandParameter="Light" />
+                    <MenuItem x:Name="DarkThemeMenuItem" Header="_Dark" Command="{x:Static local:EditorCommands.SetTheme}" CommandParameter="Dark" />
+                    <MenuItem x:Name="SystemThemeMenuItem" Header="Follow _Windows or Browser" Command="{x:Static local:EditorCommands.SetTheme}" CommandParameter="System" />
+                </MenuItem>
             </MenuItem>
             <MenuItem Header="_View">
                 <MenuItem x:Name="DesignMenuItem" Header="_Design" IsCheckable="True" IsChecked="True" Click="DesignMenuItem_Click" />

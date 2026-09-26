@@ -62,6 +62,15 @@ other screen is named after itself, with its name in lower case as its address.
 | DatePicker | `<input type="date">` |
 | Image | `<img>` with `object-fit: contain` (or `fill`), its picture in `wwwroot/Assets/<screen>/` |
 
+## Theme
+
+`uib.css` gives the page's colours as CSS variables, with `color-scheme` so the browser
+draws its own inputs and buttons to match. A Dark project is dark; a System project is dark
+only when the browser asks for it (`prefers-color-scheme: dark`).
+Text drawn on a background the design sets (a control's own, or the container behind a label,
+check box, radio button or group title) gets black or white, whichever stands out, unless it
+has a text colour of its own, so it stays readable in a dark theme.
+
 ## Tab order
 
 When the screen has a tab order of its own, each element Tab visits gets `tabindex` with its

@@ -156,6 +156,8 @@ public static class WinFormsGenerator
 
     public static string DesignerCode(ProjectDocument document, ScreenDocument screen, string rootNamespace)
     {
+        // Text on the design's own backgrounds stays readable in a dark theme.
+        screen = ThemeContrast.Apply(document.Theme, screen);
         var className = ClassName(document, screen);
         var controls = screen.Controls;
         var all = ControlTree.All(controls).ToList();
@@ -185,6 +187,19 @@ public static class WinFormsGenerator
         code.AppendLine("        base.Dispose(disposing);");
         code.AppendLine("    }");
         code.AppendLine();
+        // The colour mode is set once, before the first form's window exists.
+        if (document.Theme != ProjectTheme.Light && screen.Id == document.MainScreen.Id)
+        {
+            code.AppendLine($"    /// <summary>The project's theme: {(document.Theme == ProjectTheme.Dark ? "dark" : "light or dark, following Windows")}.</summary>");
+            code.AppendLine($"    static {className}()");
+            code.AppendLine("    {");
+            code.AppendLine("#pragma warning disable WFO5001 // Dark mode is experimental in Windows Forms.");
+            code.AppendLine($"        System.Windows.Forms.Application.SetColorMode(System.Windows.Forms.SystemColorMode.{document.Theme});");
+            code.AppendLine("#pragma warning restore WFO5001");
+            code.AppendLine("    }");
+            code.AppendLine();
+        }
+
         code.AppendLine("    #region Windows Form Designer generated code");
         code.AppendLine();
         code.AppendLine("    private void InitializeComponent()");

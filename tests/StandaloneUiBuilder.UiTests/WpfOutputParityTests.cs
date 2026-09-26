@@ -56,6 +56,7 @@ public sealed partial class WpfOutputParityTests
         var parent = Environment.GetEnvironmentVariable("UIB_EXPORT_DIR") ?? Directory.CreateTempSubdirectory("uib-export-").FullName;
 
         WpfExporter.Export(ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", "layout-demo.uibproj")), Path.Combine(parent, "wpf"));
+        WpfExporter.Export(DarkLayoutDemo(), Path.Combine(parent, "wpf"));
         var result = WpfExporter.Export(Sample(), Path.Combine(parent, "wpf"));
 
         // Implement a hook the way a developer would, so the CI build proves the wiring compiles.
@@ -102,6 +103,17 @@ public sealed partial class WpfOutputParityTests
         ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", "layout-demo.uibproj"))));
 
     /// <summary>
+    /// In the dark theme, WPF's Fluent styles draw the controls, in the window and the Preview
+    /// alike, and every control keeps the design's place and size. (Fonts and padding are
+    /// Fluent's, so only the layout is compared.)
+    /// </summary>
+    [WindowsFact]
+    public void DarkLayoutDemoLaysOutTheSameEverywhere() => RunOnStaThread(() => AssertParity(DarkLayoutDemo()));
+
+    private static ProjectDocument DarkLayoutDemo() =>
+        ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", "layout-demo.uibproj")) with { Name = "Layout demo dark", Theme = ProjectTheme.Dark };
+
+    /// <summary>
     /// Compares, control by control and including controls inside containers: the generated
     /// XAML as WPF lays it out; the designer's Preview as WPF lays it out; and the Core layout
     /// rules. At the design size and, for a resizable screen, at a larger size. Every screen.
@@ -130,7 +142,7 @@ public sealed partial class WpfOutputParityTests
         }
 
         var preview = new DesignSurface();
-        preview.Render(screen, [], isPreview: true);
+        preview.Render(screen, [], isPreview: true, theme: document.Theme);
         _ = new Window { Content = preview };
 
         var sizes = new List<(int Width, int Height)> { (screen.Width, screen.Height) };
@@ -159,6 +171,11 @@ public sealed partial class WpfOutputParityTests
                 Assert.True(Near(box, inWindow), $"{what}: generated window has {inWindow}, expected {box}");
                 Assert.True(Near(box, inPreview), $"{what}: preview has {inPreview}, expected {box}");
             }
+        }
+
+        if (document.Theme != ProjectTheme.Light)
+        {
+            return;
         }
 
         // Control-level appearance: the same padding, alignment, text and values as the designer.

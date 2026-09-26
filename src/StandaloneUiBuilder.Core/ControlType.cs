@@ -55,6 +55,19 @@ public enum ControlType
     TabPage,
 }
 
+/// <summary>The colours a project's generated screens use for their standard controls.</summary>
+public enum ProjectTheme
+{
+    /// <summary>Light: each target's usual look.</summary>
+    Light,
+
+    /// <summary>Dark backgrounds with light text.</summary>
+    Dark,
+
+    /// <summary>Light or dark, following the setting of the computer or browser it runs on.</summary>
+    System,
+}
+
 /// <summary>How an Image fills its box.</summary>
 public enum ImageStretch
 {

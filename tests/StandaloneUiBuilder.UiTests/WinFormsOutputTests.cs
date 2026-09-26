@@ -23,6 +23,7 @@ public sealed class WinFormsOutputTests
         WinFormsExporter.Export(ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", "layout-demo.uibproj")), Path.Combine(parent, "winforms"));
         var result = WinFormsExporter.Export(Sample(), Path.Combine(parent, "winforms"));
         ImplementSubmitHook(result.ProjectFolder);
+        WinFormsExporter.Export(DarkLayoutDemo(), Path.Combine(parent, "winforms"));
 
         Assert.True(File.Exists(Path.Combine(result.ProjectFolder, "MainForm.Designer.cs")));
     }
@@ -37,6 +38,13 @@ public sealed class WinFormsOutputTests
     [UiWalkthroughFact]
     public void GeneratedFormLaysOutContainers() => AssertGeneratedForm(
         ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", "layout-demo.uibproj")), "LayoutDemo", checkSubmitHook: false);
+
+    /// <summary>In the dark theme the controls keep their places.</summary>
+    [UiWalkthroughFact]
+    public void DarkFormLaysOutContainers() => AssertGeneratedForm(DarkLayoutDemo(), "LayoutDemoDark", checkSubmitHook: false);
+
+    private static ProjectDocument DarkLayoutDemo() =>
+        ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", "layout-demo.uibproj")) with { Name = "Layout demo dark", Theme = ProjectTheme.Dark };
 
     private static void AssertGeneratedForm(ProjectDocument document, string projectName, bool checkSubmitHook)
     {

@@ -136,7 +136,10 @@ public partial class MainWindow : Window
 
         RefreshScreenTabs();
         selection.RemoveAll(id => editor.FindControl(id) is null);
-        Surface.Render(editor.Screen, selection, isPreview, PreviewButton_Clicked);
+        Surface.Render(editor.Screen, selection, isPreview, PreviewButton_Clicked, editor.Document.Theme);
+        LightThemeMenuItem.IsChecked = editor.Document.Theme == ProjectTheme.Light;
+        DarkThemeMenuItem.IsChecked = editor.Document.Theme == ProjectTheme.Dark;
+        SystemThemeMenuItem.IsChecked = editor.Document.Theme == ProjectTheme.System;
         if (isPreview)
         {
             tabOrderNext = null;
@@ -1287,6 +1290,19 @@ public partial class MainWindow : Window
     {
         var changed = editor.SetTabOrderByPosition();
         StatusText.Text = changed ? "Tab now goes top to bottom, left to right" : "Tab already goes top to bottom, left to right";
+    }
+
+    private void SetTheme_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        var theme = Enum.Parse<ProjectTheme>((string)e.Parameter);
+        StatusText.Text = editor.SetTheme(theme)
+            ? theme switch
+            {
+                ProjectTheme.Dark => "Theme: dark",
+                ProjectTheme.System => "Theme: follows Windows or the browser",
+                _ => "Theme: light",
+            }
+            : "That theme is already chosen";
     }
 
     private void ResetTabOrder_CanExecute(object sender, CanExecuteRoutedEventArgs e) =>

@@ -11,10 +11,10 @@ public sealed record ProjectDocument
     /// <summary>
     /// The format version this builder writes. Older versions (1: no anchors, 2: no containers,
     /// 3: no grid spans, 4: no sized grid rows and columns, 5: one screen, 6: the first seven
-    /// control types only, 7: no button actions, 8: no fonts or colours, 9: no images, 10: no tab controls, 11: no tab order) are still
+    /// control types only, 7: no button actions, 8: no fonts or colours, 9: no images, 10: no tab controls, 11: no tab order, 12: no theme) are still
     /// read. See docs/project-format.md for the history.
     /// </summary>
-    public const int CurrentSchemaVersion = 12;
+    public const int CurrentSchemaVersion = 13;
 
     public const int OldestSupportedSchemaVersion = 1;
     public const string DefaultName = "Untitled";
@@ -24,6 +24,10 @@ public sealed record ProjectDocument
     public required Guid ProjectId { get; init; }
 
     public string Name { get; init; } = DefaultName;
+
+    /// <summary>Light or dark colours for every screen's standard controls; not stored when Light.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public ProjectTheme Theme { get; init; }
 
     /// <summary>The project's screens, in order. There is always at least one.</summary>
     public required ImmutableList<ScreenDocument> Screens { get; init; }

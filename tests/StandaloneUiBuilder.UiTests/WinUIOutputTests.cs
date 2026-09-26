@@ -22,6 +22,7 @@ public sealed class WinUIOutputTests
         var parent = Path.Combine(Environment.GetEnvironmentVariable("UIB_EXPORT_DIR") ?? Directory.CreateTempSubdirectory("uib-export-").FullName, "winui");
         WinUIExporter.Export(Sample("customer-form"), parent);
         var result = WinUIExporter.Export(Sample("layout-demo"), parent);
+        WinUIExporter.Export(Sample("layout-demo") with { Name = "Layout demo dark", Theme = ProjectTheme.Dark }, parent);
 
         Assert.True(File.Exists(Path.Combine(result.ProjectFolder, "MainWindow.xaml")));
     }

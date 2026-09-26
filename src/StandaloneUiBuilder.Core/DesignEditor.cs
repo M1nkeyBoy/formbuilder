@@ -707,6 +707,18 @@ public sealed partial class DesignEditor
         return copy;
     }
 
+    /// <summary>Chooses the project's theme; one undo step. Returns false if it was already chosen.</summary>
+    public bool SetTheme(ProjectTheme theme)
+    {
+        if (Document.Theme == theme)
+        {
+            return false;
+        }
+
+        Commit(Document with { Theme = theme });
+        return true;
+    }
+
     /// <summary>Renames the current screen. The name must be an identifier not used by another screen.</summary>
     public string? RenameScreen(string name)
     {

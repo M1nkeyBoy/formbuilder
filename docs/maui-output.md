@@ -48,6 +48,15 @@ screen's page as a modal page, which fills the window, so its anchored controls 
 stretch to the window's size; one that closes its screen pops it (or closes the window if it
 is the first screen).
 
+## Theme
+
+The generated `App.g.cs` sets `UserAppTheme` to `Light` or `Dark`, or to `Unspecified` for
+System, which follows the device. The drawn TabControls and group frames use
+`AppThemeBinding` colours, so they suit either.
+Text drawn on a background the design sets (a control's own, or the container behind a label,
+check box, radio button or group title) gets black or white, whichever stands out, unless it
+has a text colour of its own, so it stays readable in a dark theme.
+
 ## Tab order
 
 The screen's tab order is not exported: .NET 10's MAUI no longer has `TabIndex`, so Tab

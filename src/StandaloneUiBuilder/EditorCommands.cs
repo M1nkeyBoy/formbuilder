@@ -67,6 +67,12 @@ public static class EditorCommands
         nameof(TabOrderByPosition),
         typeof(EditorCommands));
 
+    /// <summary>Chooses the project's theme; the parameter is Light, Dark or System.</summary>
+    public static RoutedUICommand SetTheme { get; } = new(
+        "Theme",
+        nameof(SetTheme),
+        typeof(EditorCommands));
+
     public static RoutedUICommand ResetTabOrder { get; } = new(
         "R_eset Tab Order",
         nameof(ResetTabOrder),

@@ -45,6 +45,12 @@ internal sealed class DesignSurface : Grid
 
     private static readonly Brush AnchorBrush = CreateFrozenBrush(Color.FromRgb(0x1E, 0x6F, 0xE0));
 
+    // A dark window's background in WPF's Fluent theme.
+    private static readonly Brush DarkBackground = CreateFrozenBrush(Color.FromRgb(0x20, 0x20, 0x20));
+
+    // The theme dictionary the controls are drawn with; null for WPF's usual look.
+    private Uri? shownThemeSource;
+
     private readonly GridOverlay gridOverlay = new();
     private readonly Canvas controlsLayer = new() { ClipToBounds = true };
 
@@ -233,9 +239,13 @@ internal sealed class DesignSurface : Grid
     /// Rebuilds the surface from the document. In Preview the grid and selection are hidden
     /// and the controls respond to input; their state is thrown away on the next render.
     /// </summary>
-    public void Render(ScreenDocument screen, IReadOnlyCollection<Guid> selection, bool isPreview = false, Action<ControlDocument>? buttonClicked = null)
+    public void Render(ScreenDocument screen, IReadOnlyCollection<Guid> selection, bool isPreview = false, Action<ControlDocument>? buttonClicked = null, ProjectTheme theme = ProjectTheme.Light)
     {
         CancelDrag();
+        ApplyTheme(theme);
+
+        // Drawn as the generated windows show it: text on the design's own backgrounds stays readable.
+        screen = ThemeContrast.Apply(theme, screen);
 
         this.screen = screen;
         this.isPreview = isPreview;
@@ -283,6 +293,43 @@ internal sealed class DesignSurface : Grid
         }
 
         SetSelection(selection);
+    }
+
+    /// <summary>
+    /// Draws the controls in the project's theme, as the generated WPF window does: the usual
+    /// look for Light, and WPF's Fluent styles in dark (or in the colours Windows is set to
+    /// use, for System).
+    /// </summary>
+    private void ApplyTheme(ProjectTheme theme)
+    {
+        var dark = theme == ProjectTheme.Dark || (theme == ProjectTheme.System && WindowsAppsUseDarkMode());
+        var source = theme == ProjectTheme.Light
+            ? null
+            : new Uri($"pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.{(dark ? "Dark" : "Light")}.xaml", UriKind.Absolute);
+        if (source == shownThemeSource)
+        {
+            return;
+        }
+
+        shownThemeSource = source;
+        foreach (var layer in new Panel[] { controlsLayer, previewLayer })
+        {
+            layer.Resources.MergedDictionaries.Clear();
+            if (source is not null)
+            {
+                layer.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = source });
+            }
+        }
+
+        Background = dark ? DarkBackground : Brushes.White;
+        gridOverlay.IsDark = dark;
+    }
+
+    /// <summary>Whether Windows is set to show apps in dark mode.</summary>
+    private static bool WindowsAppsUseDarkMode()
+    {
+        using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+        return key?.GetValue("AppsUseLightTheme") is int value && value == 0;
     }
 
     private static Grid CreatePreviewLayer()

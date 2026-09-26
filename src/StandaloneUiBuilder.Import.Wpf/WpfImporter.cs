@@ -124,6 +124,14 @@ public static partial class WpfImporter
         {
             Name = string.IsNullOrWhiteSpace(title) ? projectName : title,
             Screens = linked,
+
+            // The main window's Fluent theme, as the builder writes it; Light and None are the usual look.
+            Theme = (string?)parsed[0].Root.Attribute("ThemeMode") switch
+            {
+                "Dark" => ProjectTheme.Dark,
+                "System" => ProjectTheme.System,
+                _ => ProjectTheme.Light,
+            },
         };
 
         // Anything still invalid is reported rather than producing a project that will not open.

@@ -106,6 +106,16 @@ where the first of its controls comes, so its controls are visited together; an 
 goes into a container, out and back in again cannot be kept. Within a TabControl's host panel,
 the tabs come first and then the page.
 
+## Theme
+
+A Light project uses Windows Forms' usual colours. For Dark and System the main form's
+designer file gets a static constructor that calls `Application.SetColorMode` with
+`SystemColorMode.Dark` or `SystemColorMode.System` before the first window opens. Windows
+Forms marks dark mode as experimental (`WFO5001`), which the generated code acknowledges.
+Text drawn on a background the design sets (a control's own, or the container behind a label,
+check box, radio button or group title) gets black or white, whichever stands out, unless it
+has a text colour of its own, so it stays readable in a dark theme.
+
 ## Responding to controls
 
 As in WPF output, each control you can interact with has a hook: a partial method you can

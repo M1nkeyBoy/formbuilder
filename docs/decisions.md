@@ -583,3 +583,30 @@ Choices made during the prototype slices that affect later work.
   Settings screens, the Blazor page and the editor's Preview, and compare the focused
   controls with the design. Radio buttons are left out of that comparison, since some targets
   stop only at the chosen one of a group.
+
+## Slice 31 — Light and dark themes
+
+- **One setting for the project** (`theme`, format version 13): Light, Dark, or System to
+  follow the computer or browser. Screens of one application share a look, so it is not per
+  screen. Project > Theme chooses it; each change is one undo step. Light is not written to
+  the file, so earlier projects are unchanged.
+- **Each target's own theming**, rather than colours the builder picks for every control:
+  WPF's Fluent theme (`ThemeMode` on each window), Windows Forms' colour mode (set once from
+  the main form's static constructor, before any window exists), WinUI's `RequestedTheme`,
+  MAUI's `UserAppTheme`, and CSS variables with `color-scheme` in Blazor. Each is set in a
+  file the builder regenerates, so changing the theme and exporting again takes effect.
+  WinUI and MAUI Light output now asks for the light theme instead of following Windows.
+- **Light keeps WPF's usual look.** Only Fluent has a dark WPF theme, so Dark and System
+  windows use Fluent; Light stays with the classic controls every earlier export used.
+  Fluent's minimum sizes are reset on each control so the design's sizes stand.
+- **The canvas and Preview show the theme** by drawing the controls with the same Fluent
+  dictionaries the generated WPF window uses (for System, in the colours Windows is set to).
+- **Readable text on the design's own colours.** A background the design sets is kept in
+  every theme, so light text would disappear on a light panel. Text drawn on such a
+  background, with no colour of its own, gets black or white, whichever stands out; the
+  editor and every output apply the same rule (`ThemeContrast`).
+- **Checked by** unit tests of each output, a WPF parity test in the dark theme (layout
+  only, since Fluent's fonts and padding differ from the designer's classic controls), a
+  WinForms run of the dark layout demo, dark exports that CI builds, runs and photographs,
+  an editor test that switches the theme and back with undo, and a browser test of dark and
+  follow-the-browser pages.

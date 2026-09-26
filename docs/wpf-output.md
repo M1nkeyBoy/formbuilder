@@ -118,6 +118,16 @@ When the screen has a tab order of its own, each control Tab visits gets its pla
 and calendar button, the tabs) before moving on. Without a tab order, nothing is numbered and
 Tab follows the order of the XAML, which is the design's order.
 
+## Theme
+
+A Light project uses WPF's usual look. Dark and System projects use WPF's Fluent theme:
+each window gets `ThemeMode="Dark"` or `ThemeMode="System"` (the latter follows Windows'
+app mode), and every control gets `MinWidth="0" MinHeight="0"`, since Fluent's styles
+would otherwise make some controls larger than the design (a text box at least 32 high).
+Text drawn on a background the design sets (a control's own, or the container behind a label,
+check box, radio button or group title) gets black or white, whichever stands out, unless it
+has a text colour of its own, so it stays readable in a dark theme.
+
 ## Responding to controls
 
 Every control you can interact with is wired to one event, and each has a *hook*: a partial

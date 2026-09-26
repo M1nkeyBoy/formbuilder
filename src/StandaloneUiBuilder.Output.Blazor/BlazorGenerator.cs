@@ -140,7 +140,7 @@ public static class BlazorGenerator
             new("Components/_Imports.razor", ImportsRazor(rootNamespace), Regenerate: false),
             new("Components/Layout/MainLayout.razor", LayoutRazor(), Regenerate: false),
             new("wwwroot/app.css", AppCss(), Regenerate: false),
-            new("wwwroot/uib.css", BuilderCss(), Regenerate: true),
+            new("wwwroot/uib.css", BuilderCss(document.Theme), Regenerate: true),
         ];
 
         foreach (var screen in document.Screens)
@@ -160,6 +160,8 @@ public static class BlazorGenerator
 
     public static string PageRazor(ProjectDocument document, ScreenDocument screen)
     {
+        // Text on the design's own backgrounds stays readable in a dark theme.
+        screen = ThemeContrast.Apply(document.Theme, screen);
         var className = ClassName(document, screen);
         var markup = new StringBuilder();
         markup.AppendLine($"@page \"{Route(document, screen)}\"");
@@ -655,10 +657,16 @@ public static class BlazorGenerator
     /// The builder's styles. Controls use their exact designed boxes (border-box sizing), in the
     /// same font size the designer uses.
     /// </summary>
-    private static string BuilderCss() => $$"""
+    /// <summary>
+    /// The layout rules, with the theme's colours as variables: light, dark, or light unless the
+    /// browser asks for dark. color-scheme makes the browser draw its own controls to match.
+    /// </summary>
+    private static string BuilderCss(ProjectTheme theme) => $$"""
         /* {{ProjectExporter.GeneratedMarker}}. This file is replaced on every export; put your own
            styles in app.css. */
-        html, body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; font-size: 12px; }
+        :root { color-scheme: light; --uib-page: #fff; --uib-text: #000; --uib-line: #d5dfe5; --uib-tab: #f0f0f0; }
+        {{DarkCss(theme)}}
+        html, body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; font-size: 12px; background: var(--uib-page); color: var(--uib-text); }
         *, *::before, *::after { box-sizing: border-box; }
         .uib-screen { position: relative; overflow: hidden; }
         .uib-screen * { margin: 0; min-width: 0; min-height: 0; font: inherit; }
@@ -672,17 +680,26 @@ public static class BlazorGenerator
         .uib-grid { display: grid; overflow: hidden; }
         .uib-grid > * { width: 100%; height: 100%; }
         .uib-group { position: relative; }
-        .uib-frame { position: absolute; left: 0; right: 0; top: 8px; bottom: 0; border: 1px solid #d5dfe5; border-radius: 3px; }
-        .uib-title { position: absolute; left: 6px; top: 0; padding: 0 3px; line-height: 16px; background: #fff; white-space: nowrap; }
+        .uib-frame { position: absolute; left: 0; right: 0; top: 8px; bottom: 0; border: 1px solid var(--uib-line); border-radius: 3px; }
+        .uib-title { position: absolute; left: 6px; top: 0; padding: 0 3px; line-height: 16px; background: var(--uib-page); white-space: nowrap; }
         .uib-content { position: absolute; }
         .uib-content[hidden] { display: none; }
         .uib-tabs { position: relative; }
         .uib-tabstrip { position: absolute; left: 0; right: 0; top: 0; height: 28px; display: flex; gap: 2px; overflow: hidden; }
-        .uib-tab { flex: none; height: 28px; padding: 0 10px; border: 1px solid #d5dfe5; border-bottom: none; border-radius: 3px 3px 0 0; background: #f0f0f0; white-space: nowrap; cursor: pointer; }
-        .uib-tab-selected { background: #fff; }
-        .uib-tabframe { position: absolute; left: 0; right: 0; top: 28px; bottom: 0; border: 1px solid #d5dfe5; background: #fff; }
+        .uib-tab { flex: none; height: 28px; padding: 0 10px; border: 1px solid var(--uib-line); border-bottom: none; border-radius: 3px 3px 0 0; background: var(--uib-tab); white-space: nowrap; cursor: pointer; }
+        .uib-tab-selected { background: var(--uib-page); }
+        .uib-tabframe { position: absolute; left: 0; right: 0; top: 28px; bottom: 0; border: 1px solid var(--uib-line); background: var(--uib-page); }
 
         """;
+
+    private const string DarkColors = ":root { color-scheme: dark; --uib-page: #202020; --uib-text: #fff; --uib-line: #4a4a4a; --uib-tab: #2d2d2d; }";
+
+    private static string DarkCss(ProjectTheme theme) => theme switch
+    {
+        ProjectTheme.Dark => DarkColors,
+        ProjectTheme.System => $"@media (prefers-color-scheme: dark) {{ {DarkColors} }}",
+        _ => "",
+    };
 
     private static string Track(GridTrackSize size) =>
         size.IsProportional

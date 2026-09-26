@@ -133,6 +133,41 @@ public sealed class BlazorOutputTests
         Assert.Equal(expected, visited.Skip(start).Take(expected.Count));
     }
 
+    /// <summary>
+    /// A dark project's pages are dark; one that follows the browser is dark only when the
+    /// browser asks for it. Either way every control keeps its place.
+    /// </summary>
+    [WebFact]
+    public async Task ThemesColourThePage()
+    {
+        var sample = Sample("layout-demo");
+        var screen = sample.Screens[1];
+        var cases = new[]
+        {
+            (Theme: ProjectTheme.Dark, Scheme: ColorScheme.Light, Dark: true),
+            (Theme: ProjectTheme.System, Scheme: ColorScheme.Dark, Dark: true),
+            (Theme: ProjectTheme.System, Scheme: ColorScheme.Light, Dark: false),
+        };
+        foreach (var (theme, scheme, dark) in cases)
+        {
+            var document = sample with { Name = $"Layout demo {theme}", Theme = theme };
+            using var app = await GeneratedApp.StartAsync(document, BlazorExporter.Export);
+            await using var browser = await LaunchAsync();
+            var page = await browser.NewPageAsync(new() { ViewportSize = new() { Width = screen.Width, Height = screen.Height }, ColorScheme = scheme });
+            await page.GotoAsync(app.Url + "/settings");
+            await page.Locator("#ServerTextBox").WaitForAsync();
+
+            Assert.Equal(dark ? "rgb(32, 32, 32)" : "rgb(255, 255, 255)", await page.EvaluateAsync<string>("() => getComputedStyle(document.body).backgroundColor"));
+            Assert.Equal(dark ? "dark" : "light", await page.EvaluateAsync<string>("() => getComputedStyle(document.querySelector('#ServerTextBox')).colorScheme"));
+            if (dark)
+            {
+                await Screenshot(page, $"31-blazor-{theme}-{scheme}");
+            }
+
+            await AssertPlacedAsync(page, screen, screen.Width, screen.Height);
+        }
+    }
+
     private static async Task AssertLayout(ProjectDocument document)
     {
         using var app = await GeneratedApp.StartAsync(document, BlazorExporter.Export);
