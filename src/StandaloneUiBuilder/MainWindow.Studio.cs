@@ -7,6 +7,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 using StandaloneUiBuilder.Core;
 using StandaloneUiBuilder.Design;
+using StandaloneUiBuilder.Output;
 
 namespace StandaloneUiBuilder;
 
@@ -120,7 +121,9 @@ public partial class MainWindow
     private void RefreshLayers()
     {
         var items = ContainerLayout.Flatten(editor.Screen)
-            .Select(p => new LayerItem(p.Control.Id, p.Control.Name, p.Control.Type.ToString(), new Thickness(p.Depth * 14, 0, 0, 0)))
+            .Select(p => new LayerItem(p.Control.Id, p.Control.Name,
+                p.Control.Type == ControlType.Custom ? LibraryCode.NameOf(p.Control.Properties.LibraryType ?? "") : p.Control.Type.ToString(),
+                new Thickness(p.Depth * 14, 0, 0, 0)))
             .ToList();
         syncingLayers = true;
         try
