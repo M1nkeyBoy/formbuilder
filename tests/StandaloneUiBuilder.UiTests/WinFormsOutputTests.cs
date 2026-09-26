@@ -139,7 +139,9 @@ public sealed class WinFormsOutputTests
             // TableLayoutPanel rounds each percentage row and column down and gives the leftover
             // pixels to the last one (300 in three rows: 99, 99, 102), so inside a grid allow one
             // pixel per row or column; elsewhere allow one pixel.
-            var tolerance = 1;
+            // In dark mode Windows Forms draws a ProgressBar itself, and UI Automation reports it
+            // one pixel inside its bounds on every side.
+            var tolerance = control.Type == Core.ControlType.ProgressBar ? 2 : 1;
             for (var parentId = placed.ParentId; parentId is { } id;)
             {
                 var parent = ControlTree.Find(screen.Controls, id)!;

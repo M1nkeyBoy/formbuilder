@@ -493,9 +493,12 @@ internal sealed class DesignSurface : Grid
             radio.GroupName = "Screen";
         }
 
-        // The host is placed like the generated WPF control; the control fills the host.
+        // The host is placed like the generated WPF control; the control fills the host (set
+        // here, since some Fluent styles centre a control instead).
         element.ClearValue(WidthProperty);
         element.ClearValue(HeightProperty);
+        element.HorizontalAlignment = HorizontalAlignment.Stretch;
+        element.VerticalAlignment = VerticalAlignment.Stretch;
         var placement = AnchorLayout.Place(screen, control);
         return new Border
         {
