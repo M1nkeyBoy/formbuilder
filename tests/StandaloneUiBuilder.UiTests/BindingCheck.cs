@@ -21,8 +21,15 @@ internal static class BindingCheck
         var progress = EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("UploadProgress")), "the progress bar");
         double Share()
         {
-            var range = progress.Patterns.RangeValue.Pattern;
-            return (range.Value.Value - range.Minimum.Value) / (range.Maximum.Value - range.Minimum.Value);
+            if (progress.Patterns.RangeValue.TryGetPattern(out var range))
+            {
+                return (range.Value.Value - range.Minimum.Value) / (range.Maximum.Value - range.Minimum.Value);
+            }
+
+            // Windows Forms' progress bar reports only its accessible value, a percentage ("30%").
+            var text = progress.Patterns.Value.TryGetPattern(out var value) ? value.Value.Value
+                : progress.Patterns.LegacyIAccessible.Pattern.Value.Value;
+            return double.Parse(text.Trim().TrimEnd('%'), System.Globalization.CultureInfo.InvariantCulture) / 100;
         }
 
         EditorSession.WaitUntil(() => Math.Abs(Share() - 0.3) < 0.01, () => $"The progress bar starts at {Share():P0}, not 30%.");
