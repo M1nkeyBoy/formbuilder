@@ -52,9 +52,8 @@ in the window's `.xaml.cs` file.
 
 ## Tab order
 
-WinUI orders Tab within each panel, so, as in WinForms, with a tab order set on the screen every
-control and container gets `TabIndex` with its place among the controls beside it, and a
-container's controls are visited together. In a TabControl, the tabs come before the page.
+When the screen has a tab order of its own, each control Tab visits gets its place in it as
+`TabIndex`, which WinUI compares across the window. A TabControl's tab buttons share its place.
 
 ## Checks
 

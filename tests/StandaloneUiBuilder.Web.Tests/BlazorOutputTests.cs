@@ -104,7 +104,11 @@ public sealed class BlazorOutputTests
         await using var browser = await LaunchAsync();
         var page = await browser.NewPageAsync(new() { ViewportSize = new() { Width = screen.Width, Height = screen.Height } });
         await page.GotoAsync(app.Url + "/settings");
-        await page.Locator("#ServerTextBox").WaitForAsync();
+        // The page is replaced when its interactive connection comes up, which would lose focus
+        // part way round; choosing a tab and back shows the connection is up.
+        await ClickUntilAsync(page, "#DetailsTabs .uib-tab:nth-child(2)", async () => await page.Locator("#AdvancedPage").IsVisibleAsync());
+        await ClickUntilAsync(page, "#DetailsTabs .uib-tab:nth-child(1)", async () => await page.Locator("#NotesPage").IsVisibleAsync());
+        await page.EvaluateAsync("() => document.activeElement?.blur()");
 
         // Radio buttons are one stop for the group in a browser, and hidden pages have none.
         var hidden = ContainerLayout.Flatten(screen).Where(p => p.IsHidden).Select(p => p.Control.Id).ToHashSet();
@@ -114,7 +118,7 @@ public sealed class BlazorOutputTests
         var names = expected.ToHashSet();
 
         var visited = new List<string>();
-        for (var i = 0; i < expected.Count * 4 && visited.Count(names.Contains) < expected.Count + 1; i++)
+        for (var i = 0; i < expected.Count * 4 && !(visited.IndexOf(expected[0]) is >= 0 and var first && visited.Count - first >= expected.Count); i++)
         {
             await page.Keyboard.PressAsync("Tab");
             var id = await page.EvaluateAsync<string?>("() => document.activeElement?.closest('[id]')?.id ?? null");

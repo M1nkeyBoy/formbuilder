@@ -194,12 +194,11 @@ public static class WinUIGenerator
     /// </summary>
     private static void AppendElement(StringBuilder xaml, ScreenDocument screen, ControlDocument control, List<string> layout, int depth)
     {
-        // WinUI orders Tab within each panel, so with a tab order set on the screen, every
-        // control and container gets its place among the controls beside it. A container's
-        // controls are visited together, where the first of them comes.
-        if (screen.TabOrder is not null && TabSequence.SiblingRanks(screen).TryGetValue(control.Id, out var rank))
+        // With a tab order set on the screen, a control Tab visits gets its place in it as
+        // TabIndex; WinUI orders Tab by TabIndex across the window.
+        if (control.Type != ControlType.TabControl && TabIndexes(screen).TryGetValue(control.Id, out var index))
         {
-            layout = [.. layout, $"TabIndex=\"{Number(rank)}\""];
+            layout = [.. layout, $"TabIndex=\"{Number(index)}\""];
         }
 
         if (control.Type == ControlType.GroupBox)
@@ -436,11 +435,12 @@ public static class WinUIGenerator
         xaml.AppendLine($"{indent}    <Border Margin=\"0,28,0,0\" BorderBrush=\"{{ThemeResource CardStrokeColorDefaultBrush}}\" BorderThickness=\"1\" CornerRadius=\"4\" />");
         if (pages.Count > 0)
         {
-            var stripIndex = screen.TabOrder is not null ? " TabIndex=\"0\"" : "";
-            xaml.AppendLine($"{indent}    <StackPanel Orientation=\"Horizontal\" Spacing=\"2\" VerticalAlignment=\"Top\" Height=\"28\"{stripIndex}>");
+            // The tabs share the TabControl's place in the tab order.
+            var tabIndex = TabIndexes(screen).TryGetValue(tabs.Id, out var index) ? $" TabIndex=\"{Number(index)}\"" : "";
+            xaml.AppendLine($"{indent}    <StackPanel Orientation=\"Horizontal\" Spacing=\"2\" VerticalAlignment=\"Top\" Height=\"28\">");
             for (var i = 0; i < pages.Count; i++)
             {
-                xaml.AppendLine($"{indent}        <ToggleButton Content=\"{Attribute(pages[i].Properties.Text ?? "")}\" IsChecked=\"{(i == shown ? "True" : "False")}\" Height=\"28\" MinWidth=\"0\" MinHeight=\"0\" Padding=\"10,0\" Click=\"{HandlerName(tabs)}\" />");
+                xaml.AppendLine($"{indent}        <ToggleButton Content=\"{Attribute(pages[i].Properties.Text ?? "")}\" IsChecked=\"{(i == shown ? "True" : "False")}\" Height=\"28\" MinWidth=\"0\" MinHeight=\"0\" Padding=\"10,0\"{tabIndex} Click=\"{HandlerName(tabs)}\" />");
             }
 
             xaml.AppendLine($"{indent}    </StackPanel>");
@@ -454,9 +454,7 @@ public static class WinUIGenerator
             var orientation = properties.Orientation == StackOrientation.Horizontal ? "Horizontal" : "Vertical";
             var visibility = i == shown ? "" : " Visibility=\"Collapsed\"";
             var style = string.Concat(StyleAttributes(properties).Select(a => " " + a));
-            // The page comes after the tabs.
-            var pageIndex = screen.TabOrder is not null ? $" TabIndex=\"{Number(i + 1)}\"" : "";
-            var opening = $"{indent}    <StackPanel x:Name=\"{page.Name}\" Margin=\"{margin}\" Orientation=\"{orientation}\"{visibility}{pageIndex}{style}";
+            var opening = $"{indent}    <StackPanel x:Name=\"{page.Name}\" Margin=\"{margin}\" Orientation=\"{orientation}\"{visibility}{style}";
             if (page.Children is not { Count: > 0 })
             {
                 xaml.AppendLine(opening + " />");
@@ -734,6 +732,10 @@ public static class WinUIGenerator
         AxisAlignment.End => end,
         _ => "Stretch",
     };
+
+    /// <summary>Each control's place in the screen's tab order, or none when it has no order of its own.</summary>
+    private static IReadOnlyDictionary<Guid, int> TabIndexes(ScreenDocument screen) =>
+        screen.TabOrder is not null ? TabSequence.Indexes(screen) : new Dictionary<Guid, int>();
 
     private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
 

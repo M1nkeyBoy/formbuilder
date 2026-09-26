@@ -32,8 +32,16 @@ internal static class TabOrderCheck
 
         var visited = new List<string>();
         var trail = new List<string>();
+
+        // Done once the first control has been reached and every control after it visited.
+        bool RoundDone()
+        {
+            var first = visited.IndexOf(expected[0]);
+            return first >= 0 && visited.Count - first >= expected.Count;
+        }
+
         // Enough presses to go round twice, with room for other stops (the editor's own panels).
-        for (var i = 0; i < expected.Count * 4 + 40 && visited.Count(names.Contains) < expected.Count + 1; i++)
+        for (var i = 0; i < expected.Count * 4 + 40 && !RoundDone(); i++)
         {
             Keyboard.Type(VirtualKeyShort.TAB);
             Wait.UntilInputIsProcessed();

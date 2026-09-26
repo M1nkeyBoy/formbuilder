@@ -40,7 +40,7 @@ choices are recorded in `docs/decisions.md`.
 - **Tab order.** Format > Set Tab Order (Ctrl+T) numbers the controls Tab visits; click them
   in the order Tab should go, and press Esc when done. Tab Order by Position orders them top to
   bottom and left to right; Reset Tab Order goes back to the controls' own order. Preview and
-  every export follow it.
+  every export except MAUI (whose .NET 10 version has no TabIndex) follow it.
 - **Work with several controls.** Ctrl+click, or drag a box across empty canvas, to select
   several controls; drag, nudge (arrow keys, Shift for a grid step), copy, cut, paste,
   duplicate (Ctrl+D) or delete them together. Ctrl+A selects all. The Format menu aligns

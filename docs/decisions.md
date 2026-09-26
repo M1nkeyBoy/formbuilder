@@ -572,12 +572,14 @@ Choices made during the prototype slices that affect later work.
 - **One screen-wide list** of the controls that take input. Controls not in it (added later)
   come after it, and the file omits it when it matches the default, so designs without one
   export exactly as before.
-- **Each target in its own terms.** WPF, MAUI and browsers compare tab indexes across the
-  whole window or page, so they get each control's place in the list. WinForms and WinUI
-  compare them within each container, so they get each control's rank among its neighbours,
-  a container ranking by the first of its controls; there, a container's controls are always
-  visited together. The editor's Preview uses WPF's rules inside its own tab scope.
-- **Checked by pressing Tab.** The CI tests press Tab through the generated WinForms, WinUI and
-  MAUI Settings screens, the Blazor page and the editor's Preview, and compare the focused
+- **Each target in its own terms.** WPF and browsers compare tab indexes across the whole
+  window or page, so they get each control's place in the list. WinForms compares them within
+  each container, so it gets each control's rank among its neighbours, a container ranking by
+  the first of its controls; there, a container's controls are always visited together. The editor's Preview uses WPF's rules inside its own tab scope.
+- **Revised after the first Windows run.** WinUI turned out to compare tab indexes across the
+  window, like WPF, so it gets each control's place in the list too. .NET 10's MAUI has no
+  `TabIndex` any more, so MAUI pages keep the default order (the docs say so).
+- **Checked by pressing Tab.** The CI tests press Tab through the generated WinForms and WinUI
+  Settings screens, the Blazor page and the editor's Preview, and compare the focused
   controls with the design. Radio buttons are left out of that comparison, since some targets
   stop only at the chosen one of a group.

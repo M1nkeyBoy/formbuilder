@@ -50,8 +50,8 @@ is the first screen).
 
 ## Tab order
 
-When the screen has a tab order of its own, each control Tab visits gets its place in it as
-`TabIndex`, which MAUI compares across the page. A TabControl's tab buttons share its place.
+The screen's tab order is not exported: .NET 10's MAUI no longer has `TabIndex`, so Tab
+follows the order the controls are in on the page.
 
 ## Checks
 

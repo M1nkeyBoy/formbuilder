@@ -13,7 +13,6 @@ namespace StandaloneUiBuilder.Core.Tests;
 public class TabOrderOutputTests
 {
     private static readonly XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
-    private static readonly XNamespace X2009 = "http://schemas.microsoft.com/winfx/2009/xaml";
 
     private static ProjectDocument Sample() =>
         ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", "layout-demo.uibproj"));
@@ -22,7 +21,7 @@ public class TabOrderOutputTests
         (string?)root.Descendants().Single(e => (string?)e.Attribute(x + "Name") == name).Attribute(attribute);
 
     [Fact]
-    public void WpfAndMauiNumberControlsAcrossTheScreen()
+    public void WpfAndWinUINumberControlsAcrossTheScreen()
     {
         var document = Sample();
         var settings = document.Screens[1];
@@ -32,8 +31,16 @@ public class TabOrderOutputTests
         Assert.Equal("12", Attribute(wpf, X, "LevelSlider", "TabIndex"));
         Assert.Null(Attribute(wpf, X, "SettingsLabel", "TabIndex"));
 
+        var winui = XDocument.Parse(WinUIGenerator.WindowXaml(document, settings, "Demo")).Root!;
+        Assert.Equal("3", Attribute(winui, X, "StartDatePicker", "TabIndex"));
+        Assert.Equal("12", Attribute(winui, X, "LevelSlider", "TabIndex"));
+        Assert.Null(Attribute(winui, X, "ModeGroup", "TabIndex"));
+        Assert.Null(Attribute(winui, X, "DetailsTabs", "TabIndex"));
+        Assert.Equal(2, winui.Descendants(XName.Get("ToggleButton", winui.Name.NamespaceName)).Count(e => (string?)e.Attribute("TabIndex") == "6"));
+
+        // .NET 10's MAUI has no TabIndex, so its pages keep the default order.
         var maui = XDocument.Parse(MauiGenerator.PageXaml(document, settings, "Demo")).Root!;
-        Assert.Equal("12", Attribute(maui, X2009, "LevelSlider", "TabIndex"));
+        Assert.DoesNotContain(maui.Descendants(), e => e.Attribute("TabIndex") is not null);
 
         // Without a tab order, nothing is numbered.
         var main = XDocument.Parse(WpfGenerator.WindowXaml(document, document.MainScreen, "Demo")).Root!;
@@ -41,7 +48,7 @@ public class TabOrderOutputTests
     }
 
     [Fact]
-    public void WinFormsAndWinUIRankControlsWithinEachContainer()
+    public void WinFormsRanksControlsWithinEachContainer()
     {
         var document = Sample();
         var settings = document.Screens[1];
@@ -51,10 +58,6 @@ public class TabOrderOutputTests
         Assert.Contains("this.DetailsTabsHost.TabIndex = 4;", code);
         Assert.Contains("this.ModeGroup.TabIndex = 5;", code);
         Assert.Contains("this.LevelSlider.TabIndex = 2;", code);
-
-        var winui = XDocument.Parse(WinUIGenerator.WindowXaml(document, settings, "Demo")).Root!;
-        Assert.Equal("5", Attribute(winui, X, "ModeGroup", "TabIndex"));
-        Assert.Equal("4", Attribute(winui, X, "DetailsTabs", "TabIndex"));
     }
 
     [Fact]
