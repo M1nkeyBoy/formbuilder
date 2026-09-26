@@ -24,7 +24,7 @@ its menus, Save and Export. It follows Windows' light or dark app setting.
 - **Edit.** Click a control to select it. Drag it to move it, or drag its handles to resize
   it. Moves and resizes snap to the grid and stay inside the canvas. Delete removes the
   selected control.
-- **Properties.** The Properties panel edits name, X, Y, width and height for every control,
+- **Properties.** The inspector edits name, X, Y, width and height for every control,
   plus text, checked state, list items (one per line), a Slider's or ProgressBar's minimum,
   maximum and value, or a TextBox's multi-line option where they apply. Text size, bold,
   text colour and background colour (`#RRGGBB`) style a control in the designer and in every
@@ -38,12 +38,12 @@ its menus, Save and Export. It follows Windows' light or dark app setting.
 - **Containers.** StackPanel lines controls up vertically or horizontally with a gap;
   GroupBox does the same inside a titled frame; TabControl holds pages, each a stack, and
   shows one at a time (click a tab on the canvas, or choose the shown tab and add tabs in the
-  Properties panel); Grid
+  inspector); Grid
   divides itself into equal rows and columns with one control per cell. Drag or click a
   toolbox item into a container, or drag a control in or out; the target container is
   outlined in green. Inside a stack a control keeps its height (or width) and stretches
   across; in a grid it fills its cell. Containers can be nested and anchored like any
-  control, so whole groups resize with the window. The Properties panel sets a stack's
+  control, so whole groups resize with the window. The inspector sets a stack's
   direction and spacing, a grid's rows and columns and their sizes (fixed DIPs like `100`,
   or shares of the rest like `*` and `2*`), and a control's order, or its cell and how many
   rows and columns it spans.
@@ -77,7 +77,7 @@ its menus, Save and Export. It follows Windows' light or dark app setting.
   them; Ctrl+PageUp and Ctrl+PageDown switch between them. The first screen is the one an
   exported app opens with; each other screen becomes its own window or form. A Button's "On
   click" setting can open another screen as a dialog or close its own, in Preview and in
-  exported apps. With nothing selected, the Properties panel sets the screen's name, width and
+  exported apps. With nothing selected, the inspector sets the screen's name, width and
   height.
 - **Undo and redo.** Ctrl+Z and Ctrl+Y cover adding, deleting, moving, resizing and property
   changes, and screen changes. A whole drag is one step. Undo shows the screen the change
@@ -109,7 +109,7 @@ Try it with the samples: File > Open > `docs\samples\customer-form.uibproj`, or
 
 | Design | Preview |
 |---|---|
-| ![Design mode with a selected button and the Properties panel](docs/screenshots/design-mode.png) | ![Preview mode with typed text, a ticked check box and a chosen ComboBox item](docs/screenshots/preview-mode.png) |
+| ![Design mode with a selected button and the inspector](docs/screenshots/design-mode.png) | ![Preview mode with typed text, a ticked check box and a chosen ComboBox item](docs/screenshots/preview-mode.png) |
 
 More in [`docs/screenshots`](docs/screenshots): the sample project, and a draft recovered
 after a forced close. All were captured on Windows by the CI walkthrough.
@@ -173,7 +173,7 @@ dotnet test StandaloneUiBuilder.sln
   saving and loading, and recovery. It also runs on Linux and macOS.
 - `tests/StandaloneUiBuilder.UiTests` is an end-to-end walkthrough of the prototype
   acceptance steps, plus checks that editing stays responsive with 60 controls and that
-  Tab reaches the toolbox and Properties panel. It drives the real editor with the mouse and keyboard, so it is skipped
+  Tab reaches the toolbox and inspector. It drives the real editor with the mouse and keyboard, so it is skipped
   unless you opt in:
 
   ```powershell
