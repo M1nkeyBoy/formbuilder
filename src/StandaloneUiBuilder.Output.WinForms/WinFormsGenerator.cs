@@ -548,9 +548,11 @@ public static class WinFormsGenerator
                 break;
         }
 
+        // As in Visual Studio's designer: the visual style's background, unless the design sets
+        // one (with the visual style on, a button ignores its BackColor).
         if (control.Type is ControlType.Button or ControlType.CheckBox or ControlType.RadioButton)
         {
-            Set("UseVisualStyleBackColor", "true");
+            Set("UseVisualStyleBackColor", properties.Background is null ? "true" : "false");
         }
 
         if (EventFor(control.Type) is { } e)

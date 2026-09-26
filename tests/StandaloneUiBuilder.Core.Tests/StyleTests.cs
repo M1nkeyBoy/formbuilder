@@ -87,6 +87,9 @@ public class StyleTests
         Assert.Contains("this.SaveButton.ForeColor = System.Drawing.Color.FromArgb(255, 255, 255);", designer);
         Assert.Contains("this.SaveButton.BackColor = System.Drawing.Color.FromArgb(30, 111, 217);", designer);
 
+        // A button with the visual style's background ignores BackColor.
+        Assert.Contains("this.SaveButton.UseVisualStyleBackColor = false;", designer);
+
         Assert.Contains(";font-size:18px;font-weight:bold;color:#FFFFFF;background-color:#1E6FD9\"", BlazorGenerator.PageRazor(document));
     }
 
