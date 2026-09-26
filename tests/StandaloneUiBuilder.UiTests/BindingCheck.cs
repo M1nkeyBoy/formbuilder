@@ -33,7 +33,20 @@ internal static class BindingCheck
         }
 
         EditorSession.WaitUntil(() => Math.Abs(Share() - 0.3) < 0.01, () => $"The progress bar starts at {Share():P0}, not 30%.");
-        slider.Patterns.RangeValue.Pattern.SetValue(7);
+        if (slider.Patterns.RangeValue.TryGetPattern(out var sliderRange))
+        {
+            sliderRange.SetValue(7);
+        }
+        else
+        {
+            // Windows Forms' TrackBar offers no RangeValue either; move it with the keyboard, a step a press.
+            slider.Focus();
+            for (var i = 0; i < 4; i++)
+            {
+                FlaUI.Core.Input.Keyboard.Type(FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT);
+                FlaUI.Core.Input.Wait.UntilInputIsProcessed();
+            }
+        }
         EditorSession.WaitUntil(() => Math.Abs(Share() - 0.7) < 0.01, () => $"The progress bar shows {Share():P0} after the slider moved to 7 of 10.");
     }
 }
