@@ -92,7 +92,7 @@ public sealed class ProjectFileTests : IDisposable
     {
         var json = ProjectFile.Serialize(PopulatedDocument());
 
-        Assert.Contains("\"schemaVersion\": 15", json);
+        Assert.Contains("\"schemaVersion\": 16", json);
         Assert.Contains("\"screens\": [", json);
         Assert.DoesNotContain("mainScreen", json, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("\"type\": \"Button\"", json);
@@ -115,7 +115,7 @@ public sealed class ProjectFileTests : IDisposable
     [InlineData("not json", "not valid JSON")]
     [InlineData("[]", "no schema version")]
     [InlineData("""{ "name": "x" }""", "no schema version")]
-    [InlineData("""{ "schemaVersion": 16, "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971", "screen": {} }""", "newer version")]
+    [InlineData("""{ "schemaVersion": 17, "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971", "screen": {} }""", "newer version")]
     [InlineData("""{ "schemaVersion": 0, "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971", "screen": {} }""", "not valid")]
     [InlineData("""{ "schemaVersion": 1, "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971" }""", "not a valid project")]
     public void InvalidFilesAreRejectedWithAClearReason(string json, string expected)

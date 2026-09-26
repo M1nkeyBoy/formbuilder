@@ -656,3 +656,16 @@ Choices made during the prototype slices that affect later work.
 - **Checked by** unit tests of every target's handler order and the import, a browser test
   and a WinForms test that implement `OnSave` as a developer would (setting a bound value)
   and see it appear after clicking Save, and the CI builds of every exported sample.
+
+## Slice 34 — Buttons enabled from the view model
+
+- **A Button can be enabled by an on-or-off property** (`enabledBinding`, format version 16),
+  the usual partner of a command: Save is enabled only while there is something to save. The
+  property is an ordinary view model property of the on-or-off kind, so a CheckBox can share
+  it (the layout demo's Save follows its secure-connection box) or code can set it. One only
+  buttons use starts on, so a button is enabled until something says otherwise.
+- **Each target binds its own enabled state**, one way: WPF and MAUI `IsEnabled`, WinForms
+  `Enabled`, Blazor `disabled`. WinUI's on-or-off values are `bool?` (as its CheckBoxes need),
+  so `IsEnabled` goes through a generated `IsTrue` function in the `x:Bind`.
+- **Checked by** unit tests, the import, and the running apps: the browser, WinForms, WinUI
+  and MAUI tests clear the check box, see Save disabled, and check it again.

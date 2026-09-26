@@ -23,6 +23,23 @@ internal static class BindingCheck
         EditorSession.WaitUntil(() => server.Patterns.Value.Pattern.Value.Value == "saved", () => $"The Server box shows \"{server.Patterns.Value.Pattern.Value.Value}\" after Save.");
     }
 
+    /// <summary>True if the screen's Save button is enabled by the secure-connection CheckBox's value, as the layout demo's is.</summary>
+    public static bool SecureEnablesSave(ScreenDocument screen) =>
+        ControlTree.All(screen.Controls).Any(c => c.Name == "SaveSettingsButton" && c.Properties.EnabledBinding == "UseSecureConnection");
+
+    /// <summary>Clearing the CheckBox disables Save; checking it again enables it.</summary>
+    public static void AssertSecureEnablesSave(AutomationElement window)
+    {
+        var secure = EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("SecureCheckBox")), "the secure-connection check box");
+        var save = EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("SaveSettingsButton")), "the Save button");
+        Assert.True(save.IsEnabled, "Save should start enabled, with the check box checked.");
+
+        secure.Patterns.Toggle.Pattern.Toggle();
+        EditorSession.WaitUntil(() => !save.IsEnabled, () => "Save is still enabled after clearing the check box.");
+        secure.Patterns.Toggle.Pattern.Toggle();
+        EditorSession.WaitUntil(() => save.IsEnabled, () => "Save is not enabled again after checking the check box.");
+    }
+
     /// <summary>True if the screen binds the slider and progress bar together, as the layout demo does.</summary>
     public static bool Applies(ScreenDocument screen) =>
         ControlTree.All(screen.Controls).Count(c => c.Name is "LevelSlider" or "UploadProgress" && c.Properties.Binding == "Level") == 2;

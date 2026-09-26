@@ -113,6 +113,11 @@ public sealed class WinFormsOutputTests
                     BindingCheck.AssertSaveRunsTheCommand(second);
                 }
 
+                if (BindingCheck.SecureEnablesSave(secondScreen))
+                {
+                    BindingCheck.AssertSecureEnablesSave(second);
+                }
+
                 EditorSession.WaitFor(() => second.FindFirstDescendant(cf => cf.ByAutomationId("CloseSettingsButton")), "Close button").Click();
                 EditorSession.WaitUntil(
                     () => app.GetAllTopLevelWindows(automation).All(w => w.Title != secondScreen.Name)

@@ -453,6 +453,11 @@
                             <Label Content="Co_mmand" Target="{Binding ElementName=CommandBox}" Style="{StaticResource FieldLabel}" />
                             <TextBox x:Name="CommandBox" Style="{StaticResource FieldBox}" />
                         </DockPanel>
+                        <DockPanel x:Name="EnabledRow" Style="{StaticResource FieldRow}"
+                                   ToolTip="An on-or-off property of the screen's view model, such as CanSave; the button is enabled only while it is on. A CheckBox bound to the same name turns it on and off. Leave blank for always enabled.">
+                            <Label Content="Ena_bled when" Target="{Binding ElementName=EnabledBox}" Style="{StaticResource FieldLabel}" />
+                            <TextBox x:Name="EnabledBox" Style="{StaticResource FieldBox}" />
+                        </DockPanel>
                         <TextBlock x:Name="InspectorErrorText" Margin="10,4,10,6" TextWrapping="Wrap"
                                    Foreground="#FFC42B1C" Visibility="Collapsed" />
                         <TextBlock Style="{StaticResource PlaceholderText}" Margin="10,4,10,10"

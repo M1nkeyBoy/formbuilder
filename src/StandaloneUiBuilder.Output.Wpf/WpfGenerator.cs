@@ -349,6 +349,11 @@ public static class WpfGenerator
             attributes.AddRange(bound);
         }
 
+        if (properties.EnabledBinding is { } enabled)
+        {
+            attributes.Add($"IsEnabled=\"{{Binding {enabled}}}\"");
+        }
+
         attributes.AddRange(StyleAttributes(properties));
         attributes.AddRange(TabAttributes(screen, control));
         if (EventFor(control.Type) is { } hook)

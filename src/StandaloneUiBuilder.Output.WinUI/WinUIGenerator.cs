@@ -32,7 +32,7 @@ public static class WinUIGenerator
     // class name is checked separately.
     private static readonly HashSet<string> ReservedNames = new(StringComparer.Ordinal)
     {
-        "InitializeComponent", "ViewModel", "InitializeWindow", "GetDpiForWindow", "Content", "Title", "AppWindow",
+        "InitializeComponent", "ViewModel", "IsTrue", "InitializeWindow", "GetDpiForWindow", "Content", "Title", "AppWindow",
         "Activate", "Close", "Closed", "Activated", "Bounds", "Visible", "Dispatcher", "DispatcherQueue",
         "SystemBackdrop", "ExtendsContentIntoTitleBar", "SetTitleBar",
     };
@@ -307,6 +307,12 @@ public static class WinUIGenerator
             attributes.AddRange(bound);
         }
 
+        // An on-or-off property is a nullable bool here, as a CheckBox's is; IsTrue turns it into IsEnabled's bool.
+        if (properties.EnabledBinding is { } enabled)
+        {
+            attributes.Add($"IsEnabled=\"{{x:Bind IsTrue(ViewModel.{enabled}), Mode=OneWay}}\"");
+        }
+
         attributes.AddRange(StyleAttributes(properties));
         if (EventFor(control.Type) is { } hook)
         {
@@ -553,6 +559,13 @@ public static class WinUIGenerator
         {
             code.AppendLine("    /// <summary>The values the window's controls are bound to (with x:Bind).</summary>");
             code.AppendLine($"    public {ViewModelCode.ClassName(document, screen)} ViewModel {{ get; }} = new();");
+            code.AppendLine();
+        }
+
+        if (ControlTree.All(screen.Controls).Any(c => c.Properties.EnabledBinding is not null))
+        {
+            code.AppendLine("    /// <summary>For x:Bind: whether an on-or-off value is on.</summary>");
+            code.AppendLine("    private static bool IsTrue(bool? value) => value == true;");
             code.AppendLine();
         }
 

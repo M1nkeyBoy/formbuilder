@@ -79,6 +79,10 @@ of the class; the button's generated click handler calls `ViewModel.Save()` afte
 before its action (opening or closing a screen). A screen with only commands also has a view
 model.
 
+A Button's Enabled when field names an on-or-off property of the view model, such as
+`CanSave`: the button is enabled only while it is on. A CheckBox bound to the same name turns it
+on and off, or your code can set it; a property only buttons use starts on. The button's `IsEnabled` is bound through a small `IsTrue` function, since the view model's on-or-off values are nullable here.
+
 ## Tab order
 
 When the screen has a tab order of its own, each control Tab visits gets its place in it as

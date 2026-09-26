@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 15,
+  "schemaVersion": 16,
   "projectId": "5b7c2f4e-8d1a-4e6b-9f3c-2a7d8e9b0c11",
   "name": "Layout demo",
   "screens": [
@@ -808,7 +808,8 @@
           "height": 30,
           "properties": {
             "text": "Save",
-            "command": "Save"
+            "command": "Save",
+            "enabledBinding": "UseSecureConnection"
           },
           "anchor": [
             "right",

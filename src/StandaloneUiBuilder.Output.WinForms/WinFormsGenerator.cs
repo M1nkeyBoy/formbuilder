@@ -570,6 +570,11 @@ public static class WinFormsGenerator
             code.AppendLine($"        this.{name}.DataBindings.Add({Literal(bound)}, this.ViewModel, {Literal(binding)}, true, System.Windows.Forms.DataSourceUpdateMode.{update});");
         }
 
+        if (properties.EnabledBinding is { } enabled)
+        {
+            code.AppendLine($"        this.{name}.DataBindings.Add(\"Enabled\", this.ViewModel, {Literal(enabled)}, true, System.Windows.Forms.DataSourceUpdateMode.Never);");
+        }
+
         for (var i = 0; i < (control.Children?.Count ?? 0); i++)
         {
             AppendControl(code, screen, control.Children![i], control, i);

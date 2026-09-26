@@ -138,6 +138,10 @@ of the class; the button's generated click handler calls `ViewModel.Save()` afte
 before its action (opening or closing a screen). A screen with only commands also has a view
 model.
 
+A Button's Enabled when field names an on-or-off property of the view model, such as
+`CanSave`: the button is enabled only while it is on. A CheckBox bound to the same name turns it
+on and off, or your code can set it; a property only buttons use starts on. The button's `Enabled` is bound, one way.
+
 ## Responding to controls
 
 As in WPF output, each control you can interact with has a hook: a partial method you can

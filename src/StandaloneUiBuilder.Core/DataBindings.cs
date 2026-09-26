@@ -6,8 +6,11 @@ namespace StandaloneUiBuilder.Core;
 /// <param name="Controls">At least one; the first gives the property its starting value.</param>
 public sealed record BoundProperty(string Name, BindingKind Kind, IReadOnlyList<ControlDocument> Controls)
 {
-    /// <summary>The control whose design value the property starts with.</summary>
-    public ControlDocument First => Controls[0];
+    /// <summary>The control whose design value the property starts with: the first bound by its value.</summary>
+    public ControlDocument First => Controls.FirstOrDefault(c => c.Properties.Binding == Name) ?? Controls[0];
+
+    /// <summary>True if only buttons use the property, to be enabled by it; it then starts true.</summary>
+    public bool OnlyEnables => Controls.All(c => c.Properties.Binding != Name);
 
     /// <summary>True if a control can change the value; false if they all only show it (Labels, ProgressBars).</summary>
     public bool IsSet => Controls.Any(c => !ControlCatalog.Get(c.Type).ShowsBindingOnly);
@@ -34,10 +37,28 @@ public static partial class DataBindings
     /// <summary>The screen's view model properties, in the order their first controls come.</summary>
     public static IReadOnlyList<BoundProperty> Properties(ScreenDocument screen) =>
         ControlTree.All(screen.Controls)
-            .Where(c => c.Properties.Binding is not null && ControlCatalog.Get(c.Type).BindingKind is not null)
-            .GroupBy(c => c.Properties.Binding!, StringComparer.Ordinal)
-            .Select(g => new BoundProperty(g.Key, ControlCatalog.Get(g.First().Type).BindingKind!.Value, g.ToList()))
+            .SelectMany(c => BoundNames(c).Select(b => (b.Name, b.Kind, Control: c)))
+            .GroupBy(b => b.Name, StringComparer.Ordinal)
+            .Select(g => new BoundProperty(g.Key, g.First().Kind, g.Select(b => b.Control).Distinct().ToList()))
             .ToList();
+
+    /// <summary>
+    /// The view model properties a control uses: its value's binding, and for a Button, the
+    /// on-or-off property that enables it.
+    /// </summary>
+    public static IEnumerable<(string Name, BindingKind Kind)> BoundNames(ControlDocument control)
+    {
+        var definition = ControlCatalog.Get(control.Type);
+        if (control.Properties.Binding is { } binding && definition.BindingKind is { } kind)
+        {
+            yield return (binding, kind);
+        }
+
+        if (control.Properties.EnabledBinding is { } enabled && definition.HasEnabledBinding)
+        {
+            yield return (enabled, BindingKind.Flag);
+        }
+    }
 
     /// <summary>The screen's view model commands, in the order their first buttons come.</summary>
     public static IReadOnlyList<BoundCommand> Commands(ScreenDocument screen) =>
@@ -49,7 +70,7 @@ public static partial class DataBindings
 
     /// <summary>True if any control on the screen is bound or runs a command, so the screen has a view model.</summary>
     public static bool HasViewModel(ScreenDocument screen) =>
-        ControlTree.All(screen.Controls).Any(c => c.Properties.Binding is not null || c.Properties.Command is not null);
+        ControlTree.All(screen.Controls).Any(c => c.Properties.Binding is not null || c.Properties.Command is not null || c.Properties.EnabledBinding is not null);
 
     /// <summary>Checks a proposed binding for a control; returns an error message or null.</summary>
     public static string? Validate(ScreenDocument screen, ControlDocument control, string name)
@@ -59,14 +80,26 @@ public static partial class DataBindings
             return $"A {control.Type} has no value to bind.";
         }
 
-        if (CheckName(name, "A binding") is { } error)
+        return CheckName(name, "A binding") ?? CheckProperty(screen, control, name, kind);
+    }
+
+    /// <summary>Checks a proposed on-or-off property to enable a Button; returns an error message or null.</summary>
+    public static string? ValidateEnabled(ScreenDocument screen, ControlDocument control, string name)
+    {
+        if (!ControlCatalog.Get(control.Type).HasEnabledBinding)
         {
-            return error;
+            return $"A {control.Type} is not enabled by a binding.";
         }
 
-        foreach (var other in ControlTree.All(screen.Controls))
+        return CheckName(name, "A binding") ?? CheckProperty(screen, control, name, BindingKind.Flag);
+    }
+
+    /// <summary>Whether a property of this kind fits beside the screen's other bindings and commands.</summary>
+    private static string? CheckProperty(ScreenDocument screen, ControlDocument control, string name, BindingKind kind)
+    {
+        foreach (var other in ControlTree.All(screen.Controls).Where(c => c.Id != control.Id))
         {
-            if (other.Id != control.Id && other.Properties.Binding == name && ControlCatalog.Get(other.Type).BindingKind != kind)
+            if (BoundNames(other).Any(b => b.Name == name && b.Kind != kind))
             {
                 return $"\"{name}\" is bound to {other.Name}, a {other.Type}, whose value is not of the same kind.";
             }
@@ -131,7 +164,7 @@ public static partial class DataBindings
 
     private static IEnumerable<(bool IsCommand, string Name, string[] Members)> MembersOf(ControlDocument control)
     {
-        if (control.Properties.Binding is { } binding)
+        foreach (var (binding, _) in BoundNames(control))
         {
             yield return (false, binding, [binding, $"On{binding}Changed"]);
         }

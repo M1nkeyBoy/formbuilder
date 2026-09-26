@@ -286,7 +286,8 @@ public static class BlazorGenerator
                 markup.AppendLine($"{indent}<span {common} class=\"uib-label\">{(properties.Binding is { } shown ? $"@ViewModel.{shown}" : Text(properties.Text))}</span>");
                 break;
             case ControlType.Button:
-                markup.AppendLine($"{indent}<button {common} type=\"button\" class=\"uib-button\" @onclick=\"{HandlerName(control)}\">{Text(properties.Text)}</button>");
+                var disabled = properties.EnabledBinding is { } enabled ? $" disabled=\"@(!ViewModel.{enabled})\"" : "";
+                markup.AppendLine($"{indent}<button {common} type=\"button\" class=\"uib-button\"{disabled} @onclick=\"{HandlerName(control)}\">{Text(properties.Text)}</button>");
                 break;
             case ControlType.TextBox when properties.IsMultiline == true:
                 markup.AppendLine($"{indent}<textarea {common} class=\"uib-input\" @bind=\"{value}\" @bind:event=\"oninput\" @bind:after=\"{HandlerName(control)}\"></textarea>");

@@ -150,6 +150,13 @@ public sealed class BlazorOutputTests
 
         // The page works once its interactive connection is up; keep clicking until then.
         await ClickUntilAsync(page, "#SaveSettingsButton", async () => await page.Locator("#ServerTextBox").InputValueAsync() == "saved");
+
+        // Save is enabled only while the secure-connection box is checked.
+        var save = page.Locator("#SaveSettingsButton");
+        await page.Locator("#SecureCheckBox input").ClickAsync();
+        await Assertions.Expect(save).ToBeDisabledAsync();
+        await page.Locator("#SecureCheckBox input").ClickAsync();
+        await Assertions.Expect(save).ToBeEnabledAsync();
     }
 
     /// <summary>The Settings screen's slider and progress bar are bound to the same value, Level.</summary>

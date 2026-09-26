@@ -55,6 +55,7 @@ public sealed class MauiOutputTests
             AssertLayout(window, document.Screens[1], main.Width, main.Height);
 
             BindingCheck.AssertSliderMovesProgress(window);
+            BindingCheck.AssertSecureEnablesSave(window);
 
             EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("CloseSettingsButton")), "Close button").Click();
             EditorSession.WaitUntil(() => window.FindFirstDescendant(cf => cf.ByAutomationId("CloseSettingsButton")) is null, () => "The Settings page did not close.");

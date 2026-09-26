@@ -170,6 +170,14 @@ public static partial class DocumentValidator
                 }
             }
 
+            foreach (var button in ControlTree.All(screen.Controls).Where(c => c.Properties.EnabledBinding is not null))
+            {
+                if (DataBindings.ValidateEnabled(screen, button, button.Properties.EnabledBinding!) is { } enabledError)
+                {
+                    screenErrors.Add($"Control \"{button.Name}\": {enabledError}");
+                }
+            }
+
             foreach (var button in ControlTree.All(screen.Controls).Where(c => c.Properties.Command is not null))
             {
                 if (DataBindings.ValidateCommand(screen, button, button.Properties.Command!) is { } commandError)

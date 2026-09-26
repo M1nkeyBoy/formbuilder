@@ -396,6 +396,11 @@ public static class MauiGenerator
             attributes.Add(bound);
         }
 
+        if (properties.EnabledBinding is { } enabled)
+        {
+            attributes.Add($"IsEnabled=\"{{Binding {enabled}}}\"");
+        }
+
         attributes.AddRange(StyleAttributes(control));
         if (EventFor(control.Type) is { } hook)
         {

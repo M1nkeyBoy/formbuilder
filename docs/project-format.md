@@ -25,15 +25,16 @@ A complete example is in [`samples/customer-form.uibproj`](samples/customer-form
 | 13 | Adds the project's `theme`. | None: older projects are light, as before. |
 | 14 | Adds `binding` to controls with a value. | None: older controls are not bound. |
 | 15 | Adds `command` to Buttons. | None: older buttons run no command. |
+| 16 | Adds `enabledBinding` to Buttons. | None: older buttons are always enabled. |
 
-The builder reads versions 1 to 15 and always saves version 15. An older builder rejects a
+The builder reads versions 1 to 16 and always saves version 16. An older builder rejects a
 newer file with a clear message instead of silently dropping what it does not know.
 
-## Schema version 15
+## Schema version 16
 
 ```json
 {
-  "schemaVersion": 15,
+  "schemaVersion": 16,
   "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971",
   "name": "Customer form",
   "screens": [{
@@ -63,7 +64,7 @@ newer file with a clear message instead of silently dropping what it does not kn
 
 | Field | Type | Notes |
 |---|---|---|
-| `schemaVersion` | integer | Required. `15` when saved by this builder; `1` to `14` are still read. |
+| `schemaVersion` | integer | Required. `16` when saved by this builder; `1` to `15` are still read. |
 | `projectId` | GUID string | Required. Stable for the life of the project. |
 | `name` | string | Written as the file name (without extension) on save. |
 | `theme` | string | `"Light"` (the default, not written), `"Dark"`, or `"System"` to follow the computer's or browser's setting. See each output's Theme section. |
@@ -185,6 +186,11 @@ A Button may have `command`: the name of a method of the view model it runs when
 after its hook and before any action. The same naming rules apply. Buttons may share a
 command. A command's method (`Save`) and its hook (`OnSave`) must not clash with a
 property's name or hook (`OnNameChanged`), ignoring case.
+
+A Button may have `enabledBinding`: the name of an on-or-off property of the view model; the
+button is enabled only while it is on. It follows the binding rules and may share its name
+with CheckBoxes and RadioButtons (whose value is on or off) and with other buttons. A property
+only buttons use starts on.
 
 Slider and ProgressBar have whole-number `minimum`, `maximum` and `value`: the minimum is less
 than the maximum, the value lies between them, and all are within ±1,000,000.

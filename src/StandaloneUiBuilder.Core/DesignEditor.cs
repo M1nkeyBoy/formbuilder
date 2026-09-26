@@ -533,6 +533,23 @@ public sealed partial class DesignEditor
     }
 
     /// <summary>
+    /// Makes a Button enabled only while an on-or-off property of the screen's view model is
+    /// true, or always enabled (null or blank). One undo step.
+    /// </summary>
+    public string? SetEnabledBinding(Guid id, string? name)
+    {
+        name = string.IsNullOrWhiteSpace(name) ? null : name.Trim();
+        if (name is not null && FindControl(id) is { } control && ControlCatalog.Get(control.Type).HasEnabledBinding
+            && DataBindings.ValidateEnabled(Screen, control, name) is { } error)
+        {
+            return error;
+        }
+
+        return EditProperties(id, d => d.HasEnabledBinding, "an enabled binding", p =>
+            p.EnabledBinding == name ? p : p with { EnabledBinding = name });
+    }
+
+    /// <summary>
     /// Makes a Button run a command of the screen's view model when clicked, or removes the
     /// command (null or blank). One undo step.
     /// </summary>
@@ -900,14 +917,17 @@ public sealed partial class DesignEditor
         {
             // A pasted binding or command stays unless it clashes with this screen's view model.
             var result = screen with { Controls = screen.Controls.AddRange(pasted) };
-            foreach (var bound in pasted.SelectMany(c => ControlTree.All([c])).Where(c => c.Properties.Binding is not null || c.Properties.Command is not null))
+            foreach (var bound in pasted.SelectMany(c => ControlTree.All([c])).Where(c => DataBindings.BoundNames(c).Any() || c.Properties.Command is not null))
             {
                 var current = ControlTree.Find(result.Controls, bound.Id)!;
                 var binding = current.Properties.Binding is { } b && DataBindings.Validate(result, current, b) is null ? b : null;
                 current = current with { Properties = current.Properties with { Binding = binding } };
                 result = result with { Controls = ControlTree.Replace(result.Controls, bound.Id, _ => current) };
                 var command = current.Properties.Command is { } c && DataBindings.ValidateCommand(result, current, c) is null ? c : null;
-                result = result with { Controls = ControlTree.Replace(result.Controls, bound.Id, x => x with { Properties = x.Properties with { Command = command } }) };
+                current = current with { Properties = current.Properties with { Command = command } };
+                result = result with { Controls = ControlTree.Replace(result.Controls, bound.Id, _ => current) };
+                var enabled = current.Properties.EnabledBinding is { } e && DataBindings.ValidateEnabled(result, current, e) is null ? e : null;
+                result = result with { Controls = ControlTree.Replace(result.Controls, bound.Id, x => x with { Properties = x.Properties with { EnabledBinding = enabled } }) };
             }
 
             Commit(Document.WithScreen(result));

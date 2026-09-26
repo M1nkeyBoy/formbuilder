@@ -110,7 +110,8 @@ public static class ViewModelCode
     public static string TextLiteral(BoundProperty property) => Literal(property.First.Properties.Text ?? "");
 
     /// <summary>The design's checked state of the property's first control.</summary>
-    public static string FlagLiteral(BoundProperty property) => property.First.Properties.IsChecked == true ? "true" : "false";
+    public static string FlagLiteral(BoundProperty property) =>
+        property.OnlyEnables || property.First.Properties.IsChecked == true ? "true" : "false";
 
     /// <summary>The design's value of the property's first control.</summary>
     public static string NumberLiteral(BoundProperty property) =>

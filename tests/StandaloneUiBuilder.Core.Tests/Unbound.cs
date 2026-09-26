@@ -13,7 +13,7 @@ internal static class Unbound
 
     private static ControlDocument Strip(ControlDocument control) => control with
     {
-        Properties = control.Properties with { Binding = null, Command = null },
+        Properties = control.Properties with { Binding = null, Command = null, EnabledBinding = null },
         Children = control.Children?.ConvertAll(Strip),
     };
 }

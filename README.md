@@ -45,7 +45,8 @@ choices are recorded in `docs/decisions.md`.
   such as CustomerName. Each export generates the view model (with change notification, and
   starting from the design's values) and binds the controls to it in the target's own way;
   controls that share a name share the value. A Button's Command field names a view model
-  method, such as Save, that its click runs; you write what it does in OnSave.
+  method, such as Save, that its click runs; you write what it does in OnSave. Its Enabled
+  when field names an on-or-off property, such as CanSave, that enables it.
 - **Light and dark themes.** Project > Theme chooses Light, Dark, or Follow Windows or Browser
   for the whole project. The canvas and Preview draw in it, and every export uses its
   target's own theming (WPF's Fluent theme, Windows Forms' colour mode, WinUI's and MAUI's

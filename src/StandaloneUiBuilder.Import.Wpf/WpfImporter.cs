@@ -408,6 +408,12 @@ public static partial class WpfImporter
             element.Attribute(boundAttribute!)!.Remove();
         }
 
+        // A Button enabled by a view model property.
+        var enabledBinding = controlType == ControlType.Button && element.Attribute("IsEnabled") is { } isEnabled
+            && BindingPattern().Match(isEnabled.Value) is { Success: true } enabledMatch
+            ? enabledMatch.Groups[1].Value
+            : null;
+
         var definition = ControlCatalog.Get(controlType);
         var properties = definition.CreateDefaultProperties(name);
         properties = controlType switch
@@ -440,7 +446,7 @@ public static partial class WpfImporter
             Id = Guid.NewGuid(),
             Type = controlType,
             Name = name,
-            Properties = Style(element, properties, definition, name, context) with { Binding = binding },
+            Properties = Style(element, properties, definition, name, context) with { Binding = binding, EnabledBinding = enabledBinding },
             Children = definition.IsContainer ? [] : null,
         }.WithBounds(new ControlBounds(0, 0, definition.DefaultWidth, definition.DefaultHeight));
 
@@ -476,6 +482,15 @@ public static partial class WpfImporter
             {
                 context.Warn($"Left out the binding of {control.Name}: {error}");
                 screen = screen with { Controls = ControlTree.Replace(screen.Controls, control.Id, c => c with { Properties = c.Properties with { Binding = null } }) };
+            }
+        }
+
+        foreach (var button in ControlTree.All(screen.Controls).Where(c => c.Properties.EnabledBinding is not null).ToList())
+        {
+            if (DataBindings.ValidateEnabled(screen, button, button.Properties.EnabledBinding!) is { } error)
+            {
+                context.Warn($"Left out what enables {button.Name}: {error}");
+                screen = screen with { Controls = ControlTree.Replace(screen.Controls, button.Id, c => c with { Properties = c.Properties with { EnabledBinding = null } }) };
             }
         }
 
