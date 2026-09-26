@@ -50,11 +50,12 @@ public sealed class StudioUiTests : IDisposable
         EditorSession.WaitUntil(() => session.ById("ZoomText").Name == "125%", () => $"Zoom: {session.ById("ZoomText").Name}");
         EditorSession.WaitUntil(() => Math.Abs(surface.BoundingRectangle.Width - width * 1.25) <= 2, () => $"The canvas is {surface.BoundingRectangle.Width} wide, not {width * 1.25}.");
 
-        // The logo image is at (20, 390) and 160 × 120 in the design: click its middle, scaled.
+        // The header label is at (20, 20) and 760 × 30 in the design: click near its bottom edge,
+        // scaled. Unscaled, the same point would be in the empty gap below it.
         var box = surface.BoundingRectangle;
-        Mouse.Click(new System.Drawing.Point(box.Left + (int)(100 * 1.25), box.Top + (int)(450 * 1.25)));
+        Mouse.Click(new System.Drawing.Point(box.Left + (int)(200 * 1.25), box.Top + (int)(46 * 1.25)));
         Wait.UntilInputIsProcessed();
-        EditorSession.WaitUntil(() => session.Field("NameBox").Text == "LogoImage", () => $"Selected {session.Field("NameBox").Text}");
+        EditorSession.WaitUntil(() => session.Field("NameBox").Text == "HeaderLabel", () => $"Selected {session.Field("NameBox").Text}");
         session.Screenshot("36-zoomed");
 
         EditorSession.Press(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_0);

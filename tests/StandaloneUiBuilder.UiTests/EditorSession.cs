@@ -91,33 +91,52 @@ internal sealed class EditorSession : IDisposable
 
     /// <summary>
     /// Scrolls an element into view if it is out of sight in a scrolling panel (the toolbox,
-    /// the inspector, a list), so clicks land on it: a list item (or the item holding the
+    /// the inspector, a list), so clicks land on it rather than on whatever is below the window.
+    /// WPF does not report an element clipped by a scroll viewer as offscreen, so this compares
+    /// the element with the nearest scrolling ancestor. A list item (or the item holding the
     /// element) scrolls itself; anything else is focused, and the editor brings what has focus
-    /// into view.
+    /// into view. Elements larger than the view (the canvas) are left alone.
     /// </summary>
     private static AutomationElement Reveal(AutomationElement element)
     {
-        if (element.Properties.IsOffscreen.ValueOrDefault)
+        var bounds = element.BoundingRectangle;
+        var item = element.Patterns.ScrollItem.IsSupported ? element : null;
+        AutomationElement? viewer = null;
+        var ancestor = element.Parent;
+        for (var depth = 0; ancestor is not null && depth < 12; depth++, ancestor = ancestor.Parent)
         {
-            var item = element;
-            for (var depth = 0; item is not null && depth < 4 && !item.Patterns.ScrollItem.IsSupported; depth++)
+            if (ancestor.Patterns.Scroll.IsSupported)
             {
-                item = item.Parent;
+                viewer = ancestor;
+                break;
             }
 
-            if (item is not null && item.Patterns.ScrollItem.TryGetPattern(out var scrollItem))
-            {
-                scrollItem.ScrollIntoView();
-            }
-            else if (element.Properties.IsKeyboardFocusable.ValueOrDefault)
-            {
-                element.Focus();
-            }
-
-            Wait.UntilInputIsProcessed();
-            Thread.Sleep(150);
+            item ??= ancestor.Patterns.ScrollItem.IsSupported ? ancestor : null;
         }
 
+        if (viewer is null || bounds.IsEmpty)
+        {
+            return element;
+        }
+
+        var view = viewer.BoundingRectangle;
+        var inside = bounds.Top >= view.Top && bounds.Bottom <= view.Bottom && bounds.Left >= view.Left && bounds.Right <= view.Right;
+        if (inside || bounds.Height > view.Height || bounds.Width > view.Width)
+        {
+            return element;
+        }
+
+        if (item is not null && item.Patterns.ScrollItem.TryGetPattern(out var scrollItem))
+        {
+            scrollItem.ScrollIntoView();
+        }
+        else if (element.Properties.IsKeyboardFocusable.ValueOrDefault)
+        {
+            element.Focus();
+        }
+
+        Wait.UntilInputIsProcessed();
+        Thread.Sleep(150);
         return element;
     }
 
@@ -139,35 +158,47 @@ internal sealed class EditorSession : IDisposable
     /// </summary>
     public Point Canvas(int x, int y)
     {
+        var surface = ShowOnCanvas(x, y, x, y);
+        return new Point(surface.Left + x, surface.Top + y);
+    }
+
+    /// <summary>
+    /// Scrolls the canvas, if either design point is out of sight, so the middle of the two is
+    /// in the middle of the view, and returns the canvas's screen bounds.
+    /// </summary>
+    private Rectangle ShowOnCanvas(int x1, int y1, int x2, int y2)
+    {
         var scroller = ById("SurfaceScroller");
         var view = scroller.BoundingRectangle;
         var surface = ById("Surface").BoundingRectangle;
-        var point = new Point(surface.Left + x, surface.Top + y);
         const int ScrollBar = 20;
-        if ((point.X < view.Left || point.X > view.Right - ScrollBar || point.Y < view.Top || point.Y > view.Bottom - ScrollBar)
-            && scroller.Patterns.Scroll.TryGetPattern(out var scroll))
+        bool Visible(int x, int y) =>
+            surface.Left + x >= view.Left && surface.Left + x <= view.Right - ScrollBar
+            && surface.Top + y >= view.Top && surface.Top + y <= view.Bottom - ScrollBar;
+        if ((!Visible(x1, y1) || !Visible(x2, y2)) && scroller.Patterns.Scroll.TryGetPattern(out var scroll))
         {
-            // Scroll so the point is in the middle of the view, where the canvas allows.
             static double Percent(double size, double viewPercent, double wanted)
             {
                 var extent = size / (viewPercent / 100);
                 return extent <= size ? -1 : Math.Clamp(wanted / (extent - size) * 100, 0, 100);
             }
 
+            // The canvas sits 24 DIPs inside the scrolled area.
+            var x = (x1 + x2) / 2.0 + 25;
+            var y = (y1 + y2) / 2.0 + 25;
             var horizontal = scroll.HorizontallyScrollable.Value
-                ? Percent(view.Width - ScrollBar, scroll.HorizontalViewSize.Value, x + 25 - (view.Width - ScrollBar) / 2.0)
+                ? Percent(view.Width - ScrollBar, scroll.HorizontalViewSize.Value, x - (view.Width - ScrollBar) / 2.0)
                 : -1;
             var vertical = scroll.VerticallyScrollable.Value
-                ? Percent(view.Height - ScrollBar, scroll.VerticalViewSize.Value, y + 25 - (view.Height - ScrollBar) / 2.0)
+                ? Percent(view.Height - ScrollBar, scroll.VerticalViewSize.Value, y - (view.Height - ScrollBar) / 2.0)
                 : -1;
             scroll.SetScrollPercent(horizontal, vertical);
             Wait.UntilInputIsProcessed();
             Thread.Sleep(150);
             surface = ById("Surface").BoundingRectangle;
-            point = new Point(surface.Left + x, surface.Top + y);
         }
 
-        return point;
+        return surface;
     }
 
     public void ClickCanvas(int x, int y)
@@ -176,7 +207,11 @@ internal sealed class EditorSession : IDisposable
         Wait.UntilInputIsProcessed();
     }
 
-    public void DragOnCanvas(int fromX, int fromY, int toX, int toY) => Drag(Canvas(fromX, fromY), Canvas(toX, toY));
+    public void DragOnCanvas(int fromX, int fromY, int toX, int toY)
+    {
+        var surface = ShowOnCanvas(fromX, fromY, toX, toY);
+        Drag(new Point(surface.Left + fromX, surface.Top + fromY), new Point(surface.Left + toX, surface.Top + toY));
+    }
 
     public static void Drag(Point from, Point to)
     {
