@@ -13,6 +13,8 @@ Open `layout-demo.uibproj` to see most features at work.
 
 ## Choosing a platform
 
+![Choosing a new project's platform](screenshots/new-project.png)
+
 A new project (File > New, or starting the editor without one) asks which platform it is
 for: **WPF**, **Windows Forms**, **WinUI 3**, **.NET MAUI** or **Blazor**. The platform decides
 what Export writes and which control libraries you can add. **Any platform** keeps the choice
@@ -130,6 +132,8 @@ differ (a number is whole in Windows Forms and Blazor), write code that suits bo
 
 ## Control libraries
 
+![The Libraries window with the Extended WPF Toolkit added](screenshots/libraries.png)
+
 A project for one platform can use control libraries: NuGet packages of controls, such as
 Syncfusion, Telerik, DevExpress or the Extended WPF Toolkit, as you would add them in Visual
 Studio.
@@ -145,6 +149,8 @@ Studio.
   export registers it when the app starts.
 - **Update to newest** or **Remove** a library in the same window. A library in use cannot be
   removed until its controls are deleted.
+
+![A toolkit IntegerUpDown drawn on the canvas, with its Library properties in the inspector](screenshots/library-control.png)
 
 In a WPF or Windows Forms project, the canvas shows library controls as they look, drawn by
 a separate process, so a library's code never runs in the editor itself; they appear as
