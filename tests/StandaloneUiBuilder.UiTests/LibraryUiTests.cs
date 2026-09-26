@@ -107,8 +107,10 @@ public sealed class LibraryUiTests : IDisposable
         try
         {
             var window = app.GetMainWindow(automation, TimeSpan.FromSeconds(60)) ?? throw new InvalidOperationException("The window did not open.");
-            EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("IntegerUpDown1")), "the IntegerUpDown");
-            EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("ColorPicker1")), "the ColorPicker");
+            // The toolkit's controls show UI Automation their parts rather than themselves: the
+            // IntegerUpDown its text box, beside the builder's own button.
+            EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("Button1")), "the button");
+            EditorSession.WaitFor(() => window.FindFirstDescendant(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Edit)), "the IntegerUpDown's text box");
             Thread.Sleep(500);
             Capture.Element(window).ToFile(Path.Combine(EditorSession.ArtifactsDirectory, "39-wpf-library-app.png"));
         }
