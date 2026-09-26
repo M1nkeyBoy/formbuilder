@@ -23,15 +23,16 @@ A complete example is in [`samples/customer-form.uibproj`](samples/customer-form
 | 11 | Adds the container `TabControl`, with `selectedTab`, and its pages, `TabPage`. | None: older files have no tabs. |
 | 12 | Adds `tabOrder` to screens. | None: Tab follows the order controls are in, as before. |
 | 13 | Adds the project's `theme`. | None: older projects are light, as before. |
+| 14 | Adds `binding` to controls with a value. | None: older controls are not bound. |
 
-The builder reads versions 1 to 13 and always saves version 13. An older builder rejects a
+The builder reads versions 1 to 14 and always saves version 14. An older builder rejects a
 newer file with a clear message instead of silently dropping what it does not know.
 
-## Schema version 13
+## Schema version 14
 
 ```json
 {
-  "schemaVersion": 13,
+  "schemaVersion": 14,
   "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971",
   "name": "Customer form",
   "screens": [{
@@ -61,7 +62,7 @@ newer file with a clear message instead of silently dropping what it does not kn
 
 | Field | Type | Notes |
 |---|---|---|
-| `schemaVersion` | integer | Required. `13` when saved by this builder; `1` to `12` are still read. |
+| `schemaVersion` | integer | Required. `14` when saved by this builder; `1` to `13` are still read. |
 | `projectId` | GUID string | Required. Stable for the life of the project. |
 | `name` | string | Written as the file name (without extension) on save. |
 | `theme` | string | `"Light"` (the default, not written), `"Dark"`, or `"System"` to follow the computer's or browser's setting. See each output's Theme section. |
@@ -169,6 +170,15 @@ Deleting a screen in the editor removes the buttons' links to it.
 
 A TextBox may have `isMultiline: true` for several lines of text that wrap; it is omitted for
 a single line.
+
+A control with a value (Label, TextBox, PasswordBox, CheckBox, RadioButton, Slider,
+ProgressBar, ComboBox, ListBox, DatePicker) may have `binding`: the name of the property of
+its screen's view model that its value is bound to. It starts with a capital letter and
+contains only letters, digits and underscores, is not `PropertyChanged`, `OnPropertyChanged`
+or `SetProperty`, and does not end in `ViewModel`. Controls on a screen that share a name
+share the value, so their values must be of the same kind (text; on or off; a number; a
+chosen item; a date), and names on a screen differ in more than case. The first such control
+in screen order gives the property its starting value.
 
 Slider and ProgressBar have whole-number `minimum`, `maximum` and `value`: the minimum is less
 than the maximum, the value lies between them, and all are within ±1,000,000.

@@ -11,10 +11,10 @@ public sealed record ProjectDocument
     /// <summary>
     /// The format version this builder writes. Older versions (1: no anchors, 2: no containers,
     /// 3: no grid spans, 4: no sized grid rows and columns, 5: one screen, 6: the first seven
-    /// control types only, 7: no button actions, 8: no fonts or colours, 9: no images, 10: no tab controls, 11: no tab order, 12: no theme) are still
+    /// control types only, 7: no button actions, 8: no fonts or colours, 9: no images, 10: no tab controls, 11: no tab order, 12: no theme, 13: no data binding) are still
     /// read. See docs/project-format.md for the history.
     /// </summary>
-    public const int CurrentSchemaVersion = 13;
+    public const int CurrentSchemaVersion = 14;
 
     public const int OldestSupportedSchemaVersion = 1;
     public const string DefaultName = "Untitled";
@@ -167,6 +167,12 @@ public sealed record ControlProperties
 
     /// <summary>Any control: the background colour as "#RRGGBB"; null for the default.</summary>
     public string? Background { get; init; }
+
+    /// <summary>
+    /// Controls with a value: the name of the property of the screen's view model that the value
+    /// is bound to; null for none. See <see cref="DataBindings"/>.
+    /// </summary>
+    public string? Binding { get; init; }
 
     /// <summary>Button: the ID of a screen the button opens, as a dialog over its own.</summary>
     public string? OpensScreen { get; init; }

@@ -612,3 +612,29 @@ Choices made during the prototype slices that affect later work.
   WinForms run of the dark layout demo, dark exports that CI builds, runs and photographs,
   an editor test that switches the theme and back with undo, and a browser test of dark and
   follow-the-browser pages.
+
+## Slice 32 — Data binding
+
+- **A view model per screen, generated.** A control with a value (Label, TextBox, PasswordBox,
+  CheckBox, RadioButton, Slider, ProgressBar, ComboBox, ListBox, DatePicker) can name a
+  `binding` (format version 14). Each screen with bindings gets `{Screen}ViewModel.g.cs`: one
+  property per name, starting from the design, raising `PropertyChanged`, with a partial
+  `On{Name}Changed` hook, so the developer's code works with values rather than controls and
+  can add to the class in its own file. It is regenerated like the other `.g.cs` files.
+- **Shared names share a value.** A Label can show what a TextBox holds, or a ProgressBar
+  follow a Slider (the layout demo does this). Controls that share a name must have the same
+  kind of value; the first in screen order gives the starting value. Names are PascalCase
+  (never a C# keyword), avoid the view model's own members, and differ in more than case.
+- **Each target in its own terms, with its own types.** WPF `{Binding}` with the window as
+  its own `DataContext`; WinForms `DataBindings`; WinUI `x:Bind`, whose types must match the
+  controls (`bool?`, `DateTimeOffset?`); MAUI `{Binding}` with a converter for its 0-to-1
+  ProgressBar; Blazor `@bind` to `ViewModel.Name` instead of a field. A number is `int` where
+  the control holds whole numbers (WinForms, Blazor) and `double` elsewhere. Where a target
+  cannot bind a value it is done in code: WPF's PasswordBox copies its password in its
+  handler, and WinForms' and WinUI's lists write their choice from their selection handler.
+- **What stays out:** commands (a Button bound to a view model method) and bindings to
+  anything but the screen's own view model. Buttons keep their hooks, where the developer can
+  use the view model.
+- **Checked by** unit tests of every output and the import, and in the running apps: the
+  browser test and the WinForms, WinUI and MAUI tests move the slider and check the progress
+  bar follows; the WPF parity test gives the parsed window a stand-in view model.

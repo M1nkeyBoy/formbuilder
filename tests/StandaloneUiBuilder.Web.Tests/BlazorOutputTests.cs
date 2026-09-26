@@ -133,6 +133,29 @@ public sealed class BlazorOutputTests
         Assert.Equal(expected, visited.Skip(start).Take(expected.Count));
     }
 
+    /// <summary>The Settings screen's slider and progress bar are bound to the same value, Level.</summary>
+    [WebFact]
+    public async Task MovingTheSliderMovesTheProgressBarBoundToTheSameValue()
+    {
+        var document = Sample("layout-demo");
+        using var app = await GeneratedApp.StartAsync(document, BlazorExporter.Export);
+        await using var browser = await LaunchAsync();
+        var page = await browser.NewPageAsync();
+        await page.GotoAsync(app.Url + "/settings");
+
+        var progress = page.Locator("#UploadProgress");
+        Assert.Equal("3", await progress.GetAttributeAsync("value"));
+
+        // The page works once its interactive connection is up; keep trying until then.
+        for (var attempt = 0; attempt < 40 && await progress.GetAttributeAsync("value") != "7"; attempt++)
+        {
+            await page.Locator("#LevelSlider").FillAsync("7");
+            await Task.Delay(250);
+        }
+
+        Assert.Equal("7", await progress.GetAttributeAsync("value"));
+    }
+
     /// <summary>
     /// A dark project's pages are dark; one that follows the browser is dark only when the
     /// browser asks for it. Either way every control keeps its place.

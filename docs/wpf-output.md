@@ -128,6 +128,22 @@ On a background the design sets (a control's own, or its container's), text gets
 white, whichever stands out, unless it has a text colour of its own, and controls inside such
 a container take its background; so the design's own colours read the same in a dark theme.
 
+## Data binding
+
+A screen whose controls are bound (see the editor's Binding field) gets a view model,
+`{Screen}ViewModel.g.cs` (`MainViewModel` for the first screen), regenerated on every export: a
+partial class with one property per binding name, starting from the first bound control's
+design value, that raises `PropertyChanged` when it changes and calls a partial
+`On{Name}Changed()` hook. Add your own members in another part of the class. Controls that share
+a name share the value: in the layout demo, moving the slider moves the progress bar.
+
+The window's `ViewModel` property holds it, and the window's `DataContext` is bound to that
+property. Values are bound with `{Binding}`: a TextBox's `Text` as you type, a Label's `Content`
+and a ProgressBar's `Value` one way, a ComboBox's or ListBox's `SelectedValue` by item text,
+a DatePicker's `SelectedDate`. WPF cannot bind a PasswordBox's password, so its
+`PasswordChanged` handler copies the password into the view model (and not back). Types:
+text is `string`, on or off `bool`, a number `double`, a choice `string?`, a date `DateTime?`.
+
 ## Responding to controls
 
 Every control you can interact with is wired to one event, and each has a *hook*: a partial
@@ -195,5 +211,5 @@ the old files. The builder never deletes files.
 
 ## Not generated yet
 
-Data binding, styles, and rows or columns sized to their content (`Auto`). Absolute positions suit fixed-size tools and dialogs; responsive layouts need the
+Commands (a button bound to the view model), shared styles, and rows or columns sized to their content (`Auto`). Absolute positions suit fixed-size tools and dialogs; responsive layouts need the
 layout-model work listed in the spec's "decisions to revisit".

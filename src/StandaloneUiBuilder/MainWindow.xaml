@@ -443,6 +443,11 @@
                                 <TextBox x:Name="BackgroundBox" Style="{StaticResource FieldBox}" AutomationProperties.Name="Background colour" />
                             </UniformGrid>
                         </DockPanel>
+                        <DockPanel x:Name="BindingRow" Style="{StaticResource FieldRow}"
+                                   ToolTip="The view model property this control's value is bound to, such as CustomerName; leave blank for none. Controls that share a name share the value.">
+                            <Label Content="Bindin_g" Target="{Binding ElementName=BindingBox}" Style="{StaticResource FieldLabel}" />
+                            <TextBox x:Name="BindingBox" Style="{StaticResource FieldBox}" />
+                        </DockPanel>
                         <TextBlock x:Name="InspectorErrorText" Margin="10,4,10,6" TextWrapping="Wrap"
                                    Foreground="#FFC42B1C" Visibility="Collapsed" />
                         <TextBlock Style="{StaticResource PlaceholderText}" Margin="10,4,10,10"

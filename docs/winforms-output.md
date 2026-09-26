@@ -116,6 +116,22 @@ On a background the design sets (a control's own, or its container's), text gets
 white, whichever stands out, unless it has a text colour of its own, and controls inside such
 a container take its background; so the design's own colours read the same in a dark theme.
 
+## Data binding
+
+A screen whose controls are bound (see the editor's Binding field) gets a view model,
+`{Screen}ViewModel.g.cs` (`MainViewModel` for the first screen), regenerated on every export: a
+partial class with one property per binding name, starting from the first bound control's
+design value, that raises `PropertyChanged` when it changes and calls a partial
+`On{Name}Changed()` hook. Add your own members in another part of the class. Controls that share
+a name share the value: in the layout demo, moving the slider moves the progress bar.
+
+The form's `ViewModel` property holds it, and `InitializeComponent` adds a data binding for each
+bound control (`Text`, `Checked` or `Value`), updated as the control changes; Labels and
+ProgressBars only show the value. A ComboBox or ListBox binds its `Text`, the chosen item's
+text, and its selection handler writes a new choice to the view model. Types: text is
+`string`, on or off `bool`, a number `int`, a choice `string?`, and a date `DateTime`, starting
+from today, since a DateTimePicker always has a date.
+
 ## Responding to controls
 
 As in WPF output, each control you can interact with has a hook: a partial method you can

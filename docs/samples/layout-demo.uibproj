@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 13,
+  "schemaVersion": 14,
   "projectId": "5b7c2f4e-8d1a-4e6b-9f3c-2a7d8e9b0c11",
   "name": "Layout demo",
   "screens": [
@@ -459,7 +459,8 @@
               "width": 100,
               "height": 30,
               "properties": {
-                "text": "localhost"
+                "text": "localhost",
+                "binding": "Server"
               },
               "anchor": [
                 "left",
@@ -477,7 +478,8 @@
               "width": 100,
               "height": 30,
               "properties": {
-                "text": "Port"
+                "text": "Port",
+                "binding": "PortCaption"
               },
               "anchor": [
                 "left",
@@ -495,7 +497,8 @@
               "width": 100,
               "height": 30,
               "properties": {
-                "text": "8080"
+                "text": "8080",
+                "binding": "Port"
               },
               "anchor": [
                 "left",
@@ -514,7 +517,8 @@
               "height": 30,
               "properties": {
                 "text": "Use a secure connection",
-                "isChecked": true
+                "isChecked": true,
+                "binding": "UseSecureConnection"
               },
               "anchor": [
                 "left",
@@ -556,7 +560,8 @@
               "height": 20,
               "properties": {
                 "text": "Fast",
-                "isChecked": true
+                "isChecked": true,
+                "binding": "Fast"
               },
               "anchor": [
                 "left",
@@ -573,7 +578,8 @@
               "height": 20,
               "properties": {
                 "text": "Safe",
-                "isChecked": false
+                "isChecked": false,
+                "binding": "Safe"
               },
               "anchor": [
                 "left",
@@ -589,6 +595,7 @@
               "width": 100,
               "height": 30,
               "properties": {
+                "binding": "Level",
                 "minimum": 0,
                 "maximum": 10,
                 "value": 3
@@ -607,9 +614,10 @@
               "width": 100,
               "height": 16,
               "properties": {
+                "binding": "Level",
                 "minimum": 0,
-                "maximum": 100,
-                "value": 40
+                "maximum": 10,
+                "value": 3
               },
               "anchor": [
                 "left",
@@ -626,7 +634,9 @@
           "y": 230,
           "width": 160,
           "height": 30,
-          "properties": {},
+          "properties": {
+            "binding": "StartDate"
+          },
           "anchor": [
             "left",
             "top"
@@ -640,7 +650,9 @@
           "y": 230,
           "width": 160,
           "height": 30,
-          "properties": {},
+          "properties": {
+            "binding": "Secret"
+          },
           "anchor": [
             "left",
             "top"
@@ -659,7 +671,8 @@
               "Primary",
               "Backup",
               "Local"
-            ]
+            ],
+            "binding": "ChosenServer"
           },
           "anchor": [
             "left",
@@ -713,6 +726,7 @@
                   "height": 100,
                   "properties": {
                     "text": "Notes wrap onto several lines.",
+                    "binding": "Notes",
                     "isMultiline": true
                   },
                   "anchor": [
@@ -751,7 +765,8 @@
                   "height": 20,
                   "properties": {
                     "text": "Verbose logging",
-                    "isChecked": false
+                    "isChecked": false,
+                    "binding": "Verbose"
                   },
                   "anchor": [
                     "left",
@@ -771,7 +786,8 @@
                       "Errors",
                       "Warnings",
                       "Everything"
-                    ]
+                    ],
+                    "binding": "LogLevel"
                   },
                   "anchor": [
                     "left",

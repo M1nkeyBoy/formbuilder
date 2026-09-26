@@ -12,7 +12,7 @@ public class WinUIOutputTests
     private static readonly XNamespace Ui = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
 
     private static ProjectDocument Sample(string name = "layout-demo") =>
-        ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", name + ".uibproj"));
+        Unbound.Of(ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", name + ".uibproj")));
 
     private static XElement Window(ProjectDocument document, int screen = 0) =>
         XDocument.Parse(WinUIGenerator.WindowXaml(document, document.Screens[screen], "Demo")).Root!;

@@ -32,7 +32,7 @@ public static class WinUIGenerator
     // class name is checked separately.
     private static readonly HashSet<string> ReservedNames = new(StringComparer.Ordinal)
     {
-        "InitializeComponent", "InitializeWindow", "GetDpiForWindow", "Content", "Title", "AppWindow",
+        "InitializeComponent", "ViewModel", "InitializeWindow", "GetDpiForWindow", "Content", "Title", "AppWindow",
         "Activate", "Close", "Closed", "Activated", "Bounds", "Visible", "Dispatcher", "DispatcherQueue",
         "SystemBackdrop", "ExtendsContentIntoTitleBar", "SetTitleBar",
     };
@@ -120,6 +120,10 @@ public static class WinUIGenerator
             files.Add(new($"{className}.xaml", WindowXaml(document, screen, rootNamespace), Regenerate: true));
             files.Add(new($"{className}.xaml.cs", WindowCode(rootNamespace, className), Regenerate: false));
             files.Add(new($"{className}.g.cs", WindowGeneratedCode(document, screen, rootNamespace), Regenerate: true));
+            if (DataBindings.HasViewModel(screen))
+            {
+                files.Add(new(ViewModelCode.FileName(document, screen), ViewModel(document, screen, rootNamespace), Regenerate: true));
+            }
         }
 
         files.AddRange(CodeNames.ImageFiles(document));
@@ -295,6 +299,12 @@ public static class WinUIGenerator
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(control), control.Type, "Unknown control type.");
+        }
+
+        if (properties.Binding is { } binding && BindingAttributes(control.Type, binding) is var (replaces, bound))
+        {
+            attributes.RemoveAll(a => replaces is not null && a.StartsWith(replaces + "=", StringComparison.Ordinal));
+            attributes.AddRange(bound);
         }
 
         attributes.AddRange(StyleAttributes(properties));
@@ -539,6 +549,13 @@ public static class WinUIGenerator
         code.AppendLine();
         code.AppendLine($"public partial class {className}");
         code.AppendLine("{");
+        if (DataBindings.HasViewModel(screen))
+        {
+            code.AppendLine("    /// <summary>The values the window's controls are bound to (with x:Bind).</summary>");
+            code.AppendLine($"    public {ViewModelCode.ClassName(document, screen)} ViewModel {{ get; }} = new();");
+            code.AppendLine();
+        }
+
         code.AppendLine("    /// <summary>Sets the title and opens the window at the design size. Called by the constructor.</summary>");
         code.AppendLine("    private void InitializeWindow()");
         code.AppendLine("    {");
@@ -590,6 +607,16 @@ public static class WinUIGenerator
                     code.AppendLine($"        {pages[i].Name}.Visibility = index == {Number(i)} ? Visibility.Visible : Visibility.Collapsed;");
                 }
 
+                code.AppendLine($"        {HookName(control)}(e);");
+                code.AppendLine("    }");
+            }
+            else if (control.Type is ControlType.ComboBox or ControlType.ListBox && control.Properties.Binding is { } choice)
+            {
+                // x:Bind cannot write an item back to text, so the new choice is written here.
+                var item = control.Type == ControlType.ListBox ? "ListBoxItem" : "ComboBoxItem";
+                code.AppendLine($"    private void {HandlerName(control)}({e.Sender} sender, {e.Args} e)");
+                code.AppendLine("    {");
+                code.AppendLine($"        ViewModel.{choice} = ({control.Name}.SelectedItem as {item})?.Content as string;");
                 code.AppendLine($"        {HookName(control)}(e);");
                 code.AppendLine("    }");
             }
@@ -735,6 +762,47 @@ public static class WinUIGenerator
         AxisAlignment.Start => start,
         AxisAlignment.End => end,
         _ => "Stretch",
+    };
+
+    /// <summary>
+    /// A screen's view model, with WinUI's types, which x:Bind needs to match its controls: a
+    /// CheckBox's state is a nullable bool, a Slider's value a double, a CalendarDatePicker's
+    /// date a nullable DateTimeOffset, and a choice the chosen item's text.
+    /// </summary>
+    public static string ViewModel(ProjectDocument document, ScreenDocument screen, string rootNamespace) =>
+        ViewModelCode.Generate(document, screen, rootNamespace,
+            kind => kind switch
+            {
+                BindingKind.Text => "string",
+                BindingKind.Flag => "bool?",
+                BindingKind.Number => "double",
+                BindingKind.Choice => "string?",
+                _ => "System.DateTimeOffset?",
+            },
+            property => property.Kind switch
+            {
+                BindingKind.Text => ViewModelCode.TextLiteral(property),
+                BindingKind.Flag => ViewModelCode.FlagLiteral(property),
+                BindingKind.Number => ViewModelCode.NumberLiteral(property),
+                _ => null,
+            });
+
+    /// <summary>
+    /// The x:Bind attributes that bind a control's value to the window's view model, and the
+    /// design-value attribute they replace. A ComboBox's or ListBox's choice is shown one way;
+    /// its selection handler writes a new choice back.
+    /// </summary>
+    private static (string? Replaces, string[] Attributes)? BindingAttributes(ControlType type, string name) => type switch
+    {
+        ControlType.Label => ("Content", [$"Content=\"{{x:Bind ViewModel.{name}, Mode=OneWay}}\""]),
+        ControlType.TextBox => ("Text", [$"Text=\"{{x:Bind ViewModel.{name}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}}\""]),
+        ControlType.PasswordBox => (null, [$"Password=\"{{x:Bind ViewModel.{name}, Mode=TwoWay}}\""]),
+        ControlType.CheckBox or ControlType.RadioButton => ("IsChecked", [$"IsChecked=\"{{x:Bind ViewModel.{name}, Mode=TwoWay}}\""]),
+        ControlType.Slider => ("Value", [$"Value=\"{{x:Bind ViewModel.{name}, Mode=TwoWay}}\""]),
+        ControlType.ProgressBar => ("Value", [$"Value=\"{{x:Bind ViewModel.{name}, Mode=OneWay}}\""]),
+        ControlType.ComboBox or ControlType.ListBox => (null, ["SelectedValuePath=\"Content\"", $"SelectedValue=\"{{x:Bind ViewModel.{name}, Mode=OneWay}}\""]),
+        ControlType.DatePicker => (null, [$"Date=\"{{x:Bind ViewModel.{name}, Mode=TwoWay}}\""]),
+        _ => null,
     };
 
     /// <summary>Each control's place in the screen's tab order, or none when it has no order of its own.</summary>

@@ -41,6 +41,10 @@ choices are recorded in `docs/decisions.md`.
   in the order Tab should go, and press Esc when done. Tab Order by Position orders them top to
   bottom and left to right; Reset Tab Order goes back to the controls' own order. Preview and
   every export except MAUI (whose .NET 10 version has no TabIndex) follow it.
+- **Data binding.** A control's Binding field names a property of its screen's view model,
+  such as CustomerName. Each export generates the view model (with change notification, and
+  starting from the design's values) and binds the controls to it in the target's own way;
+  controls that share a name share the value.
 - **Light and dark themes.** Project > Theme chooses Light, Dark, or Follow Windows or Browser
   for the whole project. The canvas and Preview draw in it, and every export uses its
   target's own theming (WPF's Fluent theme, Windows Forms' colour mode, WinUI's and MAUI's
@@ -174,7 +178,8 @@ tests use this so they never touch your own drafts.
 - Output is WPF, WinForms, WinUI 3, .NET MAUI (for Windows; other platforms can be added to
   the project) and Blazor. It covers
   layout, per-control fonts and colours, a light or dark theme, and one event hook per
-  control; there is no data binding and no shared styles. MAUI keeps its default tab order.
+  control, and data binding to a generated view model per screen; there are no commands
+  (buttons bound to the view model) and no shared styles. MAUI keeps its default tab order.
   Import reads WPF windows only.
 - The automated UI tests assume 100% display scaling. 150% scaling has been checked by hand.
 - Only the most recent recovery draft is offered at each start; older ones wait for later

@@ -8,7 +8,7 @@ namespace StandaloneUiBuilder.Core.Tests;
 public class BlazorOutputTests
 {
     private static ProjectDocument Sample(string name = "layout-demo") =>
-        ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", name + ".uibproj"));
+        Unbound.Of(ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", name + ".uibproj")));
 
     private static ProjectDocument Single(ControlDocument control) =>
         ProjectDocument.CreateBlank() with { Name = "Test", Screens = [new ScreenDocument { Controls = [control] }] };
@@ -92,7 +92,7 @@ public class BlazorOutputTests
         Assert.Contains("<div class=\"uib-content\" style=\"left:8px;top:20px;right:8px;bottom:8px;flex-direction:column\">", page);
         Assert.Contains("<input type=\"radio\" tabindex=\"11\" name=\"ModeGroup\" checked=\"@FastRadio\" @onchange=\"FastRadio_Click\" />", page);
         Assert.Contains("type=\"range\" class=\"uib-range\" min=\"0\" max=\"10\" step=\"1\" @bind=\"LevelSlider\"", page);
-        Assert.Contains("max=\"100\" value=\"@(UploadProgress - (0))\"></progress>", page);
+        Assert.Contains("max=\"10\" value=\"@(UploadProgress - (0))\"></progress>", page);
         Assert.Contains("<textarea id=\"NotesTextBox\"", page);
         Assert.Contains("type=\"password\"", page);
         Assert.Contains("type=\"date\"", page);

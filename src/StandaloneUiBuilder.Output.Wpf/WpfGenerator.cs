@@ -28,7 +28,7 @@ public static class WpfGenerator
     // class name is checked separately.
     private static readonly HashSet<string> ReservedNames = new(StringComparer.Ordinal)
     {
-        "InitializeComponent", "Content", "Title", "Width", "Height", "Name",
+        "InitializeComponent", "ViewModel", "Content", "Title", "Width", "Height", "Name",
         "Resources", "Parent", "Owner", "Icon", "Left", "Top", "Background", "Foreground",
     };
 
@@ -126,11 +126,37 @@ public static class WpfGenerator
             files.Add(new($"{className}.xaml", WindowXaml(document, screen, rootNamespace), Regenerate: true));
             files.Add(new($"{className}.xaml.cs", WindowCode(rootNamespace, className), Regenerate: false));
             files.Add(new($"{className}.Events.g.cs", EventsCode(document, screen, rootNamespace), Regenerate: true));
+            if (DataBindings.HasViewModel(screen))
+            {
+                files.Add(new(Output.ViewModelCode.FileName(document, screen), ViewModelCode(document, screen, rootNamespace), Regenerate: true));
+            }
         }
 
         files.AddRange(CodeNames.ImageFiles(document));
         return files;
     }
+
+    /// <summary>
+    /// A screen's view model, with WPF's types: a Slider's value is a double, a DatePicker's date
+    /// a nullable DateTime, and a ComboBox's or ListBox's choice the chosen item's text, or null.
+    /// </summary>
+    public static string ViewModelCode(ProjectDocument document, ScreenDocument screen, string rootNamespace) =>
+        Output.ViewModelCode.Generate(document, screen, rootNamespace,
+            kind => kind switch
+            {
+                BindingKind.Text => "string",
+                BindingKind.Flag => "bool",
+                BindingKind.Number => "double",
+                BindingKind.Choice => "string?",
+                _ => "DateTime?",
+            },
+            property => property.Kind switch
+            {
+                BindingKind.Text => Output.ViewModelCode.TextLiteral(property),
+                BindingKind.Flag => Output.ViewModelCode.FlagLiteral(property),
+                BindingKind.Number => Output.ViewModelCode.NumberLiteral(property),
+                _ => null,
+            });
 
     /// <summary>The first screen's window.</summary>
     public static string WindowXaml(ProjectDocument document, string rootNamespace) =>
@@ -155,6 +181,12 @@ public static class WpfGenerator
         if (theme != ProjectTheme.Light)
         {
             xaml.AppendLine($"        ThemeMode=\"{ThemeMode(document.Theme)}\"");
+        }
+
+        // Bindings look up their properties in the window's view model.
+        if (DataBindings.HasViewModel(screen))
+        {
+            xaml.AppendLine("        DataContext=\"{Binding ViewModel, RelativeSource={RelativeSource Self}}\"");
         }
 
         xaml.AppendLine("        UseLayoutRounding=\"True\">");
@@ -309,6 +341,12 @@ public static class WpfGenerator
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(control), control.Type, "Unknown control type.");
+        }
+
+        if (properties.Binding is { } binding && BindingAttributes(control.Type, binding) is var (replaces, bound))
+        {
+            attributes.RemoveAll(a => replaces is not null && a.StartsWith(replaces + "=", StringComparison.Ordinal));
+            attributes.AddRange(bound);
         }
 
         attributes.AddRange(StyleAttributes(properties));
@@ -577,6 +615,13 @@ public static class WpfGenerator
         code.AppendLine("{");
 
         var first = true;
+        if (DataBindings.HasViewModel(screen))
+        {
+            code.AppendLine($"    /// <summary>The values the window's controls are bound to; the window's DataContext.</summary>");
+            code.AppendLine($"    public {Output.ViewModelCode.ClassName(document, screen)} ViewModel {{ get; }} = new();");
+            first = false;
+        }
+
         foreach (var control in ControlTree.All(screen.Controls))
         {
             if (EventFor(control.Type) is not { } e)
@@ -620,6 +665,14 @@ public static class WpfGenerator
                 code.AppendLine("    {");
                 code.AppendLine($"        {HookName(control)}(e);");
                 code.AppendLine($"        {action}");
+                code.AppendLine("    }");
+            }
+            else if (control.Type == ControlType.PasswordBox && control.Properties.Binding is { } binding)
+            {
+                code.AppendLine($"    private void {HandlerName(control)}(object sender, {e.Args} e)");
+                code.AppendLine("    {");
+                code.AppendLine($"        ViewModel.{binding} = {control.Name}.Password;");
+                code.AppendLine($"        {HookName(control)}(e);");
                 code.AppendLine("    }");
             }
             else
@@ -722,6 +775,23 @@ public static class WpfGenerator
         AxisAlignment.Start => start,
         AxisAlignment.End => end,
         _ => "Stretch",
+    };
+
+    /// <summary>
+    /// The attributes that bind a control's value to a view model property, and the design-value
+    /// attribute they replace. A PasswordBox's password cannot be bound in WPF; its
+    /// PasswordChanged handler copies it into the view model instead.
+    /// </summary>
+    private static (string? Replaces, string[] Attributes)? BindingAttributes(ControlType type, string name) => type switch
+    {
+        ControlType.Label => ("Content", [$"Content=\"{{Binding {name}, Mode=OneWay}}\""]),
+        ControlType.TextBox => ("Text", [$"Text=\"{{Binding {name}, UpdateSourceTrigger=PropertyChanged}}\""]),
+        ControlType.CheckBox or ControlType.RadioButton => ("IsChecked", [$"IsChecked=\"{{Binding {name}}}\""]),
+        ControlType.Slider => ("Value", [$"Value=\"{{Binding {name}}}\""]),
+        ControlType.ProgressBar => ("Value", [$"Value=\"{{Binding {name}, Mode=OneWay}}\""]),
+        ControlType.ComboBox or ControlType.ListBox => (null, ["SelectedValuePath=\"Content\"", $"SelectedValue=\"{{Binding {name}}}\""]),
+        ControlType.DatePicker => (null, [$"SelectedDate=\"{{Binding {name}}}\""]),
+        _ => null,
     };
 
     /// <summary>The window's Fluent theme: dark, or following Windows' app mode.</summary>

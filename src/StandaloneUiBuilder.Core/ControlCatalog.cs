@@ -63,6 +63,20 @@ public sealed record ControlDefinition(
         or ControlType.CheckBox or ControlType.RadioButton or ControlType.ComboBox or ControlType.ListBox
         or ControlType.Slider or ControlType.DatePicker or ControlType.TabControl;
 
+    /// <summary>The kind of value the type can bind to a view model property; null if it cannot.</summary>
+    public BindingKind? BindingKind => Type switch
+    {
+        ControlType.Label or ControlType.TextBox or ControlType.PasswordBox => Core.BindingKind.Text,
+        ControlType.CheckBox or ControlType.RadioButton => Core.BindingKind.Flag,
+        ControlType.Slider or ControlType.ProgressBar => Core.BindingKind.Number,
+        ControlType.ComboBox or ControlType.ListBox => Core.BindingKind.Choice,
+        ControlType.DatePicker => Core.BindingKind.Date,
+        _ => null,
+    };
+
+    /// <summary>True for types that only show their bound value (Label, ProgressBar); the others also set it.</summary>
+    public bool ShowsBindingOnly => Type is ControlType.Label or ControlType.ProgressBar;
+
     /// <summary>True for types that can open or close a screen when clicked.</summary>
     public bool HasAction => Type == ControlType.Button;
 
@@ -106,6 +120,7 @@ public sealed record ControlDefinition(
         Foreground = HasFont ? properties.Foreground : null,
         Background = HasBackground ? properties.Background : null,
         OpensScreen = HasAction ? properties.OpensScreen : null,
+        Binding = BindingKind is not null ? properties.Binding : null,
         ClosesScreen = HasAction && properties.ClosesScreen == true ? true : null,
 
         // Stored only when true, so single-line text boxes read and write as before.

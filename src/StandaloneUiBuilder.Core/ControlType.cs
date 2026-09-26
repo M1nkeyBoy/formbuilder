@@ -55,6 +55,25 @@ public enum ControlType
     TabPage,
 }
 
+/// <summary>The kind of value a control shows, which decides the type of the property it binds to.</summary>
+public enum BindingKind
+{
+    /// <summary>Text: a Label's or TextBox's text, a PasswordBox's password.</summary>
+    Text,
+
+    /// <summary>On or off: a CheckBox or RadioButton.</summary>
+    Flag,
+
+    /// <summary>A number: a Slider's or ProgressBar's value.</summary>
+    Number,
+
+    /// <summary>The chosen item of a ComboBox or ListBox, by its text.</summary>
+    Choice,
+
+    /// <summary>A DatePicker's date, or none.</summary>
+    Date,
+}
+
 /// <summary>The colours a project's generated screens use for their standard controls.</summary>
 public enum ProjectTheme
 {

@@ -131,6 +131,25 @@ public sealed partial class WpfOutputParityTests
         var xaml = CompiledOnlyAttributes().Replace(WpfGenerator.WindowXaml(document, screen, "Parity"), "");
         var window = (Window)XamlReader.Parse(xaml);
         var grid = (Grid)window.Content;
+
+        // Bound controls show the view model's starting values; the parsed window has no view
+        // model class, so a stand-in with the same values takes its place.
+        if (DataBindings.HasViewModel(screen))
+        {
+            var viewModel = (IDictionary<string, object?>)new System.Dynamic.ExpandoObject();
+            foreach (var property in DataBindings.Properties(screen))
+            {
+                viewModel[property.Name] = property.Kind switch
+                {
+                    BindingKind.Text => property.First.Properties.Text ?? "",
+                    BindingKind.Flag => property.First.Properties.IsChecked == true,
+                    BindingKind.Number => (double)(property.First.Properties.Value ?? 0),
+                    _ => null,
+                };
+            }
+
+            window.DataContext = viewModel;
+        }
         Assert.Equal(screen.Controls.Count, grid.Children.Count);
 
         // A picture's Source is a resource of the compiled application, so it was taken out;

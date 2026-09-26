@@ -24,7 +24,7 @@ public static class WinFormsGenerator
     // separately.
     private static readonly HashSet<string> ReservedNames = new(StringComparer.Ordinal)
     {
-        "InitializeComponent", "components", "Dispose", "Controls", "Text", "Name",
+        "InitializeComponent", "ViewModel", "components", "Dispose", "Controls", "Text", "Name",
         "ClientSize", "AutoScaleDimensions", "AutoScaleMode", "FormBorderStyle", "MaximizeBox",
         "MinimumSize", "SuspendLayout", "ResumeLayout", "PerformLayout", "SizeFromClientSize",
     };
@@ -144,6 +144,10 @@ public static class WinFormsGenerator
             files.Add(new($"{className}.cs", FormCode(rootNamespace, className), Regenerate: false));
             files.Add(new($"{className}.Designer.cs", DesignerCode(document, screen, rootNamespace), Regenerate: true));
             files.Add(new($"{className}.Events.g.cs", EventsCode(document, screen, rootNamespace), Regenerate: true));
+            if (DataBindings.HasViewModel(screen))
+            {
+                files.Add(new(ViewModelCode.FileName(document, screen), ViewModel(document, screen, rootNamespace), Regenerate: true));
+            }
         }
 
         files.AddRange(CodeNames.ImageFiles(document));
@@ -560,11 +564,53 @@ public static class WinFormsGenerator
             code.AppendLine($"        this.{name}.{e} += this.{HandlerName(control)};");
         }
 
+        if (properties.Binding is { } binding && BoundProperty(control.Type) is { } bound)
+        {
+            var update = ControlCatalog.Get(control.Type).ShowsBindingOnly ? "Never" : "OnPropertyChanged";
+            code.AppendLine($"        this.{name}.DataBindings.Add({Literal(bound)}, this.ViewModel, {Literal(binding)}, true, System.Windows.Forms.DataSourceUpdateMode.{update});");
+        }
+
         for (var i = 0; i < (control.Children?.Count ?? 0); i++)
         {
             AppendControl(code, screen, control.Children![i], control, i);
         }
     }
+
+    /// <summary>
+    /// A screen's view model, with Windows Forms' types: a TrackBar's or ProgressBar's value is a
+    /// whole number, and a DateTimePicker's date is never empty, so it starts from today.
+    /// </summary>
+    public static string ViewModel(ProjectDocument document, ScreenDocument screen, string rootNamespace) =>
+        ViewModelCode.Generate(document, screen, rootNamespace,
+            kind => kind switch
+            {
+                BindingKind.Text => "string",
+                BindingKind.Flag => "bool",
+                BindingKind.Number => "int",
+                BindingKind.Choice => "string?",
+                _ => "System.DateTime",
+            },
+            property => property.Kind switch
+            {
+                BindingKind.Text => ViewModelCode.TextLiteral(property),
+                BindingKind.Flag => ViewModelCode.FlagLiteral(property),
+                BindingKind.Number => ViewModelCode.NumberLiteral(property),
+                BindingKind.Date => "System.DateTime.Today",
+                _ => null,
+            });
+
+    /// <summary>
+    /// The control property bound to the view model. A ComboBox's or ListBox's Text is its chosen
+    /// item's text; its selection handler writes a new choice to the view model, since neither
+    /// control reports a change of Text as it happens.
+    /// </summary>
+    private static string? BoundProperty(ControlType type) => type switch
+    {
+        ControlType.Label or ControlType.TextBox or ControlType.PasswordBox or ControlType.ComboBox or ControlType.ListBox => "Text",
+        ControlType.CheckBox or ControlType.RadioButton => "Checked",
+        ControlType.Slider or ControlType.ProgressBar or ControlType.DatePicker => "Value",
+        _ => null,
+    };
 
     /// <summary>
     /// A TabControl: a Panel in its place holding the real TabControl, which fills it and has an
@@ -727,6 +773,13 @@ public static class WinFormsGenerator
         code.AppendLine("{");
 
         var first = true;
+        if (DataBindings.HasViewModel(screen))
+        {
+            code.AppendLine("    /// <summary>The values the form's controls are bound to.</summary>");
+            code.AppendLine($"    public {ViewModelCode.ClassName(document, screen)} ViewModel {{ get; }} = new();");
+            first = false;
+        }
+
         foreach (var control in ControlTree.All(screen.Controls))
         {
             if (EventFor(control.Type) is not { } e)
@@ -770,6 +823,14 @@ public static class WinFormsGenerator
                 code.AppendLine("    {");
                 code.AppendLine($"        {HookName(control)}(e);");
                 code.AppendLine("        Close();");
+                code.AppendLine("    }");
+            }
+            else if (control.Type is ControlType.ComboBox or ControlType.ListBox && control.Properties.Binding is not null)
+            {
+                code.AppendLine($"    private void {HandlerName(control)}(object? sender, System.EventArgs e)");
+                code.AppendLine("    {");
+                code.AppendLine($"        this.{control.Name}.DataBindings[\"Text\"]?.WriteValue();");
+                code.AppendLine($"        {HookName(control)}(e);");
                 code.AppendLine("    }");
             }
             else

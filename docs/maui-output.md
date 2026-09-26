@@ -57,6 +57,21 @@ On a background the design sets (a control's own, or its container's), text gets
 white, whichever stands out, unless it has a text colour of its own, and controls inside such
 a container take its background; so the design's own colours read the same in a dark theme.
 
+## Data binding
+
+A screen whose controls are bound (see the editor's Binding field) gets a view model,
+`{Screen}ViewModel.g.cs` (`MainViewModel` for the first screen), regenerated on every export: a
+partial class with one property per binding name, starting from the first bound control's
+design value, that raises `PropertyChanged` when it changes and calls a partial
+`On{Name}Changed()` hook. Add your own members in another part of the class. Controls that share
+a name share the value: in the layout demo, moving the slider moves the progress bar.
+
+The page's `BindingContext` is a new view model, set in the XAML, and its `ViewModel` property
+returns it. Values are bound with `{Binding}`; a Picker's or CollectionView's `SelectedItem` is
+the chosen item's text. A ProgressBar shows progress from 0 to 1, so a bound one goes through
+the generated `RangeToProgressConverter` with the design's minimum and maximum. Types: text is
+`string`, on or off `bool`, a number `double`, a choice `string?`, a date `DateTime?`.
+
 ## Tab order
 
 The screen's tab order is not exported: .NET 10's MAUI no longer has `TabIndex`, so Tab

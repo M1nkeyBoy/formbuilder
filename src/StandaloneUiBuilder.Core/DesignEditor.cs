@@ -516,6 +516,23 @@ public sealed partial class DesignEditor
     }
 
     /// <summary>
+    /// Binds a control's value to a property of the screen's view model, or removes the binding
+    /// (null or blank). One undo step.
+    /// </summary>
+    public string? SetBinding(Guid id, string? name)
+    {
+        name = string.IsNullOrWhiteSpace(name) ? null : name.Trim();
+        if (name is not null && FindControl(id) is { } control && ControlCatalog.Get(control.Type).BindingKind is not null
+            && DataBindings.Validate(Screen, control, name) is { } error)
+        {
+            return error;
+        }
+
+        return EditProperties(id, d => d.BindingKind is not null, "a value to bind", p =>
+            p.Binding == name ? p : p with { Binding = name });
+    }
+
+    /// <summary>
     /// Puts a picture in an Image, from a PNG, JPEG, GIF or BMP file's bytes, or removes it
     /// (null). The picture is stored in the project.
     /// </summary>
@@ -864,7 +881,18 @@ public sealed partial class DesignEditor
 
         if (pasted.Count > 0)
         {
-            Commit(Document.WithScreen(screen with { Controls = screen.Controls.AddRange(pasted) }));
+            // A pasted binding stays unless this screen binds that name to another kind of value.
+            var result = screen with { Controls = screen.Controls.AddRange(pasted) };
+            foreach (var bound in pasted.SelectMany(c => ControlTree.All([c])).Where(c => c.Properties.Binding is not null))
+            {
+                if (DataBindings.Validate(result, bound, bound.Properties.Binding!) is not null)
+                {
+                    result = result with { Controls = ControlTree.Replace(result.Controls, bound.Id, c => c with { Properties = c.Properties with { Binding = null } }) };
+                }
+            }
+
+            Commit(Document.WithScreen(result));
+            pasted = [.. pasted.Select(p => ControlTree.Find(result.Controls, p.Id)!)];
         }
 
         return pasted;

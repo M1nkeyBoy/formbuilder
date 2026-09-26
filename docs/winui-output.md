@@ -58,6 +58,21 @@ On a background the design sets (a control's own, or its container's), text gets
 white, whichever stands out, unless it has a text colour of its own, and controls inside such
 a container take its background; so the design's own colours read the same in a dark theme.
 
+## Data binding
+
+A screen whose controls are bound (see the editor's Binding field) gets a view model,
+`{Screen}ViewModel.g.cs` (`MainViewModel` for the first screen), regenerated on every export: a
+partial class with one property per binding name, starting from the first bound control's
+design value, that raises `PropertyChanged` when it changes and calls a partial
+`On{Name}Changed()` hook. Add your own members in another part of the class. Controls that share
+a name share the value: in the layout demo, moving the slider moves the progress bar.
+
+The window's `ViewModel` property holds it, and values are bound with `x:Bind`, two way (a
+TextBox's text as you type), except a Label's and ProgressBar's, which only show it. Types
+follow the controls, as `x:Bind` needs: text is `string`, on or off `bool?`, a number `double`,
+a choice `string?` (the chosen item's text: shown through `SelectedValue`, and written back by
+the selection handler, since `x:Bind` cannot turn an item into text), a date `DateTimeOffset?`.
+
 ## Tab order
 
 When the screen has a tab order of its own, each control Tab visits gets its place in it as

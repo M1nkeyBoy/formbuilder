@@ -12,7 +12,7 @@ public class MauiOutputTests
     private static readonly XNamespace Maui = "http://schemas.microsoft.com/dotnet/2021/maui";
 
     private static ProjectDocument Sample(string name = "layout-demo") =>
-        ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", name + ".uibproj"));
+        Unbound.Of(ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", name + ".uibproj")));
 
     private static XElement Page(ProjectDocument document, int screen = 0) =>
         XDocument.Parse(MauiGenerator.PageXaml(document, document.Screens[screen], "Demo")).Root!;
@@ -64,7 +64,7 @@ public class MauiOutputTests
 
         Assert.Equal("Editor", Named(settings, "NotesTextBox").Name.LocalName);
         Assert.Equal("True", (string?)Named(settings, "SecretPasswordBox").Attribute("IsPassword"));
-        Assert.Equal("0.4", (string?)Named(settings, "UploadProgress").Attribute("Progress"));
+        Assert.Equal("0.3", (string?)Named(settings, "UploadProgress").Attribute("Progress"));
         Assert.Equal(["Primary", "Backup", "Local"], Named(settings, "ServersListBox").Descendants(X + "String").Select(e => e.Value));
         Assert.Equal("8,20,8,8", (string?)Named(settings, "ModeGroup").Elements(Maui + "VerticalStackLayout").Single().Attribute("Margin"));
     }

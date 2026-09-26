@@ -71,6 +71,20 @@ On a background the design sets (a control's own, or its container's), text gets
 white, whichever stands out, unless it has a text colour of its own, and controls inside such
 a container take its background; so the design's own colours read the same in a dark theme.
 
+## Data binding
+
+A screen whose controls are bound (see the editor's Binding field) gets a view model,
+`{Screen}ViewModel.g.cs` (`MainViewModel` for the first screen), regenerated on every export: a
+partial class with one property per binding name, starting from the first bound control's
+design value, that raises `PropertyChanged` when it changes and calls a partial
+`On{Name}Changed()` hook. Add your own members in another part of the class. Controls that share
+a name share the value: in the layout demo, moving the slider moves the progress bar.
+
+The page's `ViewModel` property holds it, and a bound control uses `ViewModel.Name` in place
+of its own field (see Control values and hooks). The page draws itself again after each
+event; after changing the view model from other code, call `StateHasChanged()`. Types: text
+is `string`, on or off `bool`, a number `int`, a choice `string?`, a date `DateOnly?`.
+
 ## Tab order
 
 When the screen has a tab order of its own, each element Tab visits gets `tabindex` with its
@@ -112,6 +126,6 @@ to close its screen goes back to the previous page, since a web page cannot clos
 
 ## Not generated yet
 
-Styling beyond the browser's own control look, data binding to anything but the page's own
-fields, and anything that needs JavaScript of your own. Fonts and control chrome are the
+Styling beyond the browser's own control look, commands (a button bound to the view model),
+and anything that needs JavaScript of your own. Fonts and control chrome are the
 browser's, so text sits slightly differently than in WPF.

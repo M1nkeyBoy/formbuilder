@@ -74,7 +74,7 @@ public partial class MainWindow : Window
         foreach (var box in new[] { NameBox, XBox, YBox, WidthBox, HeightBox, TextValueBox, ItemsBox, ScreenWidthBox, ScreenHeightBox,
                                     RowBox, ColumnBox, RowSpanBox, ColumnSpanBox, SpacingBox, RowsBox, ColumnsBox,
                                     RowSizesBox, ColumnSizesBox, ScreenNameBox,
-                                    MinimumBox, MaximumBox, ValueBox, FontSizeBox, TextColorBox, BackgroundBox })
+                                    MinimumBox, MaximumBox, ValueBox, FontSizeBox, TextColorBox, BackgroundBox, BindingBox })
         {
             box.LostKeyboardFocus += (_, _) => CommitField(box);
             box.KeyDown += InspectorField_KeyDown;
@@ -425,6 +425,9 @@ public partial class MainWindow : Window
         SetField(TextColorBox, properties.Foreground ?? "");
         SetField(BackgroundBox, properties.Background ?? "");
 
+        BindingRow.Visibility = Show(definition.BindingKind is not null);
+        SetField(BindingBox, properties.Binding ?? "");
+
         IsCheckedRow.Visibility = definition.HasIsChecked ? Visibility.Visible : Visibility.Collapsed;
         IsCheckedBox.IsChecked = properties.IsChecked == true;
         ItemsRow.Visibility = definition.HasItems ? Visibility.Visible : Visibility.Collapsed;
@@ -502,6 +505,7 @@ public partial class MainWindow : Window
                 ? CommitWholeNumbers(values => editor.SetRange(id, values[0], values[1], values[2]), MinimumBox, MaximumBox, ValueBox)
             : box == FontSizeBox ? CommitFont(id)
             : box == TextColorBox || box == BackgroundBox ? editor.SetColors(id, TextColorBox.Text, BackgroundBox.Text)
+            : box == BindingBox ? editor.SetBinding(id, box.Text)
             : box == SpacingBox ? CommitWholeNumbers(values => editor.SetSpacing(id, values[0]), SpacingBox)
             : box == RowsBox || box == ColumnsBox ? CommitWholeNumbers(values => editor.SetGridSize(id, values[0], values[1]), RowsBox, ColumnsBox)
             : CommitBoundsField(control, box);

@@ -99,6 +99,10 @@ public sealed class WinFormsOutputTests
                     $"the {secondScreen.Name} form");
                 AssertLayout(second, secondScreen, secondScreen.Width, secondScreen.Height);
                 TabOrderCheck.AssertTabOrder(automation, second, secondScreen);
+                if (BindingCheck.Applies(secondScreen))
+                {
+                    BindingCheck.AssertSliderMovesProgress(second);
+                }
 
                 EditorSession.WaitFor(() => second.FindFirstDescendant(cf => cf.ByAutomationId("CloseSettingsButton")), "Close button").Click();
                 EditorSession.WaitUntil(

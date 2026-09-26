@@ -104,7 +104,7 @@ public static partial class WpfImporter
         {
             var name = UniqueName(ScreenName(className), screenNames);
             var context = new Context(Path.GetDirectoryName(source.Path) ?? "", name, readAsset, warnings);
-            var screen = ReadScreen(root, context) with
+            var screen = KeepValidBindings(ReadScreen(root, context), context) with
             {
                 Id = screens.Count == 0 ? ScreenDocument.DefaultId : Guid.NewGuid().ToString("N"),
                 Name = name,
@@ -394,6 +394,19 @@ public static partial class WpfImporter
 
         var name = Name(element, controlType, context);
 
+        // A value bound with {Binding Name} becomes the control's binding; the design value is
+        // then whatever the builder would start the control with.
+        var boundAttribute = kind == "TextBlock" ? "Text" : BoundAttribute(controlType);
+        var binding = boundAttribute is not null && element.Attribute(boundAttribute) is { } bindingAttribute
+            && BindingPattern().Match(bindingAttribute.Value) is { Success: true } match
+            ? match.Groups[1].Value
+            : null;
+        if (binding is not null)
+        {
+            element = new XElement(element);
+            element.Attribute(boundAttribute!)!.Remove();
+        }
+
         var definition = ControlCatalog.Get(controlType);
         var properties = definition.CreateDefaultProperties(name);
         properties = controlType switch
@@ -426,7 +439,7 @@ public static partial class WpfImporter
             Id = Guid.NewGuid(),
             Type = controlType,
             Name = name,
-            Properties = Style(element, properties, definition, name, context),
+            Properties = Style(element, properties, definition, name, context) with { Binding = binding },
             Children = definition.IsContainer ? [] : null,
         }.WithBounds(new ControlBounds(0, 0, definition.DefaultWidth, definition.DefaultHeight));
 
@@ -436,6 +449,36 @@ public static partial class WpfImporter
             ControlType.Grid => Grid(control, element, context),
             _ => control,
         };
+    }
+
+    /// <summary>The attribute that holds a control's value, which a binding takes the place of.</summary>
+    private static string? BoundAttribute(ControlType type) => type switch
+    {
+        ControlType.Label => "Content",
+        ControlType.TextBox => "Text",
+        ControlType.CheckBox or ControlType.RadioButton => "IsChecked",
+        ControlType.Slider or ControlType.ProgressBar => "Value",
+        ControlType.ComboBox or ControlType.ListBox => "SelectedValue",
+        ControlType.DatePicker => "SelectedDate",
+        _ => null,
+    };
+
+    [GeneratedRegex(@"^\{Binding\s+(?:Path=)?([A-Za-z_][A-Za-z0-9_]*)\s*(?:,[^}]*)?\}$")]
+    private static partial Regex BindingPattern();
+
+    /// <summary>Bindings the builder cannot keep (a name it does not allow, or kinds that differ) are dropped, with a warning.</summary>
+    private static ScreenDocument KeepValidBindings(ScreenDocument screen, Context context)
+    {
+        foreach (var control in ControlTree.All(screen.Controls).Where(c => c.Properties.Binding is not null).ToList())
+        {
+            if (DataBindings.Validate(screen, control, control.Properties.Binding!) is { } error)
+            {
+                context.Warn($"Left out the binding of {control.Name}: {error}");
+                screen = screen with { Controls = ControlTree.Replace(screen.Controls, control.Id, c => c with { Properties = c.Properties with { Binding = null } }) };
+            }
+        }
+
+        return screen;
     }
 
     private static ControlDocument GroupBox(XElement frame, XElement? content, Context context)

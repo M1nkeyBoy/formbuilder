@@ -32,6 +32,10 @@ them; everything else is left out and listed when the import finishes.
 - **Names:** each `x:Name`; controls without one get the builder's usual names.
 - **Tab order:** `TabIndex` on named controls. Controls with one come first, lowest first, as
   WPF orders them, and the rest follow in their order.
+- **Bindings:** a value bound as `{Binding Name}` (or `{Binding Path=Name, …}`) becomes the
+  control's binding. Its starting value is in the view model, which is not read, so the
+  control starts from the builder's default. Names the builder does not allow, and names
+  bound to different kinds of value, are dropped and listed.
 - **Theme:** the main window's `ThemeMode`: `Dark` and `System` become the project's theme,
   anything else Light. (Text colours the builder added for contrast read back as the
   controls' own.)
@@ -40,4 +44,4 @@ them; everything else is left out and listed when the import finishes.
 
 Anything else: other controls (Expander, DataGrid, Menu…), DockPanel and
 WrapPanel inside the window, named colours and brushes other than plain colours, styles and
-resources, data binding, and your code. Each is listed with its name.
+resources, other bindings (to paths, converters or other sources), and your code. Each is listed with its name.

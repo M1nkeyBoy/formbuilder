@@ -31,7 +31,7 @@ public static class BlazorGenerator
     // control's field would clash with. The page's own class name is checked separately.
     private static readonly HashSet<string> ReservedNames = new(StringComparer.Ordinal)
     {
-        "Navigation", "JS", "BuildRenderTree", "OnInitialized", "OnInitializedAsync", "OnParametersSet",
+        "Navigation", "JS", "ViewModel", "BuildRenderTree", "OnInitialized", "OnInitializedAsync", "OnParametersSet",
         "OnParametersSetAsync", "OnAfterRender", "OnAfterRenderAsync", "StateHasChanged", "ShouldRender",
         "InvokeAsync", "DispatchExceptionAsync", "SetParametersAsync", "Assets", "RendererInfo", "AssignedRenderMode",
     };
@@ -149,6 +149,10 @@ public static class BlazorGenerator
             files.Add(new(PagePath(className, ".razor"), PageRazor(document, screen), Regenerate: true));
             files.Add(new(PagePath(className, ".razor.cs"), PageCode(rootNamespace, className), Regenerate: false));
             files.Add(new(PagePath(className, ".Events.g.cs"), EventsCode(document, screen, rootNamespace), Regenerate: true));
+            if (DataBindings.HasViewModel(screen))
+            {
+                files.Add(new(PagePath(ViewModelCode.ClassName(document, screen), ".g.cs"), ViewModel(document, screen, rootNamespace), Regenerate: true));
+            }
         }
 
         files.AddRange(CodeNames.ImageFiles(document, folder: "wwwroot/"));
@@ -273,27 +277,30 @@ public static class BlazorGenerator
             common += tab;
         }
 
+        // What the control shows: its own field, or the view model property it is bound to.
+        var value = properties.Binding is { } bound ? $"ViewModel.{bound}" : name;
+
         switch (control.Type)
         {
             case ControlType.Label:
-                markup.AppendLine($"{indent}<span {common} class=\"uib-label\">{Text(properties.Text)}</span>");
+                markup.AppendLine($"{indent}<span {common} class=\"uib-label\">{(properties.Binding is { } shown ? $"@ViewModel.{shown}" : Text(properties.Text))}</span>");
                 break;
             case ControlType.Button:
                 markup.AppendLine($"{indent}<button {common} type=\"button\" class=\"uib-button\" @onclick=\"{HandlerName(control)}\">{Text(properties.Text)}</button>");
                 break;
             case ControlType.TextBox when properties.IsMultiline == true:
-                markup.AppendLine($"{indent}<textarea {common} class=\"uib-input\" @bind=\"{name}\" @bind:event=\"oninput\" @bind:after=\"{HandlerName(control)}\"></textarea>");
+                markup.AppendLine($"{indent}<textarea {common} class=\"uib-input\" @bind=\"{value}\" @bind:event=\"oninput\" @bind:after=\"{HandlerName(control)}\"></textarea>");
                 break;
             case ControlType.TextBox:
             case ControlType.PasswordBox:
                 var inputType = control.Type == ControlType.PasswordBox ? "password" : "text";
-                markup.AppendLine($"{indent}<input {common} type=\"{inputType}\" class=\"uib-input\" @bind=\"{name}\" @bind:event=\"oninput\" @bind:after=\"{HandlerName(control)}\" />");
+                markup.AppendLine($"{indent}<input {common} type=\"{inputType}\" class=\"uib-input\" @bind=\"{value}\" @bind:event=\"oninput\" @bind:after=\"{HandlerName(control)}\" />");
                 break;
             case ControlType.CheckBox:
-                markup.AppendLine($"{indent}<label {common} class=\"uib-check\"><input type=\"checkbox\"{tab} @bind=\"{name}\" @bind:after=\"{HandlerName(control)}\" /><span>{Text(properties.Text)}</span></label>");
+                markup.AppendLine($"{indent}<label {common} class=\"uib-check\"><input type=\"checkbox\"{tab} @bind=\"{value}\" @bind:after=\"{HandlerName(control)}\" /><span>{Text(properties.Text)}</span></label>");
                 break;
             case ControlType.RadioButton:
-                markup.AppendLine($"{indent}<label {common} class=\"uib-check\"><input type=\"radio\"{tab} name=\"{group}\" checked=\"@{name}\" @onchange=\"{HandlerName(control)}\" /><span>{Text(properties.Text)}</span></label>");
+                markup.AppendLine($"{indent}<label {common} class=\"uib-check\"><input type=\"radio\"{tab} name=\"{group}\" checked=\"@{value}\" @onchange=\"{HandlerName(control)}\" /><span>{Text(properties.Text)}</span></label>");
                 break;
             case ControlType.ComboBox:
             case ControlType.ListBox:
@@ -302,7 +309,7 @@ public static class BlazorGenerator
                 // A ComboBox starts with nothing chosen, as in WPF and WinForms; a list box
                 // shows at least two rows so the browser draws it as a list.
                 var list = control.Type == ControlType.ListBox ? $" size=\"{Number(Math.Max(2, items.Count))}\"" : "";
-                markup.AppendLine($"{indent}<select {common} class=\"uib-input\"{list} @bind=\"{name}\" @bind:after=\"{HandlerName(control)}\">");
+                markup.AppendLine($"{indent}<select {common} class=\"uib-input\"{list} @bind=\"{value}\" @bind:after=\"{HandlerName(control)}\">");
                 if (control.Type == ControlType.ComboBox)
                 {
                     markup.AppendLine($"{indent}    <option value=\"\"></option>");
@@ -316,13 +323,13 @@ public static class BlazorGenerator
                 markup.AppendLine($"{indent}</select>");
                 break;
             case ControlType.Slider:
-                markup.AppendLine($"{indent}<input {common} type=\"range\" class=\"uib-range\" min=\"{Number(properties.Minimum ?? 0)}\" max=\"{Number(properties.Maximum ?? 100)}\" step=\"1\" @bind=\"{name}\" @bind:event=\"oninput\" @bind:after=\"{HandlerName(control)}\" />");
+                markup.AppendLine($"{indent}<input {common} type=\"range\" class=\"uib-range\" min=\"{Number(properties.Minimum ?? 0)}\" max=\"{Number(properties.Maximum ?? 100)}\" step=\"1\" @bind=\"{value}\" @bind:event=\"oninput\" @bind:after=\"{HandlerName(control)}\" />");
                 break;
             case ControlType.ProgressBar:
                 // HTML progress bars start at zero, so the value is shifted by the minimum.
                 var minimum = properties.Minimum ?? 0;
                 var span = (properties.Maximum ?? 100) - minimum;
-                markup.AppendLine($"{indent}<progress {common} class=\"uib-progress\" max=\"{Number(span)}\" value=\"@({name} - ({Number(minimum)}))\"></progress>");
+                markup.AppendLine($"{indent}<progress {common} class=\"uib-progress\" max=\"{Number(span)}\" value=\"@({value} - ({Number(minimum)}))\"></progress>");
                 break;
             case ControlType.Image when properties.ImageData is not null:
                 var fit = properties.Stretch == ImageStretch.Fill ? "fill" : "contain";
@@ -332,7 +339,7 @@ public static class BlazorGenerator
                 markup.AppendLine($"{indent}<span {common} class=\"uib-image\"></span>");
                 break;
             case ControlType.DatePicker:
-                markup.AppendLine($"{indent}<input {common} type=\"date\" class=\"uib-input\" @bind=\"{name}\" @bind:after=\"{HandlerName(control)}\" />");
+                markup.AppendLine($"{indent}<input {common} type=\"date\" class=\"uib-input\" @bind=\"{value}\" @bind:after=\"{HandlerName(control)}\" />");
                 break;
             case ControlType.StackPanel:
                 markup.AppendLine($"{indent}<div {common} class=\"uib-stack\">");
@@ -481,7 +488,15 @@ public static class BlazorGenerator
         code.AppendLine("    [Inject]");
         code.AppendLine("    private IJSRuntime JS { get; set; } = default!;");
 
-        var fields = all.Select(c => (Control: c, Field: ValueField(c))).Where(f => f.Field is not null).ToList();
+        if (DataBindings.HasViewModel(screen))
+        {
+            code.AppendLine();
+            code.AppendLine("    /// <summary>The values the page's bound controls show; call StateHasChanged after changing them outside an event.</summary>");
+            code.AppendLine($"    public {ViewModelCode.ClassName(document, screen)} ViewModel {{ get; }} = new();");
+        }
+
+        // Bound controls show their view model property instead of a field.
+        var fields = all.Where(c => c.Properties.Binding is null).Select(c => (Control: c, Field: ValueField(c))).Where(f => f.Field is not null).ToList();
         if (fields.Count > 0)
         {
             code.AppendLine();
@@ -512,10 +527,10 @@ public static class BlazorGenerator
             // A radio button clears the others in its group before its hook runs.
             if (control.Type == ControlType.RadioButton)
             {
-                code.AppendLine($"        {control.Name} = true;");
+                code.AppendLine($"        {ValueName(control)} = true;");
                 foreach (var other in RadioGroup(screen, control).Where(r => r.Id != control.Id))
                 {
-                    code.AppendLine($"        {other.Name} = false;");
+                    code.AppendLine($"        {ValueName(other)} = false;");
                 }
             }
 
@@ -543,6 +558,32 @@ public static class BlazorGenerator
         code.AppendLine("}");
         return code.ToString();
     }
+
+    /// <summary>What holds a control's value in the page's code: its field, or its view model property.</summary>
+    private static string ValueName(ControlDocument control) =>
+        control.Properties.Binding is { } bound ? $"ViewModel.{bound}" : control.Name;
+
+    /// <summary>
+    /// A screen's view model, with the page's types: a range's value is a whole number, a date
+    /// a nullable DateOnly, and a choice the chosen option's text, or null.
+    /// </summary>
+    public static string ViewModel(ProjectDocument document, ScreenDocument screen, string rootNamespace) =>
+        ViewModelCode.Generate(document, screen, rootNamespace + PagesNamespaceSuffix,
+            kind => kind switch
+            {
+                BindingKind.Text => "string",
+                BindingKind.Flag => "bool",
+                BindingKind.Number => "int",
+                BindingKind.Choice => "string?",
+                _ => "DateOnly?",
+            },
+            property => property.Kind switch
+            {
+                BindingKind.Text => ViewModelCode.TextLiteral(property),
+                BindingKind.Flag => ViewModelCode.FlagLiteral(property),
+                BindingKind.Number => ViewModelCode.NumberLiteral(property),
+                _ => null,
+            });
 
     /// <summary>The RadioButtons beside a RadioButton: in the same container, or on the screen.</summary>
     private static IEnumerable<ControlDocument> RadioGroup(ScreenDocument screen, ControlDocument radio)

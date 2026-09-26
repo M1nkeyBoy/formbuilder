@@ -7,7 +7,7 @@ namespace StandaloneUiBuilder.Core.Tests;
 public class WpfImportTests
 {
     private static ProjectDocument Sample(string name) =>
-        ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", name + ".uibproj"));
+        Unbound.Of(ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", name + ".uibproj")));
 
     /// <summary>Everything about a control that the design determines, with screens by name.</summary>
     private static object Describe(ProjectDocument document, ScreenDocument screen, PlacedControl placed)
