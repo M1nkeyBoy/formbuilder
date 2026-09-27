@@ -123,6 +123,8 @@ stands out.
 Windows Forms, WinUI and MAUI apps already draw their controls in the current Windows or
 device style, so they look the same in both. WPF's dark and system themes are always Fluent.
 
+![The customer form exported to WPF in each style](screenshots/style-classic-modern.png)
+
 ## Data binding, commands and code
 
 Each screen can have a **view model**: a class, generated with the export, that holds the
