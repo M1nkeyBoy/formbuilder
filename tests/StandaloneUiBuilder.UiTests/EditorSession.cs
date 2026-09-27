@@ -90,6 +90,12 @@ internal sealed class EditorSession : IDisposable
 
     public ConditionFactory Find => automation.ConditionFactory;
 
+    /// <summary>The editor's windows, including pop-ups such as the code window's suggestions.</summary>
+    public Window[] TopLevelWindows => App.GetAllTopLevelWindows(automation);
+
+    /// <summary>Saves the whole screen, which shows every window, not only the main one.</summary>
+    public static void ScreenshotScreen(string name) => Capture.Screen().ToFile(Path.Combine(ArtifactsDirectory, name + ".png"));
+
     public AutomationElement ById(string automationId) =>
         Reveal(WaitFor(() => Window.FindFirstDescendant(Find.ByAutomationId(automationId)), $"element {automationId}"));
 

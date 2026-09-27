@@ -36,8 +36,14 @@ public sealed class CodeUiTests : IDisposable
         var summary = EditorSession.WaitFor(() => window.FindFirstDescendant(session.Find.ByAutomationId("ProblemsSummary")), "the problems summary");
         EditorSession.WaitUntil(() => summary.Name == "No problems", () => $"Problems: {summary.Name}", TimeSpan.FromMinutes(1));
         Keyboard.Type("Serv");
-        Thread.Sleep(1500);
+        var suggestion = EditorSession.WaitFor(
+            () => session.TopLevelWindows.Select(w => w.FindFirstDescendant(session.Find.ByName("Server").And(session.Find.ByControlType(FlaUI.Core.Definitions.ControlType.ListItem))))
+                .FirstOrDefault(found => found is not null),
+            "the Server suggestion");
+        Assert.False(suggestion.IsOffscreen, "The Server suggestion is not on screen.");
+        Thread.Sleep(1000);
         session.Screenshot("42-code-completion");
+        EditorSession.ScreenshotScreen("42-code-completion-screen");
         Keyboard.Type(VirtualKeyShort.TAB);
         Keyboard.Type(" = Level.ToString();");
         EditorSession.WaitUntil(() => code.Text.Contains("Server = Level.ToString();", StringComparison.Ordinal), () => $"Code: {code.Text}");

@@ -46,6 +46,9 @@ internal sealed class CompletionEntry(ScreenCodeAnalyzer analyzer, string code, 
 
     public double Priority => 0;
 
+    /// <summary>The suggestion's name, which screen readers say.</summary>
+    public override string ToString() => item.Text;
+
     /// <summary>Replaces what has been typed with the suggestion as Roslyn inserts it (with type arguments, for example).</summary>
     public void Complete(TextArea textArea, ISegment completionSegment, EventArgs insertionRequestEventArgs)
     {
