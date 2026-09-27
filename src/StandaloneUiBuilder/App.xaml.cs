@@ -1,4 +1,5 @@
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -73,12 +74,57 @@ public partial class App : Application
         {
             Directory.CreateDirectory(Path.GetDirectoryName(StartupLogPath)!);
             File.WriteAllText(StartupLogPath,
-                $"Standalone UI Builder starting, {DateTime.Now:yyyy-MM-dd HH:mm:ss}, .NET {Environment.Version}, {Environment.OSVersion}, process {Environment.ProcessPath}{Environment.NewLine}");
+                $"Standalone UI Builder starting, {DateTime.Now:yyyy-MM-dd HH:mm:ss}, .NET {Environment.Version}, {Environment.OSVersion}, process {Environment.ProcessPath}{Environment.NewLine}"
+                + $"Elevated (administrator): {TokenFlag(TokenElevation)}; Windows file virtualization: {TokenFlag(TokenVirtualizationEnabled)}{Environment.NewLine}");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
         }
     }
+
+    private const int TokenElevation = 20;
+    private const int TokenVirtualizationEnabled = 24;
+
+    /// <summary>
+    /// "on" or "off" for a yes-or-no fact about the editor's process: whether it runs as
+    /// administrator, and whether Windows redirects its file writes (which would put saved files
+    /// where File Explorer cannot see them).
+    /// </summary>
+    private static string TokenFlag(int information)
+    {
+        try
+        {
+            if (!OpenProcessToken(GetCurrentProcess(), 0x0008 /* TOKEN_QUERY */, out var token))
+            {
+                return "unknown";
+            }
+
+            try
+            {
+                return GetTokenInformation(token, information, out var value, sizeof(int), out _) ? (value != 0 ? "on" : "off") : "unknown";
+            }
+            finally
+            {
+                CloseHandle(token);
+            }
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+        {
+            return "unknown";
+        }
+    }
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool OpenProcessToken(IntPtr process, int access, out IntPtr token);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool GetTokenInformation(IntPtr token, int informationClass, out int information, int length, out int returnLength);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetCurrentProcess();
+
+    [DllImport("kernel32.dll")]
+    private static extern bool CloseHandle(IntPtr handle);
 
     /// <summary>Shows an error, with where the details are kept, and logs it.</summary>
     private static void Report(string summary, Exception exception)
