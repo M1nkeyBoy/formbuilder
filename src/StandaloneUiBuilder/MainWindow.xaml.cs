@@ -107,13 +107,16 @@ public partial class MainWindow : Window
             // A project path on the command line (for example from Explorer) is opened at
             // startup, unless the user chooses to recover unsaved work instead.
             var startupPath = Environment.GetCommandLineArgs().Skip(1).FirstOrDefault();
+            App.Log("Main window loaded");
             if (OfferRecovery())
             {
+                App.Log("Recovered unsaved work");
                 return;
             }
 
             if (startupPath is not null)
             {
+                App.Log($"Opening {startupPath}");
                 OpenPath(startupPath);
             }
             else
@@ -121,11 +124,14 @@ public partial class MainWindow : Window
                 // Starting without a project is starting a new one: ask what it is for.
                 Dispatcher.BeginInvoke(() =>
                 {
+                    App.Log("Asking for the new project's platform");
                     if (AskPlatform(ProjectPlatform.Wpf) is { } platform)
                     {
                         editor.New(platform);
                     }
-                }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+
+                    App.Log($"Started: {editor.Document.Platform.DisplayName()} project");
+                }, System.Windows.Threading.DispatcherPriority.Background);
             }
         };
     }
