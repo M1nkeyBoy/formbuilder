@@ -16,7 +16,7 @@ public sealed class ScreenSizeUiTests : IDisposable
         var devices = session.ById("ScreenSizeBox").AsComboBox();
         Assert.Equal("Default window (800 × 600)", devices.SelectedItem?.Name);
 
-        devices.Select("iPhone SE (375 × 667)");
+        Choose(devices, "iPhone SE (375 × 667)");
         EditorSession.WaitUntil(() => session.Field("ScreenWidthBox").Text == "375" && session.Field("ScreenHeightBox").Text == "667",
             () => $"Size: {session.Field("ScreenWidthBox").Text} × {session.Field("ScreenHeightBox").Text}");
         var surface = session.ById("Surface").BoundingRectangle;
@@ -26,8 +26,18 @@ public sealed class ScreenSizeUiTests : IDisposable
         // Typing a size of your own shows Custom; a desktop size is found again.
         session.TypeInto("ScreenWidthBox", "400");
         EditorSession.WaitUntil(() => devices.SelectedItem?.Name == "Custom", () => $"Device: {devices.SelectedItem?.Name}");
-        devices.Select("Full HD 1080p (1920 × 1080)");
+        Choose(devices, "Full HD 1080p (1920 × 1080)");
         EditorSession.WaitUntil(() => session.Field("ScreenWidthBox").Text == "1920", () => $"Width: {session.Field("ScreenWidthBox").Text}");
         Assert.Equal("Full HD 1080p (1920 × 1080)", devices.SelectedItem?.Name);
+        session.Screenshot("41-device-desktop");
+    }
+
+    /// <summary>Chooses an entry by name; the entries are inside the list's groups, where the helper's own Select does not look.</summary>
+    private static void Choose(ComboBox devices, string name)
+    {
+        devices.Expand();
+        var item = EditorSession.WaitFor(() => devices.FindFirstDescendant(cf => cf.ByName(name)), name);
+        item.Patterns.SelectionItem.Pattern.Select();
+        devices.Collapse();
     }
 }

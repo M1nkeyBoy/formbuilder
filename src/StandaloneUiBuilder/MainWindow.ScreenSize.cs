@@ -8,7 +8,11 @@ namespace StandaloneUiBuilder;
 public partial class MainWindow
 {
     /// <summary>An entry of the Device list; Custom has no preset.</summary>
-    private sealed record ScreenSizeChoice(string Label, string Category, ScreenSizePreset? Preset);
+    private sealed record ScreenSizeChoice(string Label, string Category, ScreenSizePreset? Preset)
+    {
+        // The closed list shows the chosen entry as text.
+        public override string ToString() => Label;
+    }
 
     private static readonly ScreenSizeChoice CustomSize = new("Custom", "", null);
 
