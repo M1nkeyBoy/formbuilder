@@ -53,6 +53,7 @@
         <CommandBinding Command="{x:Static local:EditorCommands.ExportMaui}" Executed="ExportMaui_Executed" CanExecute="Export_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.ExportBlazor}" Executed="ExportBlazor_Executed" CanExecute="Export_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.SetPlatform}" Executed="SetPlatform_Executed" CanExecute="Designing_CanExecute" />
+        <CommandBinding Command="{x:Static local:EditorCommands.ShowInExplorer}" Executed="ShowInExplorer_Executed" CanExecute="ShowInExplorer_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.Libraries}" Executed="Libraries_Executed" CanExecute="Libraries_CanExecute" />
         <CommandBinding Command="ApplicationCommands.Delete" Executed="Delete_Executed" CanExecute="HasSelection_CanExecute" />
         <CommandBinding Command="ApplicationCommands.Copy" Executed="Copy_Executed" CanExecute="HasSelection_CanExecute" />
@@ -128,6 +129,7 @@
                     <MenuItem Header="_Open…" Command="ApplicationCommands.Open" />
                     <MenuItem Header="_Save" Command="ApplicationCommands.Save" />
                     <MenuItem Header="Save _As…" Command="ApplicationCommands.SaveAs" InputGestureText="Ctrl+Shift+S" />
+                    <MenuItem Command="{x:Static local:EditorCommands.ShowInExplorer}" />
                     <Separator />
                     <MenuItem Command="{x:Static local:EditorCommands.ImportWpf}" />
                     <Separator />

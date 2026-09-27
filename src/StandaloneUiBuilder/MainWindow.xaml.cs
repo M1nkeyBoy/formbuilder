@@ -1207,6 +1207,26 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ShowInExplorer_CanExecute(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = projectPath is not null;
+
+    /// <summary>Opens File Explorer where the project is saved, with its file selected.</summary>
+    private void ShowInExplorer_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        if (projectPath is null)
+        {
+            return;
+        }
+
+        if (!File.Exists(projectPath))
+        {
+            ShowError("The project file is no longer there.", projectPath);
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{projectPath}\"") { UseShellExecute = true });
+        StatusText.Text = $"Shown in Explorer: {projectPath}";
+    }
+
     private void Save_Executed(object sender, ExecutedRoutedEventArgs e) => Save(saveAs: false);
 
     private void SaveAs_Executed(object sender, ExecutedRoutedEventArgs e) => Save(saveAs: true);

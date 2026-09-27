@@ -178,7 +178,8 @@ it cannot keep is listed.
 
 ## Saving and recovery
 
-Projects are `.uibproj` files (JSON). The title and header show ● when there are unsaved
+Projects are `.uibproj` files (JSON). **File > Show in Explorer** opens File Explorer where
+the project is saved, with its file selected; the header's path shows the full location too. The title and header show ● when there are unsaved
 changes, and the editor asks before closing, opening or starting another. If the editor stops
 unexpectedly, it offers your unsaved work the next time it starts.
 

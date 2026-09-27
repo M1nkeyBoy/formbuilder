@@ -17,6 +17,12 @@ public static class EditorCommands
         typeof(EditorCommands),
         [new KeyGesture(Key.E, ModifierKeys.Control | ModifierKeys.Shift)]);
 
+    /// <summary>Opens File Explorer at the saved project file, selected.</summary>
+    public static RoutedUICommand ShowInExplorer { get; } = new(
+        "Show in _Explorer",
+        nameof(ShowInExplorer),
+        typeof(EditorCommands));
+
     public static RoutedUICommand ImportWpf { get; } = new(
         "_Import from WPF…",
         nameof(ImportWpf),
