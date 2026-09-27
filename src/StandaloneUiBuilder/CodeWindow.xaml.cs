@@ -245,7 +245,18 @@ public partial class CodeWindow : Window
         var code = CodeBox.Text;
         var caret = CodeBox.CaretOffset;
         var list = await Task.Run(() => compiler.CompleteAsync(code, caret, typed));
-        if (list is null || code != CodeBox.Text || completion is not null)
+        if (list is null || completion is not null)
+        {
+            return;
+        }
+
+        // Typing goes on while the suggestions are worked out: they still apply while the caret
+        // is in the same name, after the same text, and narrow to what has been typed since.
+        var now = CodeBox.CaretOffset;
+        var document = CodeBox.Document;
+        if (now < list.Start || now > document.TextLength || list.Start > code.Length
+            || document.GetText(0, list.Start) != code[..list.Start]
+            || !document.GetText(list.Start, now - list.Start).All(c => char.IsLetterOrDigit(c) || c == '_'))
         {
             return;
         }
@@ -253,7 +264,7 @@ public partial class CodeWindow : Window
         completion = new CompletionWindow(CodeBox.TextArea)
         {
             StartOffset = list.Start,
-            EndOffset = caret,
+            EndOffset = now,
             CloseWhenCaretAtBeginning = typed is null,
             Background = (Brush)FindResource("PanelBrush"),
             Foreground = (Brush)FindResource("TextBrush"),
@@ -264,7 +275,7 @@ public partial class CodeWindow : Window
         }
 
         // What is already typed of the name narrows the list.
-        completion.CompletionList.SelectItem(code.Substring(list.Start, Math.Max(0, caret - list.Start)));
+        completion.CompletionList.SelectItem(document.GetText(list.Start, now - list.Start));
         completion.Closed += (_, _) => completion = null;
         completion.Show();
     }
