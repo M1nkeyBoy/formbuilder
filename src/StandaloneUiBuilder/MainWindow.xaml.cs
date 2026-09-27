@@ -1395,7 +1395,7 @@ public partial class MainWindow : Window
     private void EditCode_Executed(object sender, ExecutedRoutedEventArgs e)
     {
         var screen = editor.Screen;
-        if (CodeWindow.Edit(this, screen, Output.ViewModelCode.ClassName(editor.Document, screen)) is { } code)
+        if (CodeWindow.Edit(this, editor.Document, screen) is { } code)
         {
             StatusText.Text = editor.SetScreenCode(code) ? $"Code of {screen.Name} changed" : "Code unchanged";
         }

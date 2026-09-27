@@ -118,7 +118,7 @@ public static class ViewModelCode
         }
 
         var lines = screen.Code.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n').ToList();
-        var usings = lines.TakeWhile(l => l.Trim().Length == 0 || (l.TrimStart().StartsWith("using ", StringComparison.Ordinal) && l.TrimEnd().EndsWith(';'))).ToList();
+        var usings = lines.Take(LeadingUsingLines(lines)).ToList();
         var body = lines.Skip(usings.Count).ToList();
         var className = ClassName(document, screen);
         var code = new StringBuilder();
@@ -143,6 +143,13 @@ public static class ViewModelCode
         code.AppendLine("}");
         return code.ToString();
     }
+
+    /// <summary>
+    /// How many of the code's first lines are using directives (or blank): they go above the
+    /// namespace, and the rest into the class.
+    /// </summary>
+    public static int LeadingUsingLines(IReadOnlyList<string> lines) =>
+        lines.TakeWhile(l => l.Trim().Length == 0 || (l.TrimStart().StartsWith("using ", StringComparison.Ordinal) && l.TrimEnd().EndsWith(';'))).Count();
 
     /// <summary>The statement a button's click handler uses to run its command, if it has one.</summary>
     public static string? CommandStatement(ControlDocument button) =>

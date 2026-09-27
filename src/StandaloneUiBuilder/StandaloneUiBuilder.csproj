@@ -15,6 +15,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The code window's editor: C# colouring, line numbers, completion and overload pop-ups. -->
+    <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Windows Forms' names (Control, Button, Point) would clash with WPF's everywhere. -->
     <Using Remove="System.Windows.Forms" />
     <Using Remove="System.Drawing" />
@@ -28,6 +33,7 @@
   <ItemGroup>
     <ProjectReference Include="..\StandaloneUiBuilder.Core\StandaloneUiBuilder.Core.csproj" />
     <ProjectReference Include="..\StandaloneUiBuilder.Libraries\StandaloneUiBuilder.Libraries.csproj" />
+    <ProjectReference Include="..\StandaloneUiBuilder.CodeAnalysis\StandaloneUiBuilder.CodeAnalysis.csproj" />
     <ProjectReference Include="..\StandaloneUiBuilder.Output.Wpf\StandaloneUiBuilder.Output.Wpf.csproj" />
     <ProjectReference Include="..\StandaloneUiBuilder.Output.WinForms\StandaloneUiBuilder.Output.WinForms.csproj" />
     <ProjectReference Include="..\StandaloneUiBuilder.Output.Blazor\StandaloneUiBuilder.Output.Blazor.csproj" />

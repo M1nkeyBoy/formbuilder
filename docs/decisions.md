@@ -825,3 +825,29 @@ Choices made during the prototype slices that affect later work.
   resolution. It only sets the width and height, as typing them does (so Undo takes it back,
   and every control must still fit); the project stores the size, not the device. It shows
   Custom for any other size, and the device last chosen when two share a size.
+
+## IntelliSense in the code window
+
+- **The code window compiles the code as the export does**, with Roslyn (the C# compiler Visual
+  Studio uses): the screen's text as another part of its view model, beside the generated part
+  (its properties, commands and hooks, with the types of the project's platform; WPF's for any
+  platform), the exported projects' implicit usings, and .NET 10's reference assemblies, which
+  are embedded (Basic.Reference.Assemblies), so it works in the single-file release. Positions
+  map line for line between the window and the compiled file, which is laid out as the export
+  lays out the code (using directives above the namespace, the rest in the class).
+- **Editor:** AvalonEdit (the WPF code editor many .NET tools use) replaces the text box, with
+  C# colours for the editor's light and dark themes, line numbers and four-space indentation.
+- **As you type:** problems are underlined (red errors, green warnings) and listed below the
+  code, 0.4 s after typing stops, compiled in the background. Suggestions are Roslyn's
+  completion, opened as a name or member is typed or with Ctrl+Space; a punctuation character
+  takes the highlighted one only if it starts with what was typed, so names of your own are
+  never replaced. Hovering shows a problem or Roslyn's quick info; `(` and `,` show the
+  overloads of a call, with the current argument in bold (computed from the semantic model,
+  as Roslyn's own signature help is not public).
+- **Loading:** the compiler loads in the background when the window opens (a second or two the
+  first time), so the window opens at once; if it cannot load, the editor still works.
+- **Not covered:** types from the project's control libraries, and the UI framework's own
+  types, are not referenced; view model code rarely needs them.
+- **Checked by** tests of the analysis on the layout demo's Settings screen (problems placed
+  on the right line, platform types, completion, hover, overloads), and a UI test that takes a
+  suggestion and sees a mistake reported.

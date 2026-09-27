@@ -32,6 +32,24 @@ public sealed class CodeUiTests : IDisposable
         EditorSession.WaitUntil(() => code.Text.Contains("partial void OnLevelChanged()", StringComparison.Ordinal), () => $"Code: {code.Text}");
         session.Screenshot("35-code-window");
 
+        // The compiler checks the code as it is typed, and suggests names: the caret is in OnLevelChanged.
+        var summary = EditorSession.WaitFor(() => window.FindFirstDescendant(session.Find.ByAutomationId("ProblemsSummary")), "the problems summary");
+        EditorSession.WaitUntil(() => summary.Name == "No problems", () => $"Problems: {summary.Name}", TimeSpan.FromMinutes(1));
+        Keyboard.Type("Serv");
+        Thread.Sleep(1500);
+        session.Screenshot("42-code-completion");
+        Keyboard.Type(VirtualKeyShort.TAB);
+        Keyboard.Type(" = Level.ToString();");
+        EditorSession.WaitUntil(() => code.Text.Contains("Server = Level.ToString();", StringComparison.Ordinal), () => $"Code: {code.Text}");
+        EditorSession.WaitUntil(() => summary.Name == "No problems", () => $"Problems: {summary.Name}");
+
+        // A name that no suggestion starts with is left as typed.
+        Keyboard.Type(" Sever = \"x\";");
+        EditorSession.WaitUntil(() => summary.Name == "1 error", () => $"Problems: {summary.Name}", TimeSpan.FromSeconds(30));
+        var problems = EditorSession.WaitFor(() => window.FindFirstDescendant(session.Find.ByAutomationId("ProblemsList")), "the problems list");
+        Assert.Contains("'Sever'", EditorSession.WaitFor(() => problems.FindFirstDescendant(session.Find.ByControlType(FlaUI.Core.Definitions.ControlType.ListItem)), "a problem").Name);
+        session.Screenshot("42-code-problem");
+
         EditorSession.Press(VirtualKeyShort.CONTROL, VirtualKeyShort.ENTER);
         EditorSession.WaitUntil(() => session.Status == "Code of Settings changed", () => $"Status: {session.Status}");
     }

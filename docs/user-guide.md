@@ -128,6 +128,12 @@ screen's values so your code works with values rather than controls.
   `partial void OnSave() => Status = "Saved";`. The list beside the code shows the hooks you can
   write (each command's `On…`, and each property's `On…Changed`); double-click one to start it.
   The code is saved in the project and written into every export.
+- **IntelliSense in the code window:** the code is coloured and compiled as you type, with the
+  rest of the view model and the types of the project's platform, as the export compiles it.
+  Problems are underlined and listed under the code (double-click one to go to it); hovering
+  shows a problem or what a name is. Suggestions appear as you type a name or after a dot, or
+  with Ctrl+Space; Tab, Enter or a dot takes one. Typing `(` or `,` shows the overloads of a
+  call (Ctrl+Shift+Space shows them again). Esc closes a suggestion list; Ctrl+Enter applies.
 
 Names start with a capital letter. Each target gets the types its controls use; where they
 differ (a number is whole in Windows Forms and Blazor), write code that suits both.

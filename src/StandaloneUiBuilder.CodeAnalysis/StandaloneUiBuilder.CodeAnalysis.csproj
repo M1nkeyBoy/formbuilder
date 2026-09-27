@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- C# IntelliSense for the code window: the screen's view model compiled with Roslyn. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="5.9.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.9.0" />
+    <!-- .NET's reference assemblies, embedded, so analysis works in the single-file release too. -->
+    <PackageReference Include="Basic.Reference.Assemblies.Net100" Version="1.8.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\StandaloneUiBuilder.Core\StandaloneUiBuilder.Core.csproj" />
+    <ProjectReference Include="..\StandaloneUiBuilder.Output\StandaloneUiBuilder.Output.csproj" />
+    <ProjectReference Include="..\StandaloneUiBuilder.Output.Wpf\StandaloneUiBuilder.Output.Wpf.csproj" />
+    <ProjectReference Include="..\StandaloneUiBuilder.Output.WinForms\StandaloneUiBuilder.Output.WinForms.csproj" />
+    <ProjectReference Include="..\StandaloneUiBuilder.Output.WinUI\StandaloneUiBuilder.Output.WinUI.csproj" />
+    <ProjectReference Include="..\StandaloneUiBuilder.Output.Maui\StandaloneUiBuilder.Output.Maui.csproj" />
+    <ProjectReference Include="..\StandaloneUiBuilder.Output.Blazor\StandaloneUiBuilder.Output.Blazor.csproj" />
+  </ItemGroup>
+
+</Project>
