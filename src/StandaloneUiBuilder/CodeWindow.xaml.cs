@@ -266,6 +266,8 @@ public partial class CodeWindow : Window
             StartOffset = list.Start,
             EndOffset = now,
             CloseWhenCaretAtBeginning = typed is null,
+            // Wide enough for long names such as OnChosenServerChanged.
+            Width = 300,
             Background = (Brush)FindResource("PanelBrush"),
             Foreground = (Brush)FindResource("TextBrush"),
         };

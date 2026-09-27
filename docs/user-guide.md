@@ -135,6 +135,8 @@ screen's values so your code works with values rather than controls.
   with Ctrl+Space; Tab, Enter or a dot takes one. Typing `(` or `,` shows the overloads of a
   call (Ctrl+Shift+Space shows them again). Esc closes a suggestion list; Ctrl+Enter applies.
 
+![Suggestions for "Serv" in the code window, with the chosen one described](screenshots/code-completion.png)
+
 Names start with a capital letter. Each target gets the types its controls use; where they
 differ (a number is whole in Windows Forms and Blazor), write code that suits both.
 
