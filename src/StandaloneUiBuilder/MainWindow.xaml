@@ -434,6 +434,27 @@
                             <Border x:Name="ScreenPanel" Style="{StaticResource InspectorSection}">
                                 <StackPanel>
                                     <TextBlock Text="Screen" Style="{StaticResource SectionTitle}" />
+                                    <DockPanel Style="{StaticResource FieldRow}"
+                                               ToolTip="Sets the screen to a popular phone, tablet or desktop size, as browsers' developer tools do. Custom when the size is your own.">
+                                        <Label Content="De_vice" Target="{Binding ElementName=ScreenSizeBox}" Style="{StaticResource FieldLabel}" />
+                                        <ComboBox x:Name="ScreenSizeBox" AutomationProperties.Name="Device size" DisplayMemberPath="Label"
+                                                  IsSynchronizedWithCurrentItem="False" SelectionChanged="ScreenSizeBox_SelectionChanged">
+                                            <ComboBox.ItemContainerStyle>
+                                                <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                                                    <Setter Property="AutomationProperties.Name" Value="{Binding Label}" />
+                                                </Style>
+                                            </ComboBox.ItemContainerStyle>
+                                            <ComboBox.GroupStyle>
+                                                <GroupStyle>
+                                                    <GroupStyle.HeaderTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="{Binding Name}" Style="{StaticResource CategoryTitle}" Margin="8,6,0,2" />
+                                                        </DataTemplate>
+                                                    </GroupStyle.HeaderTemplate>
+                                                </GroupStyle>
+                                            </ComboBox.GroupStyle>
+                                        </ComboBox>
+                                    </DockPanel>
                                     <DockPanel Style="{StaticResource FieldRow}">
                                         <Label Content="Na_me" Target="{Binding ElementName=ScreenNameBox}" Style="{StaticResource FieldLabel}" />
                                         <TextBox x:Name="ScreenNameBox" Style="{StaticResource FieldBox}" AutomationProperties.Name="Screen name" />
@@ -456,7 +477,7 @@
                                     <TextBlock x:Name="ScreenErrorText" Margin="0,0,0,8" TextWrapping="Wrap"
                                                Foreground="{DynamicResource ErrorBrush}" Visibility="Collapsed" />
                                     <TextBlock Style="{StaticResource PlaceholderText}" Margin="0,0,0,10"
-                                               Text="The design size in DIPs. Every control must still fit. The name becomes the screen's window in exported code; the first screen is the main window." />
+                                               Text="The design size in DIPs (a phone's CSS pixels). Every control must still fit. The name becomes the screen's window in exported code; the first screen is the main window." />
                                 </StackPanel>
                             </Border>
                             <StackPanel x:Name="InspectorPanel" Visibility="Collapsed">

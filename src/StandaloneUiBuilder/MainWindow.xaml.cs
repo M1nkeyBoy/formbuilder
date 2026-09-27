@@ -154,6 +154,7 @@ public partial class MainWindow : Window
             selection.Clear();
             tabOrderNext = null;
             SetFieldError(ScreenNameBox, null);
+            screenSizeError = null;
             SetFieldError(ScreenWidthBox, null);
             SetFieldError(ScreenHeightBox, null);
             SurfaceScroller.ScrollToHome();
@@ -366,6 +367,7 @@ public partial class MainWindow : Window
         SetField(ScreenNameBox, editor.Screen.Name);
         SetField(ScreenWidthBox, editor.Screen.Width.ToString(CultureInfo.CurrentCulture));
         SetField(ScreenHeightBox, editor.Screen.Height.ToString(CultureInfo.CurrentCulture));
+        ShowScreenSize();
 
         inspectedId = control?.Id;
         NoSelectionText.Visibility = control is null ? Visibility.Visible : Visibility.Collapsed;
@@ -602,6 +604,8 @@ public partial class MainWindow : Window
             error = box == ScreenWidthBox ? editor.SetScreenSize(value, screen.Height) : editor.SetScreenSize(screen.Width, value);
         }
 
+        screenSizeError = null;
+
         SetFieldError(box, error);
         if (error is null)
         {
@@ -682,7 +686,7 @@ public partial class MainWindow : Window
     private void UpdateInspectorErrors()
     {
         // Screen fields show their errors in the Screen section; control fields in the inspector.
-        var screenMessages = fieldErrors.Where(f => IsScreenField(f.Key)).Select(f => f.Value).ToList();
+        var screenMessages = fieldErrors.Where(f => IsScreenField(f.Key)).Select(f => f.Value).Append(screenSizeError).OfType<string>().ToList();
         ScreenErrorText.Text = string.Join(Environment.NewLine, screenMessages);
         ScreenErrorText.Visibility = screenMessages.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 

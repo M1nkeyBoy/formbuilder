@@ -73,7 +73,9 @@ that cannot take a value turns red and says why.
 - **Interaction:** for buttons, **On click** (open a screen or close this one), **Command**
   and **Enabled when**; for controls with a value, **Binding** (see Data binding).
 
-With nothing selected, the inspector edits the screen: its name and design size.
+With nothing selected, the inspector edits the screen: its name and design size. **Device**
+sets the size to a popular phone or tablet (in its CSS pixels, as browsers' developer tools
+do) or a common desktop resolution; it shows **Custom** when you type a size of your own.
 
 ## Containers
 

@@ -817,3 +817,11 @@ Choices made during the prototype slices that affect later work.
 - **Checked by** a test that drives the host directly (a WPF and a Windows Forms control from
   the sample library, a type that does not exist, and the host ending when its input
   closes), and the library UI test, which waits for the real IntegerUpDown on the canvas.
+
+## Device sizes
+
+- **The Screen section's Device list** sets the screen's size to a popular phone or tablet, in
+  portrait and in CSS pixels as browsers' developer tools list them, or a common desktop
+  resolution. It only sets the width and height, as typing them does (so Undo takes it back,
+  and every control must still fit); the project stores the size, not the device. It shows
+  Custom for any other size, and the device last chosen when two share a size.
