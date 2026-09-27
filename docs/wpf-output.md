@@ -120,9 +120,10 @@ Tab follows the order of the XAML, which is the design's order.
 
 ## Theme
 
-A Light project uses WPF's usual look. Dark and System projects use WPF's Fluent theme:
-each window gets `ThemeMode="Dark"` or `ThemeMode="System"` (the latter follows Windows'
-app mode), and every control gets `MinWidth="0" MinHeight="0"`, since Fluent's styles
+A Light project in the classic style uses WPF's classic look. Every other project uses
+WPF's Fluent theme, as Windows 11 apps do: each window gets `ThemeMode="Light"` (a modern
+Light project), `ThemeMode="Dark"` or `ThemeMode="System"` (which follows Windows' app
+mode), and every control gets `MinWidth="0" MinHeight="0"`, since Fluent's styles
 would otherwise make some controls larger than the design (a text box at least 32 high).
 On a background the design sets (a control's own, or its container's), text gets black or
 white, whichever stands out, unless it has a text colour of its own, and controls inside such

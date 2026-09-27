@@ -11,10 +11,10 @@ public sealed record ProjectDocument
     /// <summary>
     /// The format version this builder writes. Older versions (1: no anchors, 2: no containers,
     /// 3: no grid spans, 4: no sized grid rows and columns, 5: one screen, 6: the first seven
-    /// control types only, 7: no button actions, 8: no fonts or colours, 9: no images, 10: no tab controls, 11: no tab order, 12: no theme, 13: no data binding, 14: no commands, 15: no enabled bindings, 16: no screen code, 17: no platform, 18: no control libraries) are still
+    /// control types only, 7: no button actions, 8: no fonts or colours, 9: no images, 10: no tab controls, 11: no tab order, 12: no theme, 13: no data binding, 14: no commands, 15: no enabled bindings, 16: no screen code, 17: no platform, 18: no control libraries, 19: no style) are still
     /// read. See docs/project-format.md for the history.
     /// </summary>
-    public const int CurrentSchemaVersion = 19;
+    public const int CurrentSchemaVersion = 20;
 
     public const int OldestSupportedSchemaVersion = 1;
     public const string DefaultName = "Untitled";
@@ -42,6 +42,20 @@ public sealed record ProjectDocument
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public ProjectTheme Theme { get; init; }
 
+    /// <summary>
+    /// Classic or modern controls; not stored when Classic, the look of projects made before
+    /// there was a choice. New projects are modern.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public ProjectStyle Style { get; init; }
+
+    /// <summary>
+    /// Whether WPF draws the controls with its Fluent styles: in the modern style, and in the
+    /// dark and system themes, which WPF only offers in Fluent.
+    /// </summary>
+    [JsonIgnore]
+    public bool UsesFluent => Style == ProjectStyle.Modern || Theme != ProjectTheme.Light;
+
     /// <summary>The project's screens, in order. There is always at least one.</summary>
     public required ImmutableList<ScreenDocument> Screens { get; init; }
 
@@ -53,6 +67,7 @@ public sealed record ProjectDocument
     {
         ProjectId = Guid.NewGuid(),
         Platform = platform,
+        Style = ProjectStyle.Modern,
         Screens = [new ScreenDocument()],
     };
 

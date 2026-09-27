@@ -29,6 +29,7 @@ public sealed partial class WpfOutputParityTests
     private static ProjectDocument Tricky()
     {
         var editor = new DesignEditor();
+        editor.SetStyle(ProjectStyle.Classic);
         var label = editor.AddControl(Core.ControlType.Label, 10, 10);
         var button = editor.AddControl(Core.ControlType.Button, 10, 50);
         var box = editor.AddControl(Core.ControlType.TextBox, 10, 90);
@@ -43,8 +44,13 @@ public sealed partial class WpfOutputParityTests
         return editor.Document;
     }
 
+    /// <summary>The classic style, where the control-level appearance is compared too.</summary>
     [WindowsFact]
-    public void SampleMatchesTheDesigner() => RunOnStaThread(() => AssertParity(Sample()));
+    public void SampleMatchesTheDesigner() => RunOnStaThread(() => AssertParity(Sample() with { Style = ProjectStyle.Classic }));
+
+    /// <summary>The modern style: WPF's Fluent styles in light, and the design's places and sizes.</summary>
+    [WindowsFact]
+    public void ModernSampleLaysOutTheSameEverywhere() => RunOnStaThread(() => AssertParity(Sample() with { Style = ProjectStyle.Modern }));
 
     [WindowsFact]
     public void SpecialTextMatchesTheDesigner() => RunOnStaThread(() => AssertParity(Tricky()));
@@ -101,6 +107,10 @@ public sealed partial class WpfOutputParityTests
     [WindowsFact]
     public void LayoutDemoLaysOutTheSameEverywhere() => RunOnStaThread(() => AssertParity(
         ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", "layout-demo.uibproj"))));
+
+    [WindowsFact]
+    public void ClassicLayoutDemoMatchesTheDesigner() => RunOnStaThread(() => AssertParity(
+        ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", "layout-demo.uibproj")) with { Style = ProjectStyle.Classic }));
 
     /// <summary>
     /// In the dark theme, WPF's Fluent styles draw the controls, in the window and the Preview
@@ -192,7 +202,7 @@ public sealed partial class WpfOutputParityTests
             }
         }
 
-        if (document.Theme != ProjectTheme.Light)
+        if (document.UsesFluent)
         {
             return;
         }

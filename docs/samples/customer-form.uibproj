@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971",
   "name": "Customer form",
+  "style": "Modern",
   "screen": {
     "id": "main",
     "name": "Main",

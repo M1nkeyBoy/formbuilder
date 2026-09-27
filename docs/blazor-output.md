@@ -67,6 +67,13 @@ other screen is named after itself, with its name in lower case as its address.
 `uib.css` gives the page's colours as CSS variables, with `color-scheme` so the browser
 draws its own inputs and buttons to match. A Dark project is dark; a System project is dark
 only when the browser asks for it (`prefers-color-scheme: dark`).
+
+In the modern style (Project > Style), `uib.css` also draws inputs, lists and buttons flat,
+with rounded corners, a thin border and a stronger bottom edge, as Windows 11 does. A focused
+field's bottom edge turns blue, buttons lighten under the pointer, and check boxes, radio
+buttons, sliders and progress bars use the same blue (lighter in the dark theme) through
+`accent-color`. A control's own colours still win. The classic style leaves them to the
+browser.
 On a background the design sets (a control's own, or its container's), text gets black or
 white, whichever stands out, unless it has a text colour of its own, and controls inside such
 a container take its background; so the design's own colours read the same in a dark theme.

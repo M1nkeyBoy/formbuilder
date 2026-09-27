@@ -166,6 +166,8 @@ public partial class MainWindow : Window
         LightThemeMenuItem.IsChecked = editor.Document.Theme == ProjectTheme.Light;
         DarkThemeMenuItem.IsChecked = editor.Document.Theme == ProjectTheme.Dark;
         SystemThemeMenuItem.IsChecked = editor.Document.Theme == ProjectTheme.System;
+        ModernStyleMenuItem.IsChecked = editor.Document.Style == ProjectStyle.Modern;
+        ClassicStyleMenuItem.IsChecked = editor.Document.Style == ProjectStyle.Classic;
         if (isPreview)
         {
             tabOrderNext = null;
@@ -181,7 +183,7 @@ public partial class MainWindow : Window
     /// <summary>Draws the current screen on the canvas, with the tab order when it is being set.</summary>
     private void RenderSurface()
     {
-        Surface.Render(editor.Screen, selection, isPreview, PreviewButton_Clicked, editor.Document.Theme);
+        Surface.Render(editor.Screen, selection, isPreview, PreviewButton_Clicked, editor.Document.Theme, editor.Document.Style);
         Surface.ShowTabOrder(tabOrderNext is null ? null : TabSequence.Resolve(editor.Screen).Select(c => c.Id).ToList(), tabOrderNext ?? 0);
     }
 
@@ -1412,6 +1414,14 @@ public partial class MainWindow : Window
                 _ => "Theme: light",
             }
             : "That theme is already chosen";
+    }
+
+    private void SetStyle_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        var style = Enum.Parse<ProjectStyle>((string)e.Parameter);
+        StatusText.Text = editor.SetStyle(style)
+            ? style == ProjectStyle.Modern ? "Style: modern" : "Style: classic"
+            : "That style is already chosen";
     }
 
     private void ResetTabOrder_CanExecute(object sender, CanExecuteRoutedEventArgs e) =>

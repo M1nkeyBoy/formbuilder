@@ -92,7 +92,7 @@ internal static class ControlFactory
             element.Name = control.Name;
         }
 
-        // The dark and system themes' Fluent styles set minimum sizes; the design's sizes
+        // WPF's Fluent styles (modern, dark and system) set minimum sizes; the design's sizes
         // stand, as in the generated window.
         element.MinWidth = 0;
         element.MinHeight = 0;

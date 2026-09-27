@@ -29,17 +29,19 @@ A complete example is in [`samples/customer-form.uibproj`](samples/customer-form
 | 17 | Adds `code` to screens. | None: older screens have no code. |
 | 18 | Adds the project's `platform`. | None: older projects are for any platform, as before. |
 | 19 | Adds control libraries: `libraries`, `licenseKeys`, and the `Custom` type with `libraryType`, `libraryAssembly` and `librarySettings`. | None: older projects use no libraries. |
+| 20 | Adds the project's `style`. | None: older projects keep the classic look they were made with. |
 
-The builder reads versions 1 to 19 and always saves version 19. An older builder rejects a
+The builder reads versions 1 to 20 and always saves version 20. An older builder rejects a
 newer file with a clear message instead of silently dropping what it does not know.
 
-## Schema version 19
+## Schema version 20
 
 ```json
 {
-  "schemaVersion": 19,
+  "schemaVersion": 20,
   "projectId": "9e9608a0-1ab6-4dd4-8da0-592260982971",
   "name": "Customer form",
+  "style": "Modern",
   "screens": [{
     "id": "main",
     "name": "Main",
@@ -67,13 +69,14 @@ newer file with a clear message instead of silently dropping what it does not kn
 
 | Field | Type | Notes |
 |---|---|---|
-| `schemaVersion` | integer | Required. `19` when saved by this builder; `1` to `18` are still read. |
+| `schemaVersion` | integer | Required. `20` when saved by this builder; `1` to `19` are still read. |
 | `projectId` | GUID string | Required. Stable for the life of the project. |
 | `name` | string | Written as the file name (without extension) on save. |
 | `platform` | string | The platform the screens are for: `"Wpf"`, `"WinForms"`, `"WinUI"`, `"Maui"` or `"Blazor"`; `"Any"` (the default, not written) exports to all five. A project for one platform exports only to it. |
 | `libraries` | array | The control libraries the project uses (Project > Libraries), below. Omitted when there are none. Only a project for one platform has libraries. |
 | `licenseKeys` | object | Licence keys by vendor, which every export registers when the app starts: `{ "Syncfusion": "…" }`. Omitted when there are none. |
 | `theme` | string | `"Light"` (the default, not written), `"Dark"`, or `"System"` to follow the computer's or browser's setting. See each output's Theme section. |
+| `style` | string | `"Classic"` (the default, not written): each target's long-standing look, such as WPF's grey buttons. `"Modern"`: WPF's Fluent styles (as in Windows 11) and rounded, flat Blazor controls; Windows Forms, WinUI and MAUI look the same in both. New projects are modern. WPF's dark and system themes are always Fluent. |
 | `screens` | array | Required, at least one. In order: the first is the main screen, which a generated application opens with. Versions 1 to 5 had a single `screen` object instead. |
 
 ### Screen

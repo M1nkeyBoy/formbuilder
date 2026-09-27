@@ -141,7 +141,7 @@ public static class BlazorGenerator
             new("Components/_Imports.razor", ImportsRazor(rootNamespace), Regenerate: false),
             new("Components/Layout/MainLayout.razor", LayoutRazor(), Regenerate: false),
             new("wwwroot/app.css", AppCss(), Regenerate: false),
-            new("wwwroot/uib.css", BuilderCss(document.Theme), Regenerate: true),
+            new("wwwroot/uib.css", BuilderCss(document.Theme, document.Style), Regenerate: true),
         ];
 
         foreach (var screen in document.Screens)
@@ -733,16 +733,15 @@ public static class BlazorGenerator
 
     /// <summary>
     /// The builder's styles. Controls use their exact designed boxes (border-box sizing), in the
-    /// same font size the designer uses.
+    /// same font size the designer uses. The theme's colours are variables: light, dark, or
+    /// light unless the browser asks for dark; color-scheme makes the browser draw its own
+    /// controls to match. The modern style adds rounded, flat controls on top.
     /// </summary>
-    /// <summary>
-    /// The layout rules, with the theme's colours as variables: light, dark, or light unless the
-    /// browser asks for dark. color-scheme makes the browser draw its own controls to match.
-    /// </summary>
-    private static string BuilderCss(ProjectTheme theme) => $$"""
+    private static string BuilderCss(ProjectTheme theme, ProjectStyle style) => $$"""
         /* {{ProjectExporter.GeneratedMarker}}. This file is replaced on every export; put your own
            styles in app.css. */
-        :root { color-scheme: light; --uib-page: #fff; --uib-text: #000; --uib-line: #d5dfe5; --uib-tab: #f0f0f0; }
+        :root { color-scheme: light; --uib-page: #fff; --uib-text: #000; --uib-line: #d5dfe5; --uib-tab: #f0f0f0;
+          --uib-control: #fff; --uib-control-hover: #f5f5f5; --uib-control-line: #d1d1d1; --uib-control-edge: #8a8a8a; --uib-accent: #0067c0; }
         {{DarkCss(theme)}}
         html, body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; font-size: 12px; background: var(--uib-page); color: var(--uib-text); }
         *, *::before, *::after { box-sizing: border-box; }
@@ -767,10 +766,32 @@ public static class BlazorGenerator
         .uib-tab { flex: none; height: 28px; padding: 0 10px; border: 1px solid var(--uib-line); border-bottom: none; border-radius: 3px 3px 0 0; background: var(--uib-tab); white-space: nowrap; cursor: pointer; }
         .uib-tab-selected { background: var(--uib-page); }
         .uib-tabframe { position: absolute; left: 0; right: 0; top: 28px; bottom: 0; border: 1px solid var(--uib-line); background: var(--uib-page); }
-
+        {{(style == ProjectStyle.Modern ? ModernCss : "")}}
         """;
 
-    private const string DarkColors = ":root { color-scheme: dark; --uib-page: #202020; --uib-text: #fff; --uib-line: #4a4a4a; --uib-tab: #2d2d2d; }";
+    /// <summary>
+    /// The modern style: flat controls with rounded corners and a thin border, a blue accent for
+    /// focus and for check boxes, sliders and progress bars, as Windows 11 draws them. The
+    /// colours follow the theme; a control's own colours still win.
+    /// </summary>
+    private const string ModernCss = """
+        .uib-input, .uib-button { border: 1px solid var(--uib-control-line); border-radius: 4px; background: var(--uib-control); color: var(--uib-text); }
+        input.uib-input, select.uib-input { padding: 0 8px; border-bottom-color: var(--uib-control-edge); }
+        textarea.uib-input { padding: 4px 8px; border-bottom-color: var(--uib-control-edge); }
+        .uib-input:focus { outline: none; border-bottom: 2px solid var(--uib-accent); }
+        .uib-button { padding: 0 12px; cursor: pointer; }
+        .uib-button:hover { background: var(--uib-control-hover); }
+        .uib-button:active { opacity: 0.8; }
+        .uib-button:focus-visible, .uib-tab:focus-visible { outline: 2px solid var(--uib-text); outline-offset: 1px; }
+        .uib-button:disabled { opacity: 0.45; cursor: default; }
+        .uib-screen input[type=checkbox], .uib-screen input[type=radio], .uib-range, .uib-progress { accent-color: var(--uib-accent); }
+        .uib-frame { border-radius: 8px; }
+        .uib-tab { border-radius: 6px 6px 0 0; }
+        .uib-tabframe { border-radius: 0 8px 8px 8px; }
+        """;
+
+    private const string DarkColors = ":root { color-scheme: dark; --uib-page: #202020; --uib-text: #fff; --uib-line: #4a4a4a; --uib-tab: #2d2d2d; "
+        + "--uib-control: #2d2d2d; --uib-control-hover: #323232; --uib-control-line: #3d3d3d; --uib-control-edge: #9a9a9a; --uib-accent: #4cc2ff; }";
 
     private static string DarkCss(ProjectTheme theme) => theme switch
     {

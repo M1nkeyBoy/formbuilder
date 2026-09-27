@@ -100,7 +100,7 @@ public partial class MainWindow
         }
 
         ExportButton.Content = platform == ProjectPlatform.Any ? "Export ▾" : $"Export to {platform.DisplayName()}";
-        ScreenInfoText.Text = $"{platform.DisplayName()} · {ThemeName(editor.Document.Theme)} theme · {screen.Width} × {screen.Height} DIPs · {Math.Round(zoom * 100)}%";
+        ScreenInfoText.Text = $"{platform.DisplayName()} · {editor.Document.Style} · {ThemeName(editor.Document.Theme)} theme · {screen.Width} × {screen.Height} DIPs · {Math.Round(zoom * 100)}%";
         ShowGridBox.IsChecked = ShowGridMenuItem.IsChecked = Surface.ShowGrid;
         if (LibrarySignature() != toolboxLibraries)
         {

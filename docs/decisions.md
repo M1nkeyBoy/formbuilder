@@ -851,3 +851,22 @@ Choices made during the prototype slices that affect later work.
 - **Checked by** tests of the analysis on the layout demo's Settings screen (problems placed
   on the right line, platform types, completion, hover, overloads), and a UI test that takes a
   suggestion and sees a mistake reported.
+
+## Modern or classic controls
+
+- **A project setting, not a theme.** Project > Style is Modern or Classic, next to the
+  light and dark Theme, since look and colours vary independently in Blazor. It is stored
+  as `style` (schema 20), written only when Modern.
+- **New projects are modern; older ones keep their look.** A file without `style` is
+  Classic, so opening an old project never changes how its exports look. The samples are
+  modern.
+- **What modern means per target.** WPF: the Fluent theme with `ThemeMode="Light"`, which
+  the dark and system themes already used, with the same `MinWidth="0" MinHeight="0"` so the
+  design's sizes stand. Blazor: flat, rounded inputs and buttons and an accent colour in
+  `uib.css`, with the colours as variables so the dark theme overrides them. Windows Forms,
+  WinUI and MAUI already draw current platform controls, so the style does not change them.
+- **The canvas follows.** It loads WPF's Fluent dictionary whenever the export would use it,
+  so the design shows what the WPF app will look like. A WPF window with `ThemeMode` imports
+  as modern, and one without as classic.
+- **Tests.** The WPF parity tests keep comparing control details (padding, alignment) in the
+  classic style, and compare places and sizes in the modern one, as for the dark theme.

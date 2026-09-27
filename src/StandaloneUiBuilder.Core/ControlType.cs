@@ -94,6 +94,19 @@ public enum ProjectTheme
     System,
 }
 
+/// <summary>How a project's generated screens draw their standard controls.</summary>
+public enum ProjectStyle
+{
+    /// <summary>Each target's long-standing default look (grey WPF buttons, for example).</summary>
+    Classic,
+
+    /// <summary>
+    /// The current look of each target: WPF's Fluent styles, which Windows 11 apps use, and
+    /// rounded, flat controls in Blazor. Windows Forms, WinUI and MAUI already look current.
+    /// </summary>
+    Modern,
+}
+
 /// <summary>How an Image fills its box.</summary>
 public enum ImageStretch
 {

@@ -241,7 +241,7 @@ public sealed class WpfOutputTests : IDisposable
         Assert.Equal("NewsletterCheckBox_Click", (string?)elements["NewsletterCheckBox"].Attribute("Click"));
         Assert.Equal("NameTextBox_TextChanged", (string?)elements["NameTextBox"].Attribute("TextChanged"));
         Assert.Equal("PlanComboBox_SelectionChanged", (string?)elements["PlanComboBox"].Attribute("SelectionChanged"));
-        Assert.Equal(["x:Name", "HorizontalAlignment", "VerticalAlignment", "Margin", "Width", "Height", "Padding", "VerticalContentAlignment", "Content"],
+        Assert.Equal(["x:Name", "HorizontalAlignment", "VerticalAlignment", "Margin", "Width", "Height", "MinWidth", "MinHeight", "Padding", "VerticalContentAlignment", "Content"],
             elements["NameLabel"].Attributes().Select(a => a.Name.Namespace == Xaml ? "x:" + a.Name.LocalName : a.Name.LocalName));
     }
 

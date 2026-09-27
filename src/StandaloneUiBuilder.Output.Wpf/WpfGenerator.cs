@@ -175,7 +175,7 @@ public static class WpfGenerator
         screen = ThemeContrast.Apply(document.Theme, screen);
         var className = ClassName(document, screen);
         var resizable = AnchorLayout.IsResizable(screen);
-        var theme = document.Theme;
+        var fluent = document.UsesFluent;
         var xaml = new StringBuilder();
         xaml.AppendLine($"<!-- {GeneratedMarker} from \"{Comment(document.Name)}\". This file is replaced on every export;");
         xaml.AppendLine($"     put your own code in {className}.xaml.cs. -->");
@@ -190,7 +190,7 @@ public static class WpfGenerator
         xaml.AppendLine($"        Title=\"{Attribute(WindowTitle(document, screen))}\"");
         xaml.AppendLine("        SizeToContent=\"WidthAndHeight\"");
         xaml.AppendLine($"        ResizeMode=\"{(resizable ? "CanResize" : "CanMinimize")}\"");
-        if (theme != ProjectTheme.Light)
+        if (fluent)
         {
             xaml.AppendLine($"        ThemeMode=\"{ThemeMode(document.Theme)}\"");
         }
@@ -211,7 +211,7 @@ public static class WpfGenerator
 
         foreach (var control in screen.Controls)
         {
-            AppendControl(xaml, screen, theme, control);
+            AppendControl(xaml, screen, fluent, control);
         }
 
         xaml.AppendLine("    </Grid>");
@@ -220,7 +220,7 @@ public static class WpfGenerator
     }
 
     /// <summary>A control placed directly on the screen: alignment and margins from its anchors.</summary>
-    private static void AppendControl(StringBuilder xaml, ScreenDocument screen, ProjectTheme theme, ControlDocument control)
+    private static void AppendControl(StringBuilder xaml, ScreenDocument screen, bool fluent, ControlDocument control)
     {
         var placement = AnchorLayout.Place(screen, control);
 
@@ -249,7 +249,7 @@ public static class WpfGenerator
             layout.Add($"Height=\"{Number(height)}\"");
         }
 
-        AppendElement(xaml, screen, theme, control, layout, depth: 2);
+        AppendElement(xaml, screen, fluent, control, layout, depth: 2);
     }
 
     /// <summary>
@@ -257,23 +257,23 @@ public static class WpfGenerator
     /// its children with theirs: a StackPanel child keeps its size along the stack, stretches
     /// across it and has the spacing as a leading margin; a Grid child fills its cell.
     /// </summary>
-    private static void AppendElement(StringBuilder xaml, ScreenDocument screen, ProjectTheme theme, ControlDocument control, List<string> layout, int depth)
+    private static void AppendElement(StringBuilder xaml, ScreenDocument screen, bool fluent, ControlDocument control, List<string> layout, int depth)
     {
         if (control.Type == ControlType.GroupBox)
         {
-            AppendGroupBox(xaml, screen, theme, control, layout, depth);
+            AppendGroupBox(xaml, screen, fluent, control, layout, depth);
             return;
         }
 
         if (control.Type == ControlType.Image)
         {
-            AppendImage(xaml, screen, theme, control, layout, depth);
+            AppendImage(xaml, screen, fluent, control, layout, depth);
             return;
         }
 
         if (control.Type == ControlType.TabControl)
         {
-            AppendTabControl(xaml, screen, theme, control, layout, depth);
+            AppendTabControl(xaml, screen, fluent, control, layout, depth);
             return;
         }
 
@@ -291,9 +291,9 @@ public static class WpfGenerator
         var attributes = new List<string> { $"x:Name=\"{control.Name}\"" };
         attributes.AddRange(layout);
 
-        // The Fluent styles of the dark and system themes give controls minimum sizes (a text
-        // box is at least 32 high); the design's sizes stand.
-        if (theme != ProjectTheme.Light && !ControlCatalog.Get(control.Type).IsContainer)
+        // The Fluent styles (the modern style, and the dark and system themes) give controls
+        // minimum sizes (a text box is at least 32 high); the design's sizes stand.
+        if (fluent && !ControlCatalog.Get(control.Type).IsContainer)
         {
             attributes.Add("MinWidth=\"0\"");
             attributes.Add("MinHeight=\"0\"");
@@ -399,7 +399,7 @@ public static class WpfGenerator
 
         if (control.Type == ControlType.StackPanel)
         {
-            AppendStackChildren(xaml, screen, theme, control, depth + 1);
+            AppendStackChildren(xaml, screen, fluent, control, depth + 1);
         }
         else if (control.Type == ControlType.Grid)
         {
@@ -437,7 +437,7 @@ public static class WpfGenerator
 
                 cell.Add("HorizontalAlignment=\"Stretch\"");
                 cell.Add("VerticalAlignment=\"Stretch\"");
-                AppendElement(xaml, screen, theme, child, cell, depth + 1);
+                AppendElement(xaml, screen, fluent, child, cell, depth + 1);
             }
         }
 
@@ -449,7 +449,7 @@ public static class WpfGenerator
     /// shrinks to the picture, so on its own it would follow its anchors to one edge; in the
     /// Grid it is centred in the box, as the other targets show it.
     /// </summary>
-    private static void AppendImage(StringBuilder xaml, ScreenDocument screen, ProjectTheme theme, ControlDocument control, List<string> layout, int depth)
+    private static void AppendImage(StringBuilder xaml, ScreenDocument screen, bool fluent, ControlDocument control, List<string> layout, int depth)
     {
         var indent = new string(' ', depth * 4);
         var properties = control.Properties;
@@ -507,7 +507,7 @@ public static class WpfGenerator
     /// A StackPanel's children: each keeps its size along the stack, stretches across it and
     /// has the spacing as a leading margin.
     /// </summary>
-    private static void AppendStackChildren(StringBuilder xaml, ScreenDocument screen, ProjectTheme theme, ControlDocument stack, int depth)
+    private static void AppendStackChildren(StringBuilder xaml, ScreenDocument screen, bool fluent, ControlDocument stack, int depth)
     {
         var properties = stack.Properties;
         var children = stack.Children ?? [];
@@ -524,7 +524,7 @@ public static class WpfGenerator
                 childLayout.Add($"Margin=\"{(vertical ? $"0,{Number(gap)},0,0" : $"{Number(gap)},0,0,0")}\"");
             }
 
-            AppendElement(xaml, screen, theme, child, childLayout, depth);
+            AppendElement(xaml, screen, fluent, child, childLayout, depth);
         }
     }
 
@@ -534,7 +534,7 @@ public static class WpfGenerator
     /// for the children. The fixed inset puts children exactly where the design has them,
     /// whatever the theme's frame looks like.
     /// </summary>
-    private static void AppendGroupBox(StringBuilder xaml, ScreenDocument screen, ProjectTheme theme, ControlDocument group, List<string> layout, int depth)
+    private static void AppendGroupBox(StringBuilder xaml, ScreenDocument screen, bool fluent, ControlDocument group, List<string> layout, int depth)
     {
         var indent = new string(' ', depth * 4);
         var properties = group.Properties;
@@ -552,7 +552,7 @@ public static class WpfGenerator
         else
         {
             xaml.AppendLine(opening + ">");
-            AppendStackChildren(xaml, screen, theme, group, depth + 2);
+            AppendStackChildren(xaml, screen, fluent, group, depth + 2);
             xaml.AppendLine($"{indent}    </StackPanel>");
         }
 
@@ -566,7 +566,7 @@ public static class WpfGenerator
     /// GroupBox, the fixed inset puts pages exactly where the design has them; the generated
     /// SelectionChanged handler shows the page whose tab is chosen.
     /// </summary>
-    private static void AppendTabControl(StringBuilder xaml, ScreenDocument screen, ProjectTheme theme, ControlDocument tabs, List<string> layout, int depth)
+    private static void AppendTabControl(StringBuilder xaml, ScreenDocument screen, bool fluent, ControlDocument tabs, List<string> layout, int depth)
     {
         var indent = new string(' ', depth * 4);
         var pages = tabs.Children ?? [];
@@ -606,7 +606,7 @@ public static class WpfGenerator
             }
 
             xaml.AppendLine(pageOpening + ">");
-            AppendStackChildren(xaml, screen, theme, page, depth + 2);
+            AppendStackChildren(xaml, screen, fluent, page, depth + 2);
             xaml.AppendLine($"{indent}    </StackPanel>");
         }
 
@@ -823,8 +823,8 @@ public static class WpfGenerator
         _ => null,
     };
 
-    /// <summary>The window's Fluent theme: dark, or following Windows' app mode.</summary>
-    private static string ThemeMode(ProjectTheme theme) => theme == ProjectTheme.Dark ? "Dark" : "System";
+    /// <summary>The window's Fluent theme: light, dark, or following Windows' app mode.</summary>
+    private static string ThemeMode(ProjectTheme theme) => theme.ToString();
 
     private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
 

@@ -68,6 +68,7 @@
         <CommandBinding Command="{x:Static local:EditorCommands.TabOrderByPosition}" Executed="TabOrderByPosition_Executed" CanExecute="Designing_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.ResetTabOrder}" Executed="ResetTabOrder_Executed" CanExecute="ResetTabOrder_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.SetTheme}" Executed="SetTheme_Executed" CanExecute="Designing_CanExecute" />
+        <CommandBinding Command="{x:Static local:EditorCommands.SetStyle}" Executed="SetStyle_Executed" CanExecute="Designing_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.EditCode}" Executed="EditCode_Executed" CanExecute="Designing_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.AddScreen}" Executed="AddScreen_Executed" CanExecute="Designing_CanExecute" />
         <CommandBinding Command="{x:Static local:EditorCommands.DuplicateScreen}" Executed="DuplicateScreen_Executed" CanExecute="Designing_CanExecute" />
@@ -199,6 +200,12 @@
                         <MenuItem x:Name="LightThemeMenuItem" Header="_Light" Command="{x:Static local:EditorCommands.SetTheme}" CommandParameter="Light" />
                         <MenuItem x:Name="DarkThemeMenuItem" Header="_Dark" Command="{x:Static local:EditorCommands.SetTheme}" CommandParameter="Dark" />
                         <MenuItem x:Name="SystemThemeMenuItem" Header="Follow _Windows or Browser" Command="{x:Static local:EditorCommands.SetTheme}" CommandParameter="System" />
+                    </MenuItem>
+                    <MenuItem Header="_Style">
+                        <MenuItem x:Name="ModernStyleMenuItem" Header="_Modern" Command="{x:Static local:EditorCommands.SetStyle}" CommandParameter="Modern"
+                                  ToolTip="Rounded, flat controls, as in Windows 11: WPF's Fluent styles, and modern Blazor controls." />
+                        <MenuItem x:Name="ClassicStyleMenuItem" Header="_Classic" Command="{x:Static local:EditorCommands.SetStyle}" CommandParameter="Classic"
+                                  ToolTip="Each platform's long-standing default look, such as WPF's grey buttons." />
                     </MenuItem>
                 </MenuItem>
                 <MenuItem Header="_View">

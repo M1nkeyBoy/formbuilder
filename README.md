@@ -74,6 +74,9 @@ its menus, Save and Export. It follows Windows' light or dark app setting.
   app themes, CSS `color-scheme`). Text on a background you set gets black or white,
   whichever stands out, and controls in a coloured panel share its colour, so it stays
   readable.
+- **Modern or classic controls.** Project > Style: new projects are modern, with WPF's
+  Fluent (Windows 11) styles and rounded Blazor controls; Classic keeps each platform's
+  long-standing look, such as WPF's grey buttons.
 - **Work with several controls.** Ctrl+click, or drag a box across empty canvas, to select
   several controls; drag, nudge (arrow keys, Shift for a grid step), copy, cut, paste,
   duplicate (Ctrl+D) or delete them together. Ctrl+A selects all. The Format menu aligns

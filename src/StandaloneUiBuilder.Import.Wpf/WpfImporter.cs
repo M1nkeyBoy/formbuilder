@@ -121,18 +121,21 @@ public static partial class WpfImporter
         }, warnings)).ToImmutableList();
 
         var title = (string?)parsed[0].Root.Attribute("Title");
+        var themeMode = (string?)parsed[0].Root.Attribute("ThemeMode");
         var document = ProjectDocument.CreateBlank() with
         {
             Name = string.IsNullOrWhiteSpace(title) ? projectName : title,
             Screens = linked,
 
-            // The main window's Fluent theme, as the builder writes it; Light and None are the usual look.
-            Theme = (string?)parsed[0].Root.Attribute("ThemeMode") switch
+            // The main window's Fluent theme, as the builder writes it: a window with one is
+            // modern, and one without has WPF's classic look.
+            Theme = themeMode switch
             {
                 "Dark" => ProjectTheme.Dark,
                 "System" => ProjectTheme.System,
                 _ => ProjectTheme.Light,
             },
+            Style = themeMode is "Light" or "Dark" or "System" ? ProjectStyle.Modern : ProjectStyle.Classic,
         };
 
         // Anything still invalid is reported rather than producing a project that will not open.

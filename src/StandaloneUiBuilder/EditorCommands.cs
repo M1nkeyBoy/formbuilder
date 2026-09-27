@@ -122,6 +122,12 @@ public static class EditorCommands
         nameof(SetTheme),
         typeof(EditorCommands));
 
+    /// <summary>Chooses the project's style; the parameter is Modern or Classic.</summary>
+    public static RoutedUICommand SetStyle { get; } = new(
+        "Style",
+        nameof(SetStyle),
+        typeof(EditorCommands));
+
     public static RoutedUICommand ResetTabOrder { get; } = new(
         "R_eset Tab Order",
         nameof(ResetTabOrder),

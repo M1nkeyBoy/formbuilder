@@ -804,6 +804,17 @@ public sealed partial class DesignEditor
         return true;
     }
 
+    public bool SetStyle(ProjectStyle style)
+    {
+        if (Document.Style == style)
+        {
+            return false;
+        }
+
+        Commit(Document with { Style = style });
+        return true;
+    }
+
     /// <summary>Renames the current screen. The name must be an identifier not used by another screen.</summary>
     public string? RenameScreen(string name)
     {

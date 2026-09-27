@@ -256,10 +256,10 @@ internal sealed class DesignSurface : Grid
     /// Rebuilds the surface from the document. In Preview the grid and selection are hidden
     /// and the controls respond to input; their state is thrown away on the next render.
     /// </summary>
-    public void Render(ScreenDocument screen, IReadOnlyCollection<Guid> selection, bool isPreview = false, Action<ControlDocument>? buttonClicked = null, ProjectTheme theme = ProjectTheme.Light)
+    public void Render(ScreenDocument screen, IReadOnlyCollection<Guid> selection, bool isPreview = false, Action<ControlDocument>? buttonClicked = null, ProjectTheme theme = ProjectTheme.Light, ProjectStyle style = ProjectStyle.Classic)
     {
         CancelDrag();
-        ApplyTheme(theme);
+        ApplyTheme(theme, style);
 
         // Drawn as the generated windows show it: text on the design's own backgrounds stays readable.
         screen = ThemeContrast.Apply(theme, screen);
@@ -313,14 +313,14 @@ internal sealed class DesignSurface : Grid
     }
 
     /// <summary>
-    /// Draws the controls in the project's theme, as the generated WPF window does: the usual
-    /// look for Light, and WPF's Fluent styles in dark (or in the colours Windows is set to
-    /// use, for System).
+    /// Draws the controls in the project's theme and style, as the generated WPF window does:
+    /// WPF's classic look for the classic style in Light, and otherwise WPF's Fluent styles,
+    /// light, dark, or in the colours Windows is set to use, for System.
     /// </summary>
-    private void ApplyTheme(ProjectTheme theme)
+    private void ApplyTheme(ProjectTheme theme, ProjectStyle style)
     {
         var dark = theme == ProjectTheme.Dark || (theme == ProjectTheme.System && WindowsAppsUseDarkMode());
-        var source = theme == ProjectTheme.Light
+        var source = theme == ProjectTheme.Light && style == ProjectStyle.Classic
             ? null
             : new Uri($"pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.{(dark ? "Dark" : "Light")}.xaml", UriKind.Absolute);
         if (source == shownThemeSource)

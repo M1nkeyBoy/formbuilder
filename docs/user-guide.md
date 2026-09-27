@@ -36,8 +36,8 @@ project's name, or Project > Platform, changes it.
 - **Middle:** a tab for each screen (+ adds one), the screen's size, and the canvas.
 - **Right panel:** the inspector for the selected control, or the screen's settings when
   nothing is selected.
-- **Status bar:** what just happened, the number of controls, and the project's theme, screen
-  size and zoom.
+- **Status bar:** what just happened, the number of controls, and the project's platform,
+  style, theme, screen size and zoom.
 
 The editor follows Windows' light or dark app setting. A project's own theme (below) is
 separate: it is how the screens you design look.
@@ -111,6 +111,17 @@ them to the order they were added.
 browser's) setting. The canvas and Preview show it, and every export uses its target's own
 dark theme. Text on a background colour you chose always gets black or white, whichever
 stands out.
+
+**Project > Style** chooses how the controls themselves look:
+
+- **Modern** (new projects): rounded, flat controls, as in Windows 11. WPF apps use WPF's
+  Fluent styles, and Blazor pages get rounded inputs and buttons with a blue accent.
+- **Classic:** each platform's long-standing look, such as WPF's grey buttons. Projects made
+  before there was a choice open as Classic, so they look as they did; choose Modern to
+  update them.
+
+Windows Forms, WinUI and MAUI apps already draw their controls in the current Windows or
+device style, so they look the same in both. WPF's dark and system themes are always Fluent.
 
 ## Data binding, commands and code
 

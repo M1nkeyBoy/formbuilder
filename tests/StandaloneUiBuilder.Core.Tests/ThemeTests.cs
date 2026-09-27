@@ -14,8 +14,8 @@ public class ThemeTests
 {
     private static readonly XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
 
-    private static ProjectDocument Sample(ProjectTheme theme) =>
-        ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", "layout-demo.uibproj")) with { Theme = theme };
+    private static ProjectDocument Sample(ProjectTheme theme, ProjectStyle style = ProjectStyle.Modern) =>
+        ProjectFile.Load(Path.Combine(AppContext.BaseDirectory, "samples", "layout-demo.uibproj")) with { Theme = theme, Style = style };
 
     private static string File(IReadOnlyList<GeneratedFile> files, string path) =>
         files.Single(f => f.RelativePath == path).Content;
@@ -60,13 +60,21 @@ public class ThemeTests
     [Fact]
     public void WpfWindowsUseTheFluentThemeWithTheDesignSizes()
     {
-        var light = XDocument.Parse(WpfGenerator.WindowXaml(Sample(ProjectTheme.Light), "Demo")).Root!;
-        Assert.Null(light.Attribute("ThemeMode"));
-        Assert.DoesNotContain(light.Descendants(), e => e.Attribute("MinHeight") is { Value: "0" });
+        // The classic style in the light theme is WPF's classic look.
+        var classic = XDocument.Parse(WpfGenerator.WindowXaml(Sample(ProjectTheme.Light, ProjectStyle.Classic), "Demo")).Root!;
+        Assert.Null(classic.Attribute("ThemeMode"));
+        Assert.DoesNotContain(classic.Descendants(), e => e.Attribute("MinHeight") is { Value: "0" });
 
-        foreach (var (theme, mode) in new[] { (ProjectTheme.Dark, "Dark"), (ProjectTheme.System, "System") })
+        // The dark and system themes exist only in Fluent, whatever the style.
+        foreach (var (theme, style, mode) in new[]
         {
-            var document = Sample(theme);
+            (ProjectTheme.Light, ProjectStyle.Modern, "Light"),
+            (ProjectTheme.Dark, ProjectStyle.Modern, "Dark"),
+            (ProjectTheme.System, ProjectStyle.Modern, "System"),
+            (ProjectTheme.Dark, ProjectStyle.Classic, "Dark"),
+        })
+        {
+            var document = Sample(theme, style);
             foreach (var screen in document.Screens)
             {
                 var root = XDocument.Parse(WpfGenerator.WindowXaml(document, screen, "Demo")).Root!;
