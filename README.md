@@ -1,3 +1,14 @@
+## Project Status
+
+⚠️ This project is no longer actively maintained.
+
+The repository is being made public so that others may learn from it, use it, and create their own forks.
+
+I do not intend to review or merge pull requests, address issues, or provide ongoing support.
+
+If you would like to continue development, please create your own fork and maintain it independently.
+
+This software is provided as-is under the terms of the included licence.
 # Standalone UI Builder
 
 A Windows desktop designer for placing and editing controls on a gridded canvas, saving the
